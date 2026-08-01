@@ -353,6 +353,34 @@ export async function deleteUser(userIdOrEmail: string): Promise<boolean> {
 }
 
 /**
+ * Clear all farm logs / reports from InsForge DB + Local storage (Start Afresh)
+ */
+export async function clearAllReports(): Promise<boolean> {
+  try {
+    localStorage.removeItem('accad_reports_v2');
+    localStorage.removeItem('accad_reports_v1');
+    localStorage.removeItem('accad_reports');
+  } catch (e) {}
+
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      const { data } = await insforge.database.from('reports').select('id');
+      if (data && Array.isArray(data)) {
+        for (const item of data) {
+          if (item.id) {
+            await insforge.database.from('reports').delete().eq('id', item.id);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('InsForge clearAllReports notice:', e);
+    }
+  }
+
+  return true;
+}
+
+/**
  * Get all farm logs / reports from InsForge DB + Local sync
  */
 export async function getReports(): Promise<Report[]> {

@@ -70,7 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         
         {/* Logo Banner */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-20 h-20 bg-emerald-50 rounded-2xl p-2.5 border border-emerald-200 flex items-center justify-center mb-3 shadow-sm">
+          <div className="w-28 h-28 bg-emerald-50 rounded-3xl p-3 border-2 border-emerald-200 flex items-center justify-center mb-3 shadow-md">
             <img 
               src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
               alt="ACCAD Logo" 

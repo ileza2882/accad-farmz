@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType } from '../types';
-import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport } from '../lib/insforge';
+import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
 import { ReportDetails } from '../components/ReportDetails';
@@ -306,6 +306,24 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       alert('Rejection failed: ' + e.message);
     } finally {
       setIsActionProcessing(false);
+      setRejectionReport(null);
+    }
+  };
+
+  const handleClearOldLogs = async () => {
+    const confirmText = "Are you sure you want to REMOVE ALL old farm log records and start afresh? This will permanently delete old log entries from the database.";
+    if (!window.confirm(confirmText)) return;
+
+    setIsActionProcessing(true);
+    try {
+      await clearAllReports();
+      await loadData();
+      setActionMessage("All old farm log records have been permanently cleared from database. Starting afresh!");
+      setTimeout(() => setActionMessage(null), 3500);
+    } catch (e: any) {
+      alert("Failed clearing old logs: " + e.message);
+    } finally {
+      setIsActionProcessing(false);
     }
   };
 
@@ -402,6 +420,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           >
             <UserPlus className="w-4 h-4" />
             <span>Register User Account</span>
+          </button>
+
+          <button
+            onClick={handleClearOldLogs}
+            disabled={isActionProcessing}
+            className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-extrabold px-5 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-rose-950/40 transition-all flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+            title="Permanently remove old farm log records from database to start afresh"
+          >
+            <RefreshCw className={`w-4 h-4 ${isActionProcessing ? 'animate-spin' : ''}`} />
+            <span>Clear Logs (Start Afresh)</span>
           </button>
         </div>
 

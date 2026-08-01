@@ -60,14 +60,14 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           
-          {/* Logo Badge */}
-          <div className="inline-flex items-center space-x-3 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-full mb-8 shadow-sm">
-            <div className="w-6 h-6 rounded-lg overflow-hidden bg-white p-0.5 border border-emerald-300">
-              <img src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-            </div>
-            <span className="text-xs font-black text-emerald-800 tracking-wider uppercase">
-              ACCAD FARMS Unified Portal
-            </span>
+          {/* Prominent Large Logo */}
+          <div className="w-28 h-28 sm:w-32 sm:h-32 mx-auto bg-emerald-50/80 rounded-3xl p-3 border-2 border-emerald-200/80 shadow-lg shadow-emerald-900/10 mb-6 flex items-center justify-center backdrop-blur-sm hover:scale-105 transition-transform">
+            <img 
+              src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
+              alt="ACCAD Logo" 
+              className="w-full h-full object-contain" 
+              referrerPolicy="no-referrer" 
+            />
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight uppercase text-slate-900 leading-none">

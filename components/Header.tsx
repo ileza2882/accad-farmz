@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
 
   return (
     <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between">
         
         {/* Top-Left Logo (Clickable -> Homepage) */}
         <Link 
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
           className="flex items-center space-x-3 group focus:outline-none"
           title="ACCAD FARMS - Return to Homepage"
         >
-          <div className="w-14 h-14 bg-emerald-50 rounded-2xl p-1.5 border border-emerald-100 group-hover:scale-105 transition-transform flex items-center justify-center shadow-sm">
+          <div className="w-20 h-20 bg-emerald-50 rounded-2xl p-2 border border-emerald-100 group-hover:scale-105 transition-transform flex items-center justify-center shadow-md">
             <img 
               src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
               alt="ACCAD Logo" 
