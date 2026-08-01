@@ -160,42 +160,43 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-900 px-4 sm:px-8 py-8 w-full max-w-[1600px] mx-auto space-y-8 font-sans">
+    <div className="min-h-screen bg-slate-50/50 text-slate-900 px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-8 font-sans overflow-x-hidden">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 text-white p-8 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden border border-blue-800/40">
+      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-slate-950 text-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden border border-blue-800/40">
         
-        <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center space-x-2 bg-blue-800/60 border border-blue-700/60 px-3.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
-            <Layers className="w-3.5 h-3.5 text-blue-300" />
-            <span>Sector Manager Review Portal</span>
+        <div className="space-y-1.5 sm:space-y-2 relative z-10">
+          <div className="inline-flex items-center space-x-2 bg-blue-800/60 border border-blue-700/60 px-2.5 sm:px-3.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black tracking-widest uppercase">
+            <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-300" />
+            <span>Manager Review Portal</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase">Manager Operations Portal</h1>
-          <p className="text-xs text-blue-200 font-medium">
-            Active Manager: <strong className="text-white">{user.fullName}</strong> &bull; Sector: <strong className="text-white">{user.department || 'All Departments'}</strong> &bull; Workstation: <code className="font-mono bg-blue-900/80 px-2 py-0.5 rounded border border-blue-700/80">{getComputerName()}</code>
+          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight uppercase">Manager Portal</h1>
+          <p className="text-[10px] sm:text-xs text-blue-200 font-medium">
+            Manager: <strong className="text-white">{user.fullName}</strong>
+            <span className="hidden sm:inline"> &bull; Sector: <strong className="text-white">{user.department || 'All Departments'}</strong></span>
           </p>
         </div>
 
-        <div className="flex items-center space-x-3 relative z-10">
+        <div className="flex items-center space-x-2 sm:space-x-3 relative z-10 overflow-x-auto">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-6 py-3.5 rounded-2xl text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer whitespace-nowrap ${
               activeTab === 'pending'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
                 : 'bg-white/10 text-slate-200 hover:bg-white/20'
             }`}
           >
-            Pending Review ({pendingReports.length})
+            Pending ({pendingReports.length})
           </button>
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-6 py-3.5 rounded-2xl text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer whitespace-nowrap ${
               activeTab === 'all'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
                 : 'bg-white/10 text-slate-200 hover:bg-white/20'
             }`}
           >
-            All Sector Logs ({reports.length})
+            All Logs ({reports.length})
           </button>
         </div>
 
@@ -209,20 +210,20 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user }) => {
       )}
 
       {/* Manager Summary Cards & Recharts Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Statistics Cards */}
-        <div className="space-y-4">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-2">
-            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Pending Manager Vetting</span>
-            <div className="text-3xl font-black text-blue-600">{pendingReports.length}</div>
-            <p className="text-[11px] text-slate-500 font-medium">Logs submitted by team requiring vetting</p>
+        <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
+          <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-1 sm:space-y-2">
+            <span className="text-[10px] sm:text-xs font-black uppercase text-slate-400 tracking-wider">Pending</span>
+            <div className="text-2xl sm:text-3xl font-black text-blue-600">{pendingReports.length}</div>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium hidden sm:block">Logs requiring vetting</p>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-2">
-            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Vetted & Forwarded Logs</span>
-            <div className="text-3xl font-black text-emerald-600">{approvedReports.length}</div>
-            <p className="text-[11px] text-slate-500 font-medium">Approved by Manager or ED</p>
+          <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-1 sm:space-y-2">
+            <span className="text-[10px] sm:text-xs font-black uppercase text-slate-400 tracking-wider">Approved</span>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600">{approvedReports.length}</div>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium hidden sm:block">Approved by Manager or ED</p>
           </div>
         </div>
 
