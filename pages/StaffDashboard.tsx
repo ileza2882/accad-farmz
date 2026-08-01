@@ -1,0 +1,262 @@
+import React, { useState, useEffect } from 'react';
+import { User, Department, InventoryType, Report, ReportStatus } from '../types';
+import { getReports, createReport, getNotifications, createNotification } from '../lib/insforge';
+import { FisheryAssetForm } from '../components/FisheryAssetForm';
+import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
+import { ReportDetails } from '../components/ReportDetails';
+import { FarmLogsTable } from '../components/FarmLogsTable';
+import { formatLogName, getComputerName } from '../lib/exportUtils';
+import { Plus, FileText, CheckCircle2, Clock, XCircle, Filter, Eye, AlertCircle, RefreshCw, Monitor, Sparkles } from 'lucide-react';
+
+interface StaffDashboardProps {
+  user: User;
+}
+
+export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'my_logs' | 'submit_log'>('my_logs');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Submit Log State
+  const [selectedDept, setSelectedDept] = useState<Department>(user.department || Department.FISHERY);
+  const [selectedInvType, setSelectedInvType] = useState<InventoryType>(InventoryType.ASSET);
+  const [logTitle, setLogTitle] = useState('');
+  const [logContent, setLogContent] = useState('');
+  const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  const fetchUserReports = async () => {
+    setLoading(true);
+    try {
+      const all = await getReports();
+      const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
+      setReports(userLogs);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserReports();
+  }, [user]);
+
+  const handleFormSubmit = async (formData?: any) => {
+    if (!logTitle.trim()) {
+      alert('Please enter a title for your farm log entry.');
+      return;
+    }
+    setIsSubmitting(true);
+
+    try {
+      const computerName = getComputerName();
+      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newReport: Report = {
+        id: newReportId,
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        department: selectedDept,
+        inventoryType: selectedInvType,
+        title: logTitle.trim(),
+        content: logContent.trim() || `${selectedDept} ${selectedInvType} Submission`,
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName,
+        formData: formData || null
+      };
+
+      await createReport(newReport);
+
+      // Create Notification for Manager
+      await createNotification({
+        userId: 'manager_group',
+        userEmail: 'manager@accadfarms.com',
+        title: 'New Farm Log Submitted',
+        message: `New farm log pending review: "${formatLogName(newReport)}" from ${user.fullName}`,
+        type: 'info'
+      });
+
+      setSubmitSuccess('Farm log successfully submitted to Manager for review!');
+      setLogTitle('');
+      setLogContent('');
+
+      setTimeout(() => {
+        setSubmitSuccess(null);
+        setActiveTab('my_logs');
+        fetchUserReports();
+      }, 1500);
+
+    } catch (e: any) {
+      alert('Submission failed: ' + e.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 text-slate-900 px-4 sm:px-8 py-8 w-full max-w-[1600px] mx-auto space-y-8 font-sans">
+      
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white p-8 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden border border-emerald-800/40">
+        
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center space-x-2 bg-emerald-800/60 border border-emerald-700/60 px-3.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Staff Inventory Portal</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase">Welcome, {user.fullName}</h1>
+          <p className="text-xs text-emerald-200 font-medium">
+            Department: <strong className="text-white">{user.department || 'General'}</strong> &bull; Workstation: <code className="font-mono bg-emerald-900/80 px-2 py-0.5 rounded border border-emerald-700/80">{getComputerName()}</code>
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-3 relative z-10">
+          <button
+            onClick={() => setActiveTab('my_logs')}
+            className={`px-6 py-3.5 rounded-2xl text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+              activeTab === 'my_logs'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
+                : 'bg-white/10 text-slate-200 hover:bg-white/20'
+            }`}
+          >
+            My Logs ({reports.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('submit_log')}
+            className={`px-6 py-3.5 rounded-2xl text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-2 cursor-pointer ${
+              activeTab === 'submit_log'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
+                : 'bg-white/10 text-slate-200 hover:bg-white/20'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Submit New Log</span>
+          </button>
+        </div>
+
+      </div>
+
+      {submitSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center space-x-2 animate-fadeIn shadow-sm">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{submitSuccess}</span>
+        </div>
+      )}
+
+      {/* Main Content View */}
+      {activeTab === 'my_logs' ? (
+        <FarmLogsTable
+          reports={reports}
+          user={user}
+          onRefresh={fetchUserReports}
+          onViewDetails={(report) => setSelectedReportForModal(report)}
+        />
+      ) : (
+        /* Submit Farm Log Form View */
+        <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
+          <div className="border-b border-slate-200 pb-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
+              Standard Form
+            </span>
+            <h2 className="text-xl font-extrabold text-slate-900 mt-2">Submit Daily Farm Log Entry</h2>
+            <p className="text-xs text-slate-500 font-medium">Complete inventory audit entry for Manager review</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Department Sector</label>
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value as Department)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+              >
+                <option value={Department.FISHERY}>Fishery</option>
+                <option value={Department.POULTRY}>Poultry</option>
+                <option value={Department.CATTLE}>Cattle</option>
+                <option value={Department.PIGS}>Pigs</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory Type</label>
+              <select
+                value={selectedInvType}
+                onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+              >
+                <option value={InventoryType.ASSET}>Asset Inventory</option>
+                <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
+            <input
+              type="text"
+              required
+              value={logTitle}
+              onChange={(e) => setLogTitle(e.target.value)}
+              placeholder="e.g. Daily Morning Feed & Water Quality Audit"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
+            />
+          </div>
+
+          {/* Form component depending on department & type */}
+          {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
+            <FisheryAssetForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+          ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
+            <FisheryLivestockForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Details / Narrative *</label>
+                <textarea
+                  rows={6}
+                  required
+                  value={logContent}
+                  onChange={(e) => setLogContent(e.target.value)}
+                  placeholder="Enter complete details, observation notes, and operational status..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl p-4 text-xs font-medium outline-none transition-all"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleFormSubmit()}
+                disabled={isSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-3.5 rounded-2xl text-xs uppercase shadow-md shadow-emerald-200 transition-all active:scale-95 flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                <span>Submit Farm Log</span>
+              </button>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* Modal for Details */}
+      {selectedReportForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+            <button
+              onClick={() => setSelectedReportForModal(null)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold"
+            >
+              ✕
+            </button>
+            <ReportDetails report={selectedReportForModal} />
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};

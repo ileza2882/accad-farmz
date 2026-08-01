@@ -1,0 +1,403 @@
+import React from 'react';
+import { Report, FisheryAssetFormData, FisheryLivestockFormData, Department, InventoryType, ReportStatus } from '../types';
+import { formatLogName, exportLogToPDF, exportLogToWord, getComputerName, formatStatusLabel } from '../lib/exportUtils';
+import { 
+  FileText, 
+  Calendar, 
+  CheckCircle2, 
+  Clock, 
+  XCircle, 
+  AlertTriangle, 
+  UserCheck, 
+  Download, 
+  FileSpreadsheet, 
+  Monitor, 
+  Package, 
+  Factory, 
+  Wrench, 
+  Droplet, 
+  Fish, 
+  Info,
+  ShieldCheck,
+  Building,
+  Image as ImageIcon
+} from 'lucide-react';
+
+interface ReportDetailsProps {
+  report: Report;
+}
+
+export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
+  const logName = formatLogName(report);
+  const computer = report.computerName || getComputerName();
+  const assetData = report.formData as FisheryAssetFormData;
+  const livestockData = report.formData as FisheryLivestockFormData;
+
+  const getStatusBadge = (status: ReportStatus) => {
+    switch (status) {
+      case ReportStatus.APPROVED:
+        return (
+          <span className="inline-flex items-center space-x-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Fully Approved (ED)</span>
+          </span>
+        );
+      case ReportStatus.PENDING_ED:
+        return (
+          <span className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-800 border border-purple-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
+            <Clock className="w-4 h-4 text-purple-600" />
+            <span>Pending ED Final Approval</span>
+          </span>
+        );
+      case ReportStatus.PENDING_MANAGER:
+        return (
+          <span className="inline-flex items-center space-x-1.5 bg-blue-100 text-blue-800 border border-blue-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
+            <Clock className="w-4 h-4 text-blue-600" />
+            <span>Pending Manager Vetting</span>
+          </span>
+        );
+      case ReportStatus.REJECTED_BY_MANAGER:
+      case ReportStatus.REJECTED_BY_ED:
+        return (
+          <span className="inline-flex items-center space-x-1.5 bg-rose-100 text-rose-800 border border-rose-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
+            <XCircle className="w-4 h-4 text-rose-600" />
+            <span>Rejected ({status === ReportStatus.REJECTED_BY_ED ? 'ED' : 'Manager'})</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-black uppercase">
+            {status}
+          </span>
+        );
+    }
+  };
+
+  return (
+    <div className="space-y-6 text-slate-900 font-sans">
+      
+      {/* Header Info Banner */}
+      <div className="bg-slate-50 border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200/80 pb-4">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full">
+              {report.department} Sector &bull; {report.inventoryType}
+            </span>
+            <h2 className="text-2xl font-black text-slate-900 mt-2 uppercase tracking-tight">{logName}</h2>
+            <div className="flex items-center space-x-2 text-xs font-mono text-slate-500 mt-1">
+              <Monitor className="w-3.5 h-3.5 text-slate-400" />
+              <span>Workstation: <strong>{computer}</strong></span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div>{getStatusBadge(report.status)}</div>
+            
+            {/* Quick Export Actions */}
+            <button
+              onClick={() => exportLogToPDF(report)}
+              className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm"
+              title="Download AccadFarms PDF Sheet"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export PDF</span>
+            </button>
+            <button
+              onClick={() => exportLogToWord(report)}
+              className="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm"
+              title="Download AccadFarms Word Sheet (.doc)"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Export Word</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Metadata & Approval History Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-medium text-slate-600">
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl">
+            <span className="text-[10px] text-slate-400 font-black uppercase">Submitting User</span>
+            <p className="text-slate-900 font-bold mt-0.5">{report.fullName || report.email}</p>
+          </div>
+
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl">
+            <span className="text-[10px] text-slate-400 font-black uppercase">Date Submitted</span>
+            <p className="text-slate-900 font-bold mt-0.5">{new Date(report.timestamp).toLocaleString()}</p>
+          </div>
+
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl">
+            <span className="text-[10px] text-slate-400 font-black uppercase">Manager Vetting</span>
+            <p className="text-emerald-700 font-bold mt-0.5">{report.managerApprovedBy ? `Vetted by ${report.managerApprovedBy}` : 'Pending Review'}</p>
+          </div>
+
+          <div className="p-3 bg-white border border-slate-200 rounded-2xl">
+            <span className="text-[10px] text-slate-400 font-black uppercase">ED Authorization</span>
+            <p className="text-purple-700 font-bold mt-0.5">{report.edApprovedBy ? `Approved by ${report.edApprovedBy}` : 'Pending Authorization'}</p>
+          </div>
+        </div>
+
+        {/* Rejection Reason Alert if any */}
+        {report.rejectionReason && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-bold space-y-1">
+            <div className="flex items-center space-x-2 text-rose-700 font-extrabold uppercase tracking-wide">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Rejection Decision Reason:</span>
+            </div>
+            <p className="font-medium text-slate-700 italic">"{report.rejectionReason}"</p>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content & Exhaustive Display */}
+      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        
+        {/* Log Narrative Section */}
+        <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-2">
+          <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span>Operational Log Narrative & Summary</span>
+          </div>
+          <p className="text-sm text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">{report.content || 'No narrative description entered.'}</p>
+        </div>
+
+        {/* ASSET INVENTORY EXHAUSTIVE DISPLAY */}
+        {report.inventoryType === InventoryType.ASSET && assetData && (
+          <div className="space-y-6">
+            
+            {/* Feeds Inventory */}
+            {assetData.feedsInventory?.items && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs">
+                    <Package className="w-4 h-4 text-emerald-600" />
+                    <span>Feeds Inventory Breakdown</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    Total Store: {assetData.feedsInventory.totalFeedsInStore || assetData.feedStorage?.totalFeedInStoreKg || 0} KG
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {assetData.feedsInventory.items.map((item, idx) => (
+                    <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase">{item.type}</span>
+                        <div className="font-bold text-slate-900">{item.size} {item.brand ? `- ${item.brand}` : ''}</div>
+                      </div>
+                      <span className="font-black text-emerald-700 text-sm bg-white px-2.5 py-1 rounded-xl border border-slate-200">{item.quantityKg} KG</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-2 text-xs font-bold">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Total Bags in Store</span>
+                    <p className="text-base font-black text-slate-900">{assetData.feedsInventory.totalBags || 0} Bags</p>
+                  </div>
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <span className="text-[10px] text-emerald-700 font-black uppercase">Total Calculated Feeds</span>
+                    <p className="text-base font-black text-emerald-900">{assetData.feedsInventory.totalFeedsInStore || 0} KG</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Feed Storage Notes & Comments */}
+            {assetData.feedStorage && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-2xl border text-xs space-y-1 ${assetData.feedStorage.wastageNoticed?.hasWastage ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Feed Wastage Observation</span>
+                  <p className="font-bold">{assetData.feedStorage.wastageNoticed?.hasWastage ? `YES - ${assetData.feedStorage.wastageNoticed.comment}` : 'NO feed wastage reported.'}</p>
+                </div>
+
+                <div className={`p-4 rounded-2xl border text-xs space-y-1 ${assetData.feedStorage.machineIssues?.hasIssue ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                  <span className="font-black uppercase tracking-wider text-[10px]">Machinery Issue Observation</span>
+                  <p className="font-bold">{assetData.feedStorage.machineIssues?.hasIssue ? `YES - ${assetData.feedStorage.machineIssues.comment}` : 'NO machine issues reported.'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Raw Ingredients Breakdown */}
+            {assetData.ingredientsUsed && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
+                  <Factory className="w-4 h-4 text-purple-600" />
+                  <span>Raw Ingredients Usage Audit (KG)</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs text-center font-bold">
+                  {Object.entries(assetData.ingredientsUsed).map(([ingName, ingVal]) => (
+                    <div key={ingName} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-400 font-black uppercase truncate">{ingName.replace(/([A-Z])/g, ' $1')}</span>
+                      <p className="text-sm font-black text-purple-900 mt-1">{ingVal || 0} KG</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Drugs & Additives */}
+            {assetData.drugsUsed && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
+                  <Droplet className="w-4 h-4 text-blue-600" />
+                  <span>Drugs & Additives Audit</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-bold">
+                  {Object.entries(assetData.drugsUsed).map(([drugName, drugVal]) => (
+                    <div key={drugName} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-500 font-black uppercase truncate">{drugName.replace(/([A-Z])/g, ' $1')}</span>
+                      <span className="font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">{drugVal || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Machinery Health Check */}
+            {assetData.machineCheck && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
+                  <Wrench className="w-4 h-4 text-amber-600" />
+                  <span>Machinery Health & Status Audit</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {Object.entries(assetData.machineCheck).map(([mName, mStatus]) => (
+                    <div key={mName} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 capitalize">{mName.replace(/([A-Z])/g, ' $1')}</span>
+                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-xl mt-2 w-fit ${
+                        mStatus === 'Good' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                        mStatus === 'Faulty' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      }`}>{mStatus}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Technical Fuel Audit & Meter Photo */}
+            {assetData.technicalReport && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+                <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
+                  <Droplet className="w-4 h-4 text-emerald-600" />
+                  <span>Technical Diesel & Meter Audit</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-xs text-center font-bold">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Generator Litres</span>
+                    <p className="text-base font-black text-slate-900">{assetData.technicalReport.dieselGeneratorLitres || 0} L</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Kegs Litres</span>
+                    <p className="text-base font-black text-slate-900">{assetData.technicalReport.dieselKegsLitres || 0} L</p>
+                  </div>
+                  <div className="p-3 bg-emerald-600 text-white rounded-2xl">
+                    <span className="text-[10px] opacity-80 font-black uppercase">Total Diesel Available</span>
+                    <p className="text-base font-black">{assetData.technicalReport.totalDieselAvailable || 0} L</p>
+                  </div>
+                </div>
+
+                {assetData.technicalReport.generatorMeterPhoto && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 mb-2">
+                      <ImageIcon className="w-4 h-4 text-emerald-600" />
+                      <span>Generator Meter Attachment Photo:</span>
+                    </div>
+                    <img 
+                      src={assetData.technicalReport.generatorMeterPhoto} 
+                      alt="Generator Meter Photo" 
+                      className="w-full max-w-md h-56 object-cover rounded-2xl border border-slate-200 shadow-sm" 
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* LIVESTOCK INVENTORY EXHAUSTIVE DISPLAY */}
+        {report.inventoryType === InventoryType.LIVESTOCK && livestockData?.ponds && (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs bg-white p-4 rounded-2xl border border-slate-200">
+              <Fish className="w-4 h-4 text-emerald-600" />
+              <span>Livestock Ponds & Mortality Audit</span>
+            </div>
+
+            {livestockData.ponds.map((pond, pIdx) => (
+              <div key={pIdx} className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
+                
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center">
+                      {pIdx + 1}
+                    </span>
+                    <h4 className="text-base font-black text-slate-900 uppercase">{pond.pondNo} ({pond.batch})</h4>
+                  </div>
+                  <span className="text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">
+                    Mortality: {pond.mortality || 0} Fish
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-bold">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Pond Size</span>
+                    <p className="text-slate-900 font-black text-sm">{pond.pondSizeSqm} SQM</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Fish Count</span>
+                    <p className="text-slate-900 font-black text-sm">{pond.quantityOfFish} Fish</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Water Condition</span>
+                    <p className={pond.waterCondition === 'Clear' ? 'text-emerald-700 font-black' : 'text-amber-600 font-black'}>{pond.waterCondition}</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Water Changed Today</span>
+                    <p className="text-slate-900 font-black">{pond.waterChangedToday?.hasChanged ? `YES (${pond.waterChangedToday.times || 1}x)` : 'NO'}</p>
+                  </div>
+                </div>
+
+                {/* Pond Feeding Records List */}
+                {pond.feedingRecords?.items && pond.feedingRecords.items.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Pond Feeding Log Breakdown</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold">
+                      {pond.feedingRecords.items.map((feedItem, fIdx) => (
+                        <div key={fIdx} className="bg-white p-2.5 rounded-xl border border-slate-200 flex justify-between">
+                          <span>{feedItem.type} ({feedItem.brand || ''} {feedItem.size})</span>
+                          <span className="text-emerald-700 font-black">{feedItem.quantityKg} KG</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Feeding Response & Photo */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+                  <div className="text-xs font-bold">
+                    <span className="text-slate-500">Feeding Response: </span>
+                    <span className="text-emerald-700 uppercase font-black">{pond.feedingResponse || 'Active'}</span>
+                  </div>
+
+                  {pond.pondPhoto && (
+                    <div className="w-full">
+                      <span className="text-[10px] text-slate-400 font-black uppercase block mb-1">Pond Photo Attachment</span>
+                      <img src={pond.pondPhoto} alt="Pond Photo" className="w-full h-56 object-cover rounded-2xl border border-slate-200 shadow-sm" />
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  );
+};
