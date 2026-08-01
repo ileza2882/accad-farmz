@@ -421,16 +421,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             <UserPlus className="w-4 h-4" />
             <span>Register User Account</span>
           </button>
-
-          <button
-            onClick={handleClearOldLogs}
-            disabled={isActionProcessing}
-            className="bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-extrabold px-5 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-rose-950/40 transition-all flex items-center space-x-2 cursor-pointer disabled:opacity-50"
-            title="Permanently remove old farm log records from database to start afresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${isActionProcessing ? 'animate-spin' : ''}`} />
-            <span>Clear Logs (Start Afresh)</span>
-          </button>
         </div>
 
       </div>
