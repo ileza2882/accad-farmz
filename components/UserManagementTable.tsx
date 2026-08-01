@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Role, Department } from '../types';
 import { updateUser, deleteUser, createAuditLog, createNotification } from '../lib/insforge';
-import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X } from 'lucide-react';
 
 interface UserManagementTableProps {
   users: User[];
@@ -40,7 +40,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
     try {
       await updateUser(user.email, { role: newRole });
       
-      // Audit log
       await createAuditLog(
         edUser.fullName,
         edUser.email,
@@ -48,7 +47,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
         `Changed role of ${user.fullName} (${user.email}) from ${user.role} to ${newRole}`
       );
 
-      // Notification
       await createNotification({
         userId: user.id,
         userEmail: user.email,
@@ -104,66 +102,73 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
     }
   };
 
+  const getRoleBadgeClasses = (role: Role) => {
+    if (role === Role.EXECUTIVE_DIRECTOR) return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (role === Role.MANAGER) return 'bg-blue-100 text-blue-700 border-blue-200';
+    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  };
+
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden p-6">
+    <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl shadow-sm overflow-hidden p-4 sm:p-6">
       
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h3 className="text-lg font-black text-slate-900">User Management</h3>
-          <p className="text-xs text-slate-500 font-medium">Manage user roles, departments, and active statuses across the organization</p>
+          <h3 className="text-base sm:text-lg font-black text-slate-900">User Management</h3>
+          <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Manage user roles, departments, and active statuses</p>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
           
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search name, email, phone..."
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all"
             />
           </div>
 
-          {/* Department Filter */}
-          <select
-            value={selectedDeptFilter}
-            onChange={(e) => setSelectedDeptFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none cursor-pointer"
-          >
-            <option value="ALL">All Departments</option>
-            <option value={Department.FISHERY}>Fishery</option>
-            <option value={Department.POULTRY}>Poultry</option>
-            <option value={Department.CATTLE}>Cattle</option>
-            <option value={Department.PIGS}>Pigs</option>
-          </select>
+          <div className="flex items-center gap-2">
+            {/* Department Filter */}
+            <select
+              value={selectedDeptFilter}
+              onChange={(e) => setSelectedDeptFilter(e.target.value)}
+              className="flex-1 sm:flex-none bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
+            >
+              <option value="ALL">All Depts</option>
+              <option value={Department.FISHERY}>Fishery</option>
+              <option value={Department.POULTRY}>Poultry</option>
+              <option value={Department.CATTLE}>Cattle</option>
+              <option value={Department.PIGS}>Pigs</option>
+            </select>
 
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center space-x-1.5 text-xs font-bold"
-            title="Refresh user list from database"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center space-x-1.5 text-xs font-bold shrink-0"
+              title="Refresh user list from database"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {actionMessage && (
         <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center space-x-2">
-          <CheckCircle className="w-4 h-4 text-emerald-600" />
+          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{actionMessage}</span>
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+      {/* ===== DESKTOP TABLE (hidden on mobile) ===== */}
+      <div className="hidden lg:block overflow-x-auto border border-slate-100 rounded-2xl">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider">
@@ -185,8 +190,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
             ) : (
               filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                  
-                  {/* User Info */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-3">
                       <img
@@ -200,21 +203,15 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       </div>
                     </div>
                   </td>
-
-                  {/* Contact */}
                   <td className="py-3.5 px-4">
                     <div className="text-slate-900 font-medium">{u.email}</div>
                     <div className="text-[11px] text-slate-500">{u.phone || 'N/A'}</div>
                   </td>
-
-                  {/* Department */}
                   <td className="py-3.5 px-4">
                     <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider">
                       {u.department || 'General'}
                     </span>
                   </td>
-
-                  {/* Role */}
                   <td className="py-3.5 px-4">
                     {editingUserId === u.id ? (
                       <div className="flex items-center space-x-2">
@@ -227,29 +224,21 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                           <option value={Role.MANAGER}>Manager</option>
                           <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
                         </select>
-                        <button
-                          onClick={() => handleRoleChange(u, (editingRole || u.role) as Role)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md"
-                          title="Save role"
-                        >
+                        <button onClick={() => handleRoleChange(u, (editingRole || u.role) as Role)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md" title="Save role">
                           <Save className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEditingUserId(null)} className="p-1 text-slate-400 hover:bg-slate-100 rounded-md" title="Cancel">
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${
-                          u.role === Role.EXECUTIVE_DIRECTOR ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                          u.role === Role.MANAGER ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                          'bg-emerald-100 text-emerald-700 border-emerald-200'
-                        }`}>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${getRoleBadgeClasses(u.role)}`}>
                           {u.role === Role.EXECUTIVE_DIRECTOR ? 'ADMIN / ED' : u.role}
                         </span>
                         {edUser.email !== u.email && (
                           <button
-                            onClick={() => {
-                              setEditingUserId(u.id);
-                              setEditingRole(u.role);
-                            }}
+                            onClick={() => { setEditingUserId(u.id); setEditingRole(u.role); }}
                             className="text-slate-400 hover:text-slate-600 p-1"
                             title="Edit Role"
                           >
@@ -259,8 +248,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       </div>
                     )}
                   </td>
-
-                  {/* Status */}
                   <td className="py-3.5 px-4">
                     <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
                       u.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
@@ -269,8 +256,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       <span>{u.status}</span>
                     </span>
                   </td>
-
-                  {/* Actions */}
                   <td className="py-3.5 px-4 text-right">
                     {edUser.email !== u.email && (
                       <button
@@ -283,12 +268,100 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       </button>
                     )}
                   </td>
-
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* ===== MOBILE CARD VIEW ===== */}
+      <div className="lg:hidden space-y-3">
+        {filteredUsers.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 font-bold">
+            No users found matching filter criteria
+          </div>
+        ) : (
+          filteredUsers.map((u) => (
+            <div key={u.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              {/* User Info */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <img
+                    src={u.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName)}&background=059669&color=fff`}
+                    alt={u.fullName}
+                    className="w-10 h-10 rounded-full border border-slate-200 object-cover shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{u.fullName}</div>
+                    <div className="text-[11px] text-slate-500 truncate">{u.email}</div>
+                  </div>
+                </div>
+                <span className={`shrink-0 inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                  u.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                  <span>{u.status}</span>
+                </span>
+              </div>
+
+              {/* Meta Row */}
+              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase border border-slate-200">
+                  {u.department || 'General'}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${getRoleBadgeClasses(u.role)}`}>
+                  {u.role === Role.EXECUTIVE_DIRECTOR ? 'Admin / ED' : u.role}
+                </span>
+                {u.phone && (
+                  <span className="text-slate-500 font-medium">{u.phone}</span>
+                )}
+              </div>
+
+              {/* Actions */}
+              {edUser.email !== u.email && (
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200">
+                  {editingUserId === u.id ? (
+                    <div className="flex items-center gap-2 w-full">
+                      <select
+                        value={editingRole || u.role}
+                        onChange={(e) => setEditingRole(e.target.value as Role)}
+                        className="flex-1 bg-white border border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                      >
+                        <option value={Role.STAFF}>Staff</option>
+                        <option value={Role.MANAGER}>Manager</option>
+                        <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
+                      </select>
+                      <button onClick={() => handleRoleChange(u, (editingRole || u.role) as Role)} className="p-2 bg-emerald-600 text-white rounded-xl active:scale-95" title="Save">
+                        <Save className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setEditingUserId(null)} className="p-2 bg-slate-200 text-slate-600 rounded-xl active:scale-95" title="Cancel">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => { setEditingUserId(u.id); setEditingRole(u.role); }}
+                        className="flex-1 flex items-center justify-center space-x-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit Role</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u)}
+                        className="flex-1 flex items-center justify-center space-x-1.5 bg-rose-50 text-rose-700 border border-rose-200 px-3 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Deactivate</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
     </div>

@@ -46,7 +46,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-emerald-500 selection:text-white">
       
       {/* Hero Section */}
-      <section className="relative pt-12 pb-24 px-4 sm:px-6 lg:px-8 border-b border-slate-200 overflow-hidden bg-white">
+      <section className="relative pt-8 sm:pt-12 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 border-b border-slate-200 overflow-hidden bg-white">
         
         {/* Farm Texture Overlay */}
         <div className="absolute inset-0 z-0 opacity-35 pointer-events-none">
@@ -60,23 +60,23 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
 
         <div className="max-w-7xl mx-auto relative z-10 text-center pt-6">
           
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight uppercase text-slate-900 leading-none">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tight uppercase text-slate-900 leading-none">
             ACCAD <span className="text-emerald-600">FARMS</span>
           </h1>
 
-          <p className="mt-4 text-sm sm:text-base font-extrabold uppercase text-slate-400 tracking-[0.4em]">
-            Precision Agricultural Operations & Multi-Stage Monitoring
+          <p className="mt-3 sm:mt-4 text-[11px] sm:text-sm lg:text-base font-extrabold uppercase text-slate-400 tracking-[0.2em] sm:tracking-[0.4em]">
+            Precision Agricultural Operations
           </p>
 
-          <p className="mt-6 max-w-2xl mx-auto text-base sm:text-lg text-slate-600 font-medium leading-relaxed">
+          <p className="mt-4 sm:mt-6 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg text-slate-600 font-medium leading-relaxed px-2 sm:px-0">
             Enterprise farm management system unifying Staff logs, Manager vetting, and Executive Director final approvals across Fishery, Poultry, Cattle, and Pigs.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             {user ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-4 rounded-2xl text-sm uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center space-x-2"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center space-x-2"
               >
                 <span>Go to Role Dashboard</span>
                 <ArrowRight className="w-4 h-4" />
@@ -84,7 +84,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
             ) : (
               <Link
                 to="/login"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-9 py-4 rounded-2xl text-sm uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center space-x-2"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 sm:px-9 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center space-x-2"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Portal Login</span>
@@ -96,14 +96,14 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
       </section>
 
       {/* Department Nodes Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="mb-12">
-          <span className="text-xs font-black uppercase tracking-widest text-emerald-600">Operational Sectors</span>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase mt-1">Farm Departments</h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">Select a department node to access farm logs</p>
+      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="mb-8 sm:mb-12">
+          <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-600">Operational Sectors</span>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase mt-1">Farm Departments</h2>
+          <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">Select a department node to access farm logs</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {departments.map((dept) => (
             <div
               key={dept.id}
@@ -115,9 +115,9 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
                   else navigate('/login');
                 }
               }}
-              className="bg-white border border-slate-200 hover:border-emerald-500 p-6 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 flex items-start space-x-6 relative group cursor-pointer select-none"
+              className="bg-white border border-slate-200 hover:border-emerald-500 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 flex items-start space-x-4 sm:space-x-6 relative group cursor-pointer select-none"
             >
-              <div className="w-24 h-24 rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shrink-0 p-2 group-hover:bg-emerald-50 transition-colors">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 shrink-0 p-1.5 sm:p-2 group-hover:bg-emerald-50 transition-colors">
                 <img 
                   src={dept.image} 
                   alt={dept.name} 
@@ -127,15 +127,15 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
               </div>
 
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xl font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">{dept.name}</h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <h3 className="text-base sm:text-xl font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">{dept.name}</h3>
+                  <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase shrink-0 ${
                     dept.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {dept.status}
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed mb-4">{dept.description}</p>
+                <p className="text-[11px] sm:text-xs text-slate-600 font-medium leading-relaxed mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-none">{dept.description}</p>
 
                 <div
                   className="inline-flex items-center space-x-1.5 text-xs font-extrabold text-emerald-700 group-hover:text-emerald-800 uppercase tracking-wider group-hover:translate-x-1 transition-transform"
@@ -150,11 +150,11 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
       </section>
 
       {/* Platform Features Grid */}
-      <section className="bg-slate-50 border-t border-slate-200 py-16 px-4 sm:px-6 lg:px-8">
+      <section className="bg-slate-50 border-t border-slate-200 py-10 sm:py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 text-left">
             
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm space-y-2 sm:space-y-3">
               <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700">
                 <Shield className="w-5 h-5" />
               </div>

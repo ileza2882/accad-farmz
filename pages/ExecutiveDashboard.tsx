@@ -397,29 +397,30 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-900 px-4 sm:px-8 py-8 w-full max-w-[1600px] mx-auto space-y-8 font-sans">
+    <div className="min-h-screen bg-slate-50/50 text-slate-900 px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-8 font-sans">
       
       {/* Executive Portal Header Banner */}
-      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-slate-950 text-white p-8 rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden border border-purple-800/40">
+      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-slate-950 text-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden border border-purple-800/40">
         
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center space-x-2 bg-purple-800/60 border border-purple-700/60 px-3.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
-            <ShieldCheck className="w-3.5 h-3.5 text-purple-300" />
-            <span>Executive Governance & Operations Hub</span>
+        <div className="relative z-10 space-y-1.5 sm:space-y-2">
+          <div className="inline-flex items-center space-x-2 bg-purple-800/60 border border-purple-700/60 px-2.5 sm:px-3.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black tracking-widest uppercase">
+            <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-300" />
+            <span>Executive Governance Hub</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase">Executive Director Portal</h1>
-          <p className="text-xs text-purple-200 font-medium">
-            Active Governance Admin: <strong className="text-white">{user.fullName}</strong> ({user.email}) &bull; Workstation: <code className="font-mono bg-purple-900/80 px-2 py-0.5 rounded border border-purple-700/80">{getComputerName()}</code>
+          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight uppercase">ED Portal</h1>
+          <p className="text-[10px] sm:text-xs text-purple-200 font-medium break-all sm:break-normal">
+            Admin: <strong className="text-white">{user.fullName}</strong>
+            <span className="hidden sm:inline"> ({user.email})</span>
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-3">
+        <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => setIsRegisterModalOpen(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all flex items-center space-x-2 cursor-pointer"
+            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Register User Account</span>
+            <span>Register User</span>
           </button>
         </div>
 
@@ -433,57 +434,57 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       )}
 
       {/* Metrics Summary Panels Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-2">
+        <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-black uppercase tracking-wider">Total Registered Accounts</span>
-            <Users className="w-5 h-5 text-purple-600" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Accounts</span>
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
           </div>
-          <div className="text-3xl font-black text-slate-900">{usersList.length}</div>
-          <p className="text-[11px] text-emerald-600 font-bold flex items-center space-x-1">
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">{usersList.length}</div>
+          <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold flex items-center space-x-1">
             <CheckCircle2 className="w-3 h-3" />
-            <span>{usersList.filter(u => u.status === 'active').length} Active Users</span>
+            <span>{usersList.filter(u => u.status === 'active').length} Active</span>
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-2">
+        <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-black uppercase tracking-wider">Total Logs</span>
-            <FileText className="w-5 h-5 text-blue-600" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Logs</span>
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
-          <div className="text-3xl font-black text-slate-900">{reportsList.length}</div>
-          <p className="text-[11px] text-purple-600 font-bold">
-            {pendingEDReports.length} Awaiting ED Final Approval
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">{reportsList.length}</div>
+          <p className="text-[10px] sm:text-[11px] text-purple-600 font-bold">
+            {pendingEDReports.length} Pending ED
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-2">
+        <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-black uppercase tracking-wider">Manager Vetting Hub</span>
-            <Layers className="w-5 h-5 text-amber-600" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Mgr Queue</span>
+            <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
           </div>
-          <div className="text-3xl font-black text-amber-600">{pendingManagerReports.length}</div>
-          <p className="text-[11px] text-slate-500 font-medium">Pending Sector Manager Review</p>
+          <div className="text-2xl sm:text-3xl font-black text-amber-600">{pendingManagerReports.length}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium">Manager Review</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-2">
+        <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-black uppercase tracking-wider">Fully Approved Records</span>
-            <CheckSquare className="w-5 h-5 text-emerald-600" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Approved</span>
+            <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
           </div>
-          <div className="text-3xl font-black text-emerald-600">{approvedReports.length}</div>
-          <p className="text-[11px] text-slate-500 font-medium">ED Authorization Granted</p>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-600">{approvedReports.length}</div>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium">ED Authorized</p>
         </div>
 
       </div>
 
-      {/* Spacious Unified Tab Navigation */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+      {/* Scrollable Tab Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
         
         <button
           onClick={() => setActiveTab('all_logs')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'all_logs'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -495,7 +496,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('approvals')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'approvals'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -507,7 +508,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('manager_hub')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'manager_hub'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -519,7 +520,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('staff_entry')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'staff_entry'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -531,7 +532,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('users')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'users'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -543,7 +544,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'analytics'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
@@ -555,7 +556,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <button
           onClick={() => setActiveTab('audit')}
-          className={`flex items-center space-x-2 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'audit'
               ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
