@@ -225,13 +225,19 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   <span>Raw Ingredients Usage Audit (KG)</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs text-center font-bold">
-                  {Object.entries(assetData.ingredientsUsed).map(([ingName, ingVal]) => (
-                    <div key={ingName} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[10px] text-slate-400 font-black uppercase truncate">{ingName.replace(/([A-Z])/g, ' $1')}</span>
-                      <p className="text-sm font-black text-purple-900 mt-1">{ingVal || 0} KG</p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5 text-xs text-center font-bold">
+                  {Object.entries(assetData.ingredientsUsed).map(([ingName, ingVal]) => {
+                    const formattedLabel = ingName === 'gnc' ? 'GNC' :
+                      ingName === 'dcp' ? 'DCP' :
+                      ingName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                    return (
+                      <div key={ingName} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                        <span className="text-[10px] text-slate-400 font-black uppercase truncate" title={formattedLabel}>{formattedLabel}</span>
+                        <p className="text-sm font-black text-purple-900 mt-1">{ingVal || 0} Kg</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

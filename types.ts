@@ -52,15 +52,26 @@ export interface FisheryAssetFormData {
   };
   ingredientsUsed: {
     wheatOffal: number | string;
-    flour: number | string;
     fishMeal: number | string;
     meatMeal: number | string;
     bloodMeal: number | string;
-    soyaBean: number | string;
+    limestone: number | string;
+    fishOil: number | string;
+    soyaOil: number | string;
     gnc: number | string;
     maize: number | string;
-    wheat: number | string;
-    maggotsKg: number | string;
+    soyaBeans: number | string;
+    cassava: number | string;
+    klinoFeeds: number | string;
+    lysine: number | string;
+    probiotic: number | string;
+    enzyme: number | string;
+    fishPremix: number | string;
+    methionine: number | string;
+    dcp: number | string;
+    salt: number | string;
+    ascorbicAcid: number | string;
+    [key: string]: number | string | undefined;
   };
   drugsUsed: {
     klinoFeed: number | string;

@@ -8,7 +8,7 @@ interface FisheryAssetFormProps {
   color?: string;
 }
 
-const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha"];
+const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen"];
 const SIZES = ["0.2mm", "0.3mm", "0.5mm", "0.8mm", "1.2mm", "1.5mm", "2mm", "3mm", "4mm", "6mm", "9mm"];
 
 export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, isSubmitting }) => {
@@ -22,15 +22,25 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
     },
     ingredientsUsed: {
       wheatOffal: "",
-      flour: "",
       fishMeal: "",
       meatMeal: "",
       bloodMeal: "",
-      soyaBean: "",
+      limestone: "",
+      fishOil: "",
+      soyaOil: "",
       gnc: "",
       maize: "",
-      wheat: "",
-      maggotsKg: "",
+      soyaBeans: "",
+      cassava: "",
+      klinoFeeds: "",
+      lysine: "",
+      probiotic: "",
+      enzyme: "",
+      fishPremix: "",
+      methionine: "",
+      dcp: "",
+      salt: "",
+      ascorbicAcid: "",
     },
     drugsUsed: {
       klinoFeed: "",
@@ -294,21 +304,33 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
           <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-tight">Ingredients Used</h3>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {Object.entries(formData.ingredientsUsed).map(([key, value]) => (
-            <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">
-                {key.replace(/([A-Z])/g, ' $1')}
-              </label>
-              <input
-                type="number"
-                value={value}
-                onChange={(e) => handleIngredientChange(key as any, e.target.value)}
-                placeholder={key === 'maggotsKg' ? 'KG' : 'Bags'}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
-              />
-            </div>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Object.entries(formData.ingredientsUsed).map(([key, value]) => {
+            const formattedLabel = key === 'gnc' ? 'GNC' :
+              key === 'dcp' ? 'DCP' :
+              key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+            return (
+              <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1 truncate" title={formattedLabel}>
+                  {formattedLabel}
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    step="any"
+                    value={value}
+                    onChange={(e) => handleIngredientChange(key as any, e.target.value)}
+                    placeholder="0"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-9 py-1.5 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
+                  />
+                  <span className="absolute right-2.5 text-[11px] font-black text-slate-400 pointer-events-none">
+                    Kg
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -208,14 +208,19 @@ export function exportLogToPDF(report: Report): void {
         doc.text('RAW INGREDIENTS USAGE AUDIT (KG)', 14, currentY);
         currentY += 4;
 
-        const ing = assetData.ingredientsUsed;
-        const ingRows = [
-          ['Wheat Offal', `${ing.wheatOffal || 0} Kg`, 'Flour', `${ing.flour || 0} Kg`],
-          ['Fish Meal', `${ing.fishMeal || 0} Kg`, 'Meat Meal', `${ing.meatMeal || 0} Kg`],
-          ['Blood Meal', `${ing.bloodMeal || 0} Kg`, 'Soya Bean', `${ing.soyaBean || 0} Kg`],
-          ['GNC (Groundnut Cake)', `${ing.gnc || 0} Kg`, 'Maize', `${ing.maize || 0} Kg`],
-          ['Wheat Grain', `${ing.wheat || 0} Kg`, 'Maggots', `${ing.maggotsKg || 0} Kg`]
-        ];
+        const ingEntries = Object.entries(assetData.ingredientsUsed).map(([k, v]) => {
+          const name = k === 'gnc' ? 'GNC' :
+            k === 'dcp' ? 'DCP' :
+            k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          return [name, `${v || 0} Kg`];
+        });
+
+        const ingRows: string[][] = [];
+        for (let i = 0; i < ingEntries.length; i += 2) {
+          const first = ingEntries[i];
+          const second = ingEntries[i + 1] || ['-', '-'];
+          ingRows.push([first[0], first[1], second[0], second[1]]);
+        }
 
         autoTable(doc, {
           startY: currentY,
@@ -532,11 +537,21 @@ export function exportLogToWord(report: Report): void {
                 <tr class="dark-th"><th>INGREDIENT</th><th>QUANTITY (KG)</th><th>INGREDIENT</th><th>QUANTITY (KG)</th></tr>
               </thead>
               <tbody>
-                <tr><td>Wheat Offal</td><td>${assetData.ingredientsUsed.wheatOffal || 0} Kg</td><td>Flour</td><td>${assetData.ingredientsUsed.flour || 0} Kg</td></tr>
-                <tr><td>Fish Meal</td><td>${assetData.ingredientsUsed.fishMeal || 0} Kg</td><td>Meat Meal</td><td>${assetData.ingredientsUsed.meatMeal || 0} Kg</td></tr>
-                <tr><td>Blood Meal</td><td>${assetData.ingredientsUsed.bloodMeal || 0} Kg</td><td>Soya Bean</td><td>${assetData.ingredientsUsed.soyaBean || 0} Kg</td></tr>
-                <tr><td>GNC (Groundnut Cake)</td><td>${assetData.ingredientsUsed.gnc || 0} Kg</td><td>Maize</td><td>${assetData.ingredientsUsed.maize || 0} Kg</td></tr>
-                <tr><td>Wheat Grain</td><td>${assetData.ingredientsUsed.wheat || 0} Kg</td><td>Maggots</td><td>${assetData.ingredientsUsed.maggotsKg || 0} Kg</td></tr>
+                ${(() => {
+                  const entries = Object.entries(assetData.ingredientsUsed).map(([k, v]) => {
+                    const name = k === 'gnc' ? 'GNC' :
+                      k === 'dcp' ? 'DCP' :
+                      k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    return [name, `${v || 0} Kg`];
+                  });
+                  let html = '';
+                  for (let i = 0; i < entries.length; i += 2) {
+                    const first = entries[i];
+                    const second = entries[i + 1] || ['-', '-'];
+                    html += `<tr><td>${first[0]}</td><td>${first[1]}</td><td>${second[0]}</td><td>${second[1]}</td></tr>`;
+                  }
+                  return html;
+                })()}
               </tbody>
             </table>
           ` : ''}
