@@ -156,3 +156,8 @@ Key patterns:
 - Reference users with `auth.users(id)`; use `auth.uid()` in RLS policies.
 - For storage uploads, persist both the returned `url` and `key`.
 <!-- INSFORGE:END -->
+
+## Deployment Guidelines
+- Always commit and push changes to GitHub (`origin main`) after completing work on every prompt.
+- Always deploy to Netlify production (`npx netlify deploy --prod --build`) after completing work on every prompt.
+
