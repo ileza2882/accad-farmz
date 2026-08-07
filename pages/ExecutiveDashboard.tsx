@@ -775,32 +775,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Department</label>
-              <select
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value as Department)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
-              >
-                <option value={Department.FISHERY}>Fishery</option>
-                <option value={Department.POULTRY}>Poultry</option>
-                <option value={Department.CATTLE}>Cattle</option>
-                <option value={Department.PIGS}>Pigs</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory Type</label>
-              <select
-                value={selectedInvType}
-                onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
-              >
-                <option value={InventoryType.ASSET}>Asset Inventory</option>
-                <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory Type</label>
+            <select
+              value={selectedInvType}
+              onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+            >
+              <option value={InventoryType.ASSET}>Asset Inventory</option>
+              <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
+            </select>
           </div>
 
           <div>
