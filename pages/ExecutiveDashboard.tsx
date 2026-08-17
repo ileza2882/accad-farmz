@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection } from '../types';
-import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports } from '../lib/insforge';
+import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest } from '../types';
+import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
 import { ReportDetails } from '../components/ReportDetails';
@@ -57,6 +57,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   const [usersList, setUsersList] = useState<User[]>([]);
   const [reportsList, setReportsList] = useState<Report[]>([]);
   const [auditLogsList, setAuditLogsList] = useState<AuditLog[]>([]);
+  const [hatcheryChangeRequests, setHatcheryChangeRequests] = useState<HatcheryChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState<'all_logs' | 'approvals' | 'manager_hub' | 'staff_entry' | 'users' | 'analytics' | 'audit'>('all_logs');
@@ -221,14 +222,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [u, r, a] = await Promise.all([
+      const [u, r, a, c] = await Promise.all([
         getUsers(),
         getReports(),
-        getAuditLogs()
+        getAuditLogs(),
+        getHatcheryChangeRequests()
       ]);
       setUsersList(u);
       setReportsList(r);
       setAuditLogsList(a);
+      setHatcheryChangeRequests(c);
     } catch (e) {
       console.error(e);
     } finally {
@@ -239,6 +242,20 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleReviewChangeRequest = async (requestId: string, approve: boolean) => {
+    setIsActionProcessing(true);
+    try {
+      await reviewHatcheryChangeRequest(requestId, approve, user.fullName, user.email);
+      setActionMessage(`Change Request ${approve ? 'Approved & Batch Unlocked' : 'Rejected'}.`);
+      await loadData();
+      setTimeout(() => setActionMessage(null), 3500);
+    } catch (e: any) {
+      alert('Failed to process request: ' + e.message);
+    } finally {
+      setIsActionProcessing(false);
+    }
+  };
 
   const handleEDApprove = async (report: Report) => {
     setIsActionProcessing(true);
@@ -409,6 +426,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   const pendingEDReports = reportsList.filter(r => r.status === ReportStatus.PENDING_ED);
   const pendingManagerReports = reportsList.filter(r => r.status === ReportStatus.PENDING_MANAGER);
   const approvedReports = reportsList.filter(r => r.status === ReportStatus.APPROVED);
+  const pendingChangeRequests = hatcheryChangeRequests.filter(c => c.status === 'PENDING');
 
   // Analytics Chart Data Preparation
   const deptStats = Object.values(Department).map(dept => {
@@ -530,7 +548,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           }`}
         >
           <CheckSquare className="w-4 h-4 text-purple-400" />
-          <span>ED Final Approvals ({pendingEDReports.length})</span>
+          <span>ED Approvals ({pendingEDReports.length + pendingChangeRequests.length})</span>
         </button>
 
         <button
@@ -607,9 +625,77 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         />
       )}
 
-      {/* TAB 2: ED FINAL APPROVALS */}
+      {/* TAB 2: ED FINAL APPROVALS & CHANGE REQUESTS */}
       {activeTab === 'approvals' && (
         <div className="space-y-6">
+          
+          {/* HATCHERY CHANGE REQUESTS QUEUE */}
+          {pendingChangeRequests.length > 0 && (
+            <div className="bg-amber-50/80 border-2 border-amber-300 rounded-3xl p-6 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center font-black">
+                    <AlertTriangle className="w-4 h-4 text-amber-800" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                      Hatchery Log Change Requests ({pendingChangeRequests.length})
+                    </h4>
+                    <p className="text-xs text-amber-900 font-medium">
+                      Staff requested authorization to unlock and correct permanently locked hatchery records
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {pendingChangeRequests.map((req) => (
+                  <div key={req.id} className="bg-white border border-amber-200 rounded-2xl p-4 space-y-3 shadow-xs flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="bg-amber-100 text-amber-900 font-black text-[10px] uppercase px-2.5 py-0.5 rounded-full">
+                          {req.batchNumber}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {new Date(req.requestedAt).toLocaleDateString()} {new Date(req.requestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <div className="text-xs font-bold text-slate-900">
+                        Requested by: <span className="text-purple-900">{req.requestedBy}</span> ({req.requestedByEmail})
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-700 font-medium">
+                        <span className="text-[10px] text-slate-400 uppercase font-black block">Stated Reason for Change:</span>
+                        <p className="italic text-slate-800 mt-0.5">"{req.reason}"</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => handleReviewChangeRequest(req.id, true)}
+                        disabled={isActionProcessing}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-1 transition-all active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Approve & Unlock</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleReviewChangeRequest(req.id, false)}
+                        disabled={isActionProcessing}
+                        className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold py-2 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center space-x-1 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject Request</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-black text-slate-900">Farm Logs Pending Executive Authorization</h3>

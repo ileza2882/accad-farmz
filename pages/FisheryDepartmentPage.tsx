@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Role, Department, InventoryType, FisherySection, Report, ReportStatus, FisheryHatcheryFormData, FisheryHatcheryBatchData, getHatcheryBatchStage } from '../types';
-import { getReports, createReport, updateReport, createNotification, createAuditLog } from '../lib/insforge';
+import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { ReportDetails } from '../components/ReportDetails';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
@@ -142,6 +142,20 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       );
     }
 
+    await loadHatcheryLogs();
+  };
+
+  const handleRequestChange = async (batchIndex: number, batch: FisheryHatcheryBatchData, reason: string) => {
+    if (!user) return;
+    const repId = editingReport?.id || hatcheryReports[0]?.id || `rep_hatchery`;
+    await createHatcheryChangeRequest({
+      reportId: repId,
+      batchIndex,
+      batchNumber: `${batch.batchNumber} Batch`,
+      requestedBy: user.fullName,
+      requestedByEmail: user.email,
+      reason
+    });
     await loadHatcheryLogs();
   };
 
@@ -520,8 +534,10 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
             <FisheryHatcheryForm
               initialData={currentBatchData}
               reportId={editingReport?.id}
+              currentUser={{ fullName: user?.fullName || 'User', email: user?.email || '' }}
               onSubmit={handleHatcherySubmit}
               onSaveSingleRow={handleSaveSingleRow}
+              onRequestChange={handleRequestChange}
               isSubmitting={isSubmitting}
             />
 

@@ -1,5 +1,5 @@
 import { createClient } from '@insforge/sdk';
-import { User, Report, ReportStatus, Role, Department, NotificationItem, AuditLog } from '../types';
+import { User, Report, ReportStatus, Role, Department, NotificationItem, AuditLog, HatcheryChangeRequest } from '../types';
 
 export const INSFORGE_PROJECT_NAME = (import.meta as any).env?.VITE_INSFORGE_PROJECT_NAME || 'accadfarmz';
 export const INSFORGE_URL = (import.meta as any).env?.VITE_INSFORGE_URL || 'https://a7yjmvd8.us-east.insforge.app';
@@ -749,4 +749,127 @@ export async function createAuditLog(actorName: string, actorEmail: string, acti
 
 export async function migrateDataToInsforge(): Promise<void> {
   await seedInitialUsers();
+}
+
+/**
+ * Hatchery Log Immutability & Change Request Workflow
+ */
+export async function getHatcheryChangeRequests(): Promise<HatcheryChangeRequest[]> {
+  try {
+    const raw = localStorage.getItem('accad_hatchery_change_requests');
+    const list: HatcheryChangeRequest[] = raw ? JSON.parse(raw) : [];
+    return list.sort((a, b) => b.requestedAt - a.requestedAt);
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function createHatcheryChangeRequest(
+  reqData: Omit<HatcheryChangeRequest, 'id' | 'requestedAt' | 'status'>
+): Promise<HatcheryChangeRequest> {
+  const reqId = `chg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const changeReq: HatcheryChangeRequest = {
+    ...reqData,
+    id: reqId,
+    requestedAt: Date.now(),
+    status: 'PENDING'
+  };
+
+  try {
+    const all = await getHatcheryChangeRequests();
+    all.unshift(changeReq);
+    localStorage.setItem('accad_hatchery_change_requests', JSON.stringify(all));
+
+    // Update target report batch state to PENDING
+    const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
+    const targetReport = localReports.find(r => r.id === reqData.reportId);
+    if (targetReport && targetReport.formData?.batches?.[reqData.batchIndex]) {
+      targetReport.formData.batches[reqData.batchIndex].changeRequestStatus = 'PENDING';
+      targetReport.formData.batches[reqData.batchIndex].changeRequestReason = reqData.reason;
+      targetReport.formData.batches[reqData.batchIndex].changeRequestedBy = reqData.requestedBy;
+      targetReport.formData.batches[reqData.batchIndex].changeRequestedAt = changeReq.requestedAt;
+      await updateReport(targetReport.id, targetReport);
+    }
+
+    // Create Notification for Executive Director
+    await createNotification({
+      userId: 'ed_group',
+      userEmail: 'ed@accadfarms.com',
+      title: 'Hatchery Log Change Request',
+      message: `${reqData.requestedBy} requested to modify locked ${reqData.batchNumber}: "${reqData.reason}"`,
+      type: 'warning'
+    });
+
+    await createAuditLog(
+      reqData.requestedBy,
+      reqData.requestedByEmail,
+      'HATCHERY_CHANGE_REQUESTED',
+      `Requested unlock for ${reqData.batchNumber} (Report: ${reqData.reportId}): ${reqData.reason}`
+    );
+  } catch (e) {
+    console.error('Error creating hatchery change request:', e);
+  }
+
+  return changeReq;
+}
+
+export async function reviewHatcheryChangeRequest(
+  requestId: string,
+  approve: boolean,
+  reviewerName: string,
+  reviewerEmail: string,
+  reviewNotes?: string
+): Promise<boolean> {
+  try {
+    const all = await getHatcheryChangeRequests();
+    const reqIndex = all.findIndex(r => r.id === requestId);
+    if (reqIndex === -1) return false;
+
+    const changeReq = all[reqIndex];
+    changeReq.status = approve ? 'APPROVED' : 'REJECTED';
+    changeReq.reviewedBy = reviewerName;
+    changeReq.reviewedAt = Date.now();
+    changeReq.reviewNotes = reviewNotes;
+
+    localStorage.setItem('accad_hatchery_change_requests', JSON.stringify(all));
+
+    // Update target batch in report
+    const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
+    const targetReport = localReports.find(r => r.id === changeReq.reportId);
+    if (targetReport && targetReport.formData?.batches?.[changeReq.batchIndex]) {
+      const batch = targetReport.formData.batches[changeReq.batchIndex];
+      batch.changeRequestStatus = approve ? 'APPROVED' : 'REJECTED';
+      batch.changeRequestReviewedBy = reviewerName;
+      batch.changeRequestReviewedAt = changeReq.reviewedAt;
+      
+      if (approve) {
+        batch.isLocked = false; // UNLOCKED for correction!
+      } else {
+        batch.isLocked = true; // Stays locked
+      }
+
+      await updateReport(targetReport.id, targetReport);
+    }
+
+    // Notify requester
+    await createNotification({
+      userId: changeReq.requestedByEmail,
+      userEmail: changeReq.requestedByEmail,
+      title: `Hatchery Change Request ${approve ? 'Approved' : 'Rejected'}`,
+      message: `Your request to edit ${changeReq.batchNumber} was ${approve ? 'approved' : 'rejected'} by Executive Director ${reviewerName}.`,
+      type: approve ? 'success' : 'error'
+    });
+
+    await createAuditLog(
+      reviewerName,
+      reviewerEmail,
+      approve ? 'HATCHERY_CHANGE_APPROVED' : 'HATCHERY_CHANGE_REJECTED',
+      `${approve ? 'Approved' : 'Rejected'} unlock request for ${changeReq.batchNumber} submitted by ${changeReq.requestedBy}`
+    );
+
+    return true;
+  } catch (e) {
+    console.error('Error reviewing hatchery change request:', e);
+    return false;
+  }
 }
