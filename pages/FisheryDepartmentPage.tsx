@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Role, Department, InventoryType, FisherySection, Report, ReportStatus } from '../types';
-import { createReport, createNotification } from '../lib/insforge';
+import { User, Role, Department, InventoryType, FisherySection, Report, ReportStatus, FisheryHatcheryFormData, getHatcheryBatchStage } from '../types';
+import { getReports, createReport, updateReport, createNotification, createAuditLog } from '../lib/insforge';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
+import { ReportDetails } from '../components/ReportDetails';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
 import { 
   Fish, 
@@ -21,7 +22,14 @@ import {
   TrendingUp,
   Droplets,
   Building2,
-  ArrowLeft
+  ArrowLeft,
+  Edit3,
+  Plus,
+  RefreshCw,
+  Clock,
+  Check,
+  Eye,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface FisheryDepartmentPageProps {
@@ -31,10 +39,47 @@ interface FisheryDepartmentPageProps {
 export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ user }) => {
   const navigate = useNavigate();
   const [selectedSection, setSelectedSection] = useState<FisherySection | null>(null);
+  const [hatcheryReports, setHatcheryReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  
+  // Editing state
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
 
-  const handleHatcherySubmit = async (formData: any) => {
+  const loadHatcheryLogs = async () => {
+    setLoading(true);
+    try {
+      const allReports = await getReports();
+      const hLogs = allReports.filter(r => 
+        r.department === Department.FISHERY && 
+        (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+      );
+      setHatcheryReports(hLogs);
+    } catch (e) {
+      console.error('Error loading hatchery logs:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHatcheryLogs();
+  }, []);
+
+  const handleStartNewBatch = () => {
+    setEditingReport(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditBatch = (report: Report) => {
+    setEditingReport(report);
+    setIsFormOpen(true);
+  };
+
+  const handleHatcherySubmit = async (formData: FisheryHatcheryFormData, isDraft: boolean = false) => {
     if (!user) {
       navigate('/login');
       return;
@@ -44,43 +89,80 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
     try {
       const computerName = getComputerName();
       const firstBatch = formData.batches?.[0]?.batchNumber || 'Batch';
-      const effectiveTitle = `Hatchery Transfer - ${firstBatch}`;
-      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      
-      const newReport: Report = {
-        id: newReportId,
-        userId: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        department: Department.FISHERY,
-        inventoryType: InventoryType.HATCHERY,
-        section: FisherySection.HATCHERY,
-        title: effectiveTitle,
-        content: `Hatchery Section fingerling transfer audit (${formData.batches?.length || 1} batches recorded).`,
-        timestamp: Date.now(),
-        status: user.role === Role.EXECUTIVE_DIRECTOR ? ReportStatus.APPROVED : ReportStatus.PENDING_MANAGER,
-        edApprovedBy: user.role === Role.EXECUTIVE_DIRECTOR ? user.fullName : undefined,
-        computerName,
-        formData
-      };
+      const effectiveTitle = `Hatchery Log - ${firstBatch}`;
+      const status = user.role === Role.EXECUTIVE_DIRECTOR 
+        ? ReportStatus.APPROVED 
+        : isDraft 
+          ? ReportStatus.PENDING_MANAGER 
+          : ReportStatus.PENDING_MANAGER;
 
-      await createReport(newReport);
-
-      if (user.role !== Role.EXECUTIVE_DIRECTOR) {
-        await createNotification({
-          userId: 'manager_group',
-          userEmail: 'manager@accadfarms.com',
-          title: 'New Hatchery Section Log Submitted',
-          message: `New hatchery log "${formatLogName(newReport)}" submitted by ${user.fullName}`,
-          type: 'info'
+      if (editingReport) {
+        // Progressive update of existing record
+        await updateReport(editingReport.id, {
+          title: effectiveTitle,
+          content: `Hatchery log updated progressively (${formData.batches?.length || 1} batches).`,
+          formData,
+          status,
+          updatedAt: Date.now()
         });
+
+        await createAuditLog(
+          user.fullName,
+          user.email,
+          'HATCHERY_LOG_PROGRESS_UPDATED',
+          `Hatchery log "${editingReport.title}" updated progressively by ${user.fullName} (${isDraft ? 'Progress Saved' : 'Submitted'})`
+        );
+
+        setSubmitSuccess(isDraft ? 'Hatchery progress saved! Updated in real-time on ED Dashboard.' : 'Hatchery log updated and submitted for review!');
+      } else {
+        // Create new ongoing record
+        const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const newReport: Report = {
+          id: newReportId,
+          userId: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          department: Department.FISHERY,
+          inventoryType: InventoryType.HATCHERY,
+          section: FisherySection.HATCHERY,
+          title: effectiveTitle,
+          content: `Hatchery Section progressive entry (${formData.batches?.length || 1} batches recorded).`,
+          timestamp: Date.now(),
+          status,
+          edApprovedBy: user.role === Role.EXECUTIVE_DIRECTOR ? user.fullName : undefined,
+          computerName,
+          formData
+        };
+
+        await createReport(newReport);
+
+        await createAuditLog(
+          user.fullName,
+          user.email,
+          'HATCHERY_LOG_CREATED',
+          `New hatchery log "${effectiveTitle}" created by ${user.fullName}`
+        );
+
+        if (user.role !== Role.EXECUTIVE_DIRECTOR) {
+          await createNotification({
+            userId: 'manager_group',
+            userEmail: 'manager@accadfarms.com',
+            title: 'Hatchery Log Entry Registered',
+            message: `Hatchery log "${formatLogName(newReport)}" updated by ${user.fullName}`,
+            type: 'info'
+          });
+        }
+
+        setSubmitSuccess('New hatchery batch log created! Synced in real-time across dashboards.');
       }
 
-      setSubmitSuccess('Hatchery record successfully submitted and registered in farm audit logs!');
+      await loadHatcheryLogs();
+      setEditingReport(null);
+      setIsFormOpen(false);
+
       setTimeout(() => {
         setSubmitSuccess(null);
-        navigate('/dashboard');
-      }, 1800);
+      }, 3500);
 
     } catch (e: any) {
       alert('Submission failed: ' + e.message);
@@ -88,6 +170,17 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       setIsSubmitting(false);
     }
   };
+
+  // Aggregated Hatchery Metrics
+  let totalTransferredCount = 0;
+  let activeBatchesCount = 0;
+  hatcheryReports.forEach(r => {
+    const batches = r.formData?.batches || [];
+    batches.forEach((b: any) => {
+      activeBatchesCount++;
+      totalTransferredCount += Number(b.totalTransferredFingerlings) || 0;
+    });
+  });
 
   return (
     <div className="min-h-screen bg-slate-50/60 text-slate-900 font-sans selection:bg-emerald-500 selection:text-white pb-16">
@@ -110,16 +203,19 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
             )}
           </div>
 
-          <button
-            onClick={() => {
-              if (selectedSection) setSelectedSection(null);
-              else navigate(-1);
-            }}
-            className="inline-flex items-center space-x-1 text-xs font-extrabold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{selectedSection ? 'Back to Sections' : 'Back'}</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                if (isFormOpen) setIsFormOpen(false);
+                else if (selectedSection) setSelectedSection(null);
+                else navigate(-1);
+              }}
+              className="inline-flex items-center space-x-1 text-xs font-extrabold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{isFormOpen ? 'Back to Batch List' : selectedSection ? 'Back to Sections' : 'Back'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -138,7 +234,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
             </h1>
             
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium max-w-2xl leading-relaxed">
-              Comprehensive aquaculture management across two specialized divisions: the ongoing <strong>Growth-Out Section</strong> and the dedicated <strong>Hatchery Section</strong>.
+              Precision aquaculture system unifying the commercial <strong>Growth-Out Section</strong> and the progressive <strong>Hatchery Section</strong>.
             </p>
           </div>
         </div>
@@ -150,7 +246,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
           </div>
         )}
 
-        {/* The Two Main Containers/Sections */}
+        {/* The Two Main Containers/Sections Overview */}
         {!selectedSection ? (
           <div className="space-y-6">
             
@@ -168,7 +264,6 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
               <div className="bg-white border border-slate-200 hover:border-emerald-500 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
                 <div className="space-y-5">
                   
-                  {/* Top Badge & Icon */}
                   <div className="flex items-center justify-between">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
                       <Fish className="w-7 h-7" />
@@ -178,7 +273,6 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     </span>
                   </div>
 
-                  {/* Section Title & Description */}
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase tracking-tight">
                       1. Growth-Out Section
@@ -188,7 +282,6 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     </p>
                   </div>
 
-                  {/* Key Features Pill List */}
                   <div className="grid grid-cols-2 gap-2.5 pt-2">
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <Package className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -210,7 +303,6 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
                 </div>
 
-                {/* Action CTA */}
                 <div className="pt-6 mt-6 border-t border-slate-100">
                   <button
                     onClick={() => {
@@ -226,40 +318,36 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
               </div>
 
-              {/* CONTAINER 2: Hatchery Section (New Feature) */}
+              {/* CONTAINER 2: Hatchery Section (Progressive Updates) */}
               <div className="bg-white border-2 border-emerald-600/40 hover:border-emerald-600 rounded-3xl p-6 sm:p-8 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
                 
-                {/* Glow accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
 
                 <div className="space-y-5 relative z-10">
                   
-                  {/* Top Badge & Icon */}
                   <div className="flex items-center justify-between">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-700 group-hover:text-white transition-colors shadow-sm">
                       <Egg className="w-7 h-7" />
                     </div>
                     <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black uppercase px-3 py-1 rounded-full flex items-center space-x-1">
                       <Sparkles className="w-3 h-3 text-purple-600" />
-                      <span>New Section</span>
+                      <span>Progressive Logging</span>
                     </span>
                   </div>
 
-                  {/* Section Title & Description */}
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase tracking-tight">
                       2. Hatchery Section
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 font-medium mt-2 leading-relaxed">
-                      Artificial breeding, incubation, and fingerling production records. Tracks broodstock pedigree, feeding timeline, fingerling health, and destination grow-out ponds.
+                      Artificial breeding, incubation, feeding timeline, and fingerling transfers. Supports progressive updates across days and weeks as data evolves.
                     </p>
                   </div>
 
-                  {/* Key Features Pill List */}
                   <div className="grid grid-cols-2 gap-2.5 pt-2">
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Broodstock Source</span>
+                      <span>Broodstock Sourcing</span>
                     </div>
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
@@ -267,23 +355,22 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     </div>
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <Droplets className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Fingerling Weight & Age</span>
+                      <span>Fingerling Weights</span>
                     </div>
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <MapPin className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>Transfer to Grow-Out</span>
+                      <span>Grow-Out Transfers</span>
                     </div>
                   </div>
 
                 </div>
 
-                {/* Action CTA */}
                 <div className="pt-6 mt-6 border-t border-slate-100 relative z-10">
                   <button
                     onClick={() => setSelectedSection(FisherySection.HATCHERY)}
                     className="w-full bg-slate-900 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
                   >
-                    <span>Open Hatchery Data Entry Form</span>
+                    <span>Manage Hatchery Batches & Forms</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -294,35 +381,209 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
           </div>
         ) : (
-          /* When Hatchery Section is Opened */
+          /* HATCHERY SECTION WORKSPACE (List + Progressive Form) */
           <div className="space-y-6 animate-fadeIn">
             
-            <div className="flex items-center justify-between bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+            {/* Top Section Summary & Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 font-black">
-                  <Egg className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-800 font-black">
+                  <Egg className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Hatchery Section Data Entry</h2>
-                  <p className="text-xs text-slate-500 font-medium">Record broodstock source, fingerling transfer counts, weights, and destination ponds</p>
+                  <h2 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">Hatchery Operations Workspace</h2>
+                  <p className="text-xs text-slate-500 font-medium">Record progressive logs across breeding, feeding, and pond transfer milestones</p>
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedSection(null)}
-                className="text-xs font-extrabold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
-              >
-                Switch Section
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleStartNewBatch}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-md shadow-emerald-200 active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Hatchery Batch</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setSelectedSection(null);
+                  }}
+                  className="text-xs font-extrabold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer"
+                >
+                  Switch Division
+                </button>
+              </div>
             </div>
 
-            {/* Embedded Hatchery Form */}
-            <FisheryHatcheryForm onSubmit={handleHatcherySubmit} isSubmitting={isSubmitting} />
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[10px] font-black uppercase text-slate-400">Recorded Hatchery Logs</span>
+                <p className="text-2xl font-black text-slate-900 mt-1">{hatcheryReports.length}</p>
+                <span className="text-[11px] font-bold text-slate-500 mt-1 block">Live synced with ED Dashboard</span>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[10px] font-black uppercase text-slate-400">Total Batches Tracked</span>
+                <p className="text-2xl font-black text-purple-900 mt-1">{activeBatchesCount} Batches</p>
+                <span className="text-[11px] font-bold text-purple-600 mt-1 block">Multi-stage progression</span>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[10px] font-black uppercase text-slate-400">Transferred Fingerlings</span>
+                <p className="text-2xl font-black text-emerald-600 mt-1">{totalTransferredCount.toLocaleString()} Fish</p>
+                <span className="text-[11px] font-bold text-emerald-700 mt-1 block">Moved to Grow-Out Ponds</span>
+              </div>
+            </div>
+
+            {/* Form View (if active) or Ongoing Batches List */}
+            {isFormOpen ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-black text-slate-900 uppercase">
+                    {editingReport ? `Editing: ${editingReport.title}` : 'Creating New Hatchery Batch Entry'}
+                  </h3>
+                  <button
+                    onClick={() => setIsFormOpen(false)}
+                    className="text-xs font-extrabold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  >
+                    Cancel & Return to Batch List
+                  </button>
+                </div>
+
+                <FisheryHatcheryForm
+                  initialData={editingReport?.formData as FisheryHatcheryFormData}
+                  reportId={editingReport?.id}
+                  onCancel={() => setIsFormOpen(false)}
+                  onSubmit={handleHatcherySubmit}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            ) : (
+              /* Ongoing & Recorded Batches Table */
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                      Ongoing & Recorded Hatchery Batches
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">Click "Update / Edit" on any batch to add progressive milestones</p>
+                  </div>
+                  <button
+                    onClick={loadHatcheryLogs}
+                    className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    title="Refresh Data"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {hatcheryReports.length === 0 ? (
+                  <div className="py-12 text-center space-y-3">
+                    <Egg className="w-12 h-12 text-slate-300 mx-auto" />
+                    <p className="text-sm font-bold text-slate-600">No Hatchery logs recorded yet.</p>
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                      Start by recording broodstock sourcing and incubation dates. You can update feeding and grow-out transfers later.
+                    </p>
+                    <button
+                      onClick={handleStartNewBatch}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider inline-flex items-center space-x-1.5 transition-all shadow-md active:scale-95 cursor-pointer mt-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create First Hatchery Batch</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {hatcheryReports.map((report) => {
+                      const batches: any[] = report.formData?.batches || [];
+                      const primaryBatch = batches[0] || {};
+                      const stageInfo = getHatcheryBatchStage(primaryBatch);
+                      const dateStr = new Date(report.timestamp).toLocaleDateString();
+                      const lastUpdatedStr = report.updatedAt ? new Date(report.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                      return (
+                        <div
+                          key={report.id}
+                          className="bg-slate-50/70 border border-slate-200 hover:border-emerald-400 p-4 sm:p-5 rounded-2xl transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 group"
+                        >
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-black text-slate-900 text-sm">{report.title}</span>
+                              <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${stageInfo.badgeColor}`}>
+                                {stageInfo.stage} ({stageInfo.progressPercent}%)
+                              </span>
+                              <span className="text-[10px] font-extrabold text-slate-400">
+                                Logged by: {report.fullName || report.email}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 pt-1">
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-black block">Broodstock Source</span>
+                                <span className="font-bold text-slate-800">{primaryBatch.sourceOfBroodstock || 'Pending'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-black block">Hatch Date</span>
+                                <span className="font-bold text-slate-800">{primaryBatch.hatcheryDate || 'Pending'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-black block">Fingerlings Transferred</span>
+                                <span className="font-bold text-emerald-700">{primaryBatch.totalTransferredFingerlings ? `${Number(primaryBatch.totalTransferredFingerlings).toLocaleString()} Fish` : 'Pending Transfer'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-black block">Destination Pond</span>
+                                <span className="font-bold text-slate-800">{primaryBatch.destinatedPondTransferred || 'Pending'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Progress bar and Action buttons */}
+                          <div className="flex items-center space-x-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-200">
+                            <button
+                              onClick={() => setSelectedReportForModal(report)}
+                              className="px-3.5 py-2 text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-black transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleEditBatch(report)}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Update / Progress Log</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+              </div>
+            )}
 
           </div>
         )}
 
       </div>
+
+      {/* Modal for Details */}
+      {selectedReportForModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+            <button
+              onClick={() => setSelectedReportForModal(null)}
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+            <ReportDetails report={selectedReportForModal} />
+          </div>
+        </div>
+      )}
 
     </div>
   );

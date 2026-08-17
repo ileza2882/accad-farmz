@@ -1,5 +1,5 @@
 import React from 'react';
-import { Report, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS } from '../types';
+import { Report, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS, getHatcheryBatchStage } from '../types';
 import { formatLogName, exportLogToPDF, exportLogToWord, getComputerName, formatStatusLabel } from '../lib/exportUtils';
 import { 
   FileText, 
@@ -426,27 +426,40 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
               </span>
             </div>
 
-            {hatcheryData.batches.map((batch, bIdx) => (
-              <div key={bIdx} className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
-                
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center">
-                      {bIdx + 1}
-                    </span>
-                    <h4 className="text-base font-black text-slate-900 uppercase">
-                      {batch.batchNumber || `Batch #${bIdx + 1}`}
-                    </h4>
+            {hatcheryData.batches.map((batch, bIdx) => {
+              const stageInfo = getHatcheryBatchStage(batch);
+
+              return (
+                <div key={bIdx} className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center">
+                        {bIdx + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-base font-black text-slate-900 uppercase">
+                          {batch.batchNumber || `Batch #${bIdx + 1}`}
+                        </h4>
+                        <div className="flex items-center space-x-2 mt-0.5">
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${stageInfo.badgeColor}`}>
+                            {stageInfo.stage} ({stageInfo.progressPercent}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
+                        batch.healthStatusTransferred === 'Excellent' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                        batch.healthStatusTransferred === 'Good' ? 'bg-teal-100 text-teal-800 border-teal-300' :
+                        batch.healthStatusTransferred === 'Fair' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                        'bg-rose-100 text-rose-800 border-rose-300'
+                      }`}>
+                        Health: {batch.healthStatusTransferred || 'Good'}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
-                    batch.healthStatusTransferred === 'Excellent' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                    batch.healthStatusTransferred === 'Good' ? 'bg-teal-100 text-teal-800 border-teal-300' :
-                    batch.healthStatusTransferred === 'Fair' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                    'bg-rose-100 text-rose-800 border-rose-300'
-                  }`}>
-                    Health: {batch.healthStatusTransferred || 'Good'}
-                  </span>
-                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-bold">
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
@@ -497,8 +510,9 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   </div>
                 )}
 
-              </div>
-            ))}
+                </div>
+              );
+            })}
 
             {hatcheryData.generalNotes && (
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">

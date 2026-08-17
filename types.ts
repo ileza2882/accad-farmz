@@ -197,6 +197,69 @@ export interface FisheryHatcheryBatchData {
 export interface FisheryHatcheryFormData {
   batches: FisheryHatcheryBatchData[];
   generalNotes?: string;
+  isDraft?: boolean;
+}
+
+export type HatcheryStage = 'Incubation' | 'Feeding Phase' | 'Fingerling Development' | 'Transferred to Grow-Out';
+
+export function getHatcheryBatchStage(batch?: Partial<FisheryHatcheryBatchData>): {
+  stage: HatcheryStage;
+  progressPercent: number;
+  badgeColor: string;
+  isComplete: boolean;
+} {
+  if (!batch) {
+    return {
+      stage: 'Incubation',
+      progressPercent: 10,
+      badgeColor: 'bg-slate-100 text-slate-700 border-slate-300',
+      isComplete: false
+    };
+  }
+
+  const hasTransfer = Boolean(batch.dateOfTransferToGrowOut && batch.totalTransferredFingerlings && Number(batch.totalTransferredFingerlings) > 0);
+  const hasDevelopment = Boolean(batch.averageWeightTransferred || batch.ageOfFingerlingsTransferred);
+  const hasFeeding = Boolean(batch.firstDateOfFeeding);
+  const hasHatching = Boolean(batch.hatcheryDate || batch.sourceOfBroodstock);
+
+  if (hasTransfer) {
+    return {
+      stage: 'Transferred to Grow-Out',
+      progressPercent: 100,
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      isComplete: true
+    };
+  }
+  if (hasDevelopment) {
+    return {
+      stage: 'Fingerling Development',
+      progressPercent: 75,
+      badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
+      isComplete: false
+    };
+  }
+  if (hasFeeding) {
+    return {
+      stage: 'Feeding Phase',
+      progressPercent: 50,
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
+      isComplete: false
+    };
+  }
+  if (hasHatching) {
+    return {
+      stage: 'Incubation',
+      progressPercent: 25,
+      badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      isComplete: false
+    };
+  }
+  return {
+    stage: 'Incubation',
+    progressPercent: 10,
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-300',
+    isComplete: false
+  };
 }
 
 export interface Report {

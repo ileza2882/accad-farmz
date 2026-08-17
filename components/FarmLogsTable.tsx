@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Report, ReportStatus, Department, InventoryType, User, Role } from '../types';
+import { Report, ReportStatus, Department, InventoryType, User, Role, getHatcheryBatchStage } from '../types';
 import { formatLogName, exportLogToPDF, exportLogToWord, formatStatusLabel, getComputerName } from '../lib/exportUtils';
 import { 
   Search, 
@@ -178,6 +178,18 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
               <option value={ReportStatus.REJECTED_BY_ED}>Rejected ED</option>
             </select>
 
+            {/* Inventory Type Filter */}
+            <select
+              value={invTypeFilter}
+              onChange={(e) => setInvTypeFilter(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+            >
+              <option value="ALL">All Inventory Types</option>
+              <option value={InventoryType.ASSET}>Asset Inventory</option>
+              <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
+              <option value={InventoryType.HATCHERY}>Hatchery Record</option>
+            </select>
+
             {/* Department Filter */}
             <select
               value={deptFilter}
@@ -235,6 +247,10 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                 const isExportingPdf = exportingId === report.id + '_pdf';
                 const isExportingWord = exportingId === report.id + '_word';
                 const isProcessing = processingId === report.id;
+                const isHatchery = report.inventoryType === InventoryType.HATCHERY || report.formData?.batches;
+                const hatcheryStage = isHatchery && report.formData?.batches?.[0] 
+                  ? getHatcheryBatchStage(report.formData.batches[0]) 
+                  : null;
 
                 return (
                   <tr key={report.id} className="hover:bg-slate-50/80 transition-colors">
@@ -244,7 +260,14 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                           <FileText className="w-5 h-5 text-emerald-600" />
                         </div>
                         <div>
-                          <div className="font-extrabold text-slate-900 text-sm tracking-tight">{logName}</div>
+                          <div className="font-extrabold text-slate-900 text-sm tracking-tight flex items-center space-x-2">
+                            <span>{logName}</span>
+                            {hatcheryStage && (
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${hatcheryStage.badgeColor}`}>
+                                {hatcheryStage.stage}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-slate-500 line-clamp-1 font-medium mt-0.5">{report.content}</div>
                         </div>
                       </div>
@@ -330,6 +353,10 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
             const isExportingPdf = exportingId === report.id + '_pdf';
             const isExportingWord = exportingId === report.id + '_word';
             const isProcessing = processingId === report.id;
+            const isHatchery = report.inventoryType === InventoryType.HATCHERY || report.formData?.batches;
+            const hatcheryStage = isHatchery && report.formData?.batches?.[0] 
+              ? getHatcheryBatchStage(report.formData.batches[0]) 
+              : null;
 
             return (
               <div key={report.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 hover:shadow-md transition-shadow">
@@ -360,12 +387,17 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                     <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                     <span className="font-medium">{new Date(report.timestamp).toLocaleDateString()}</span>
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 flex flex-wrap items-center gap-1.5">
                     <span className="inline-flex items-center space-x-1.5 bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">
                       <span>{report.department}</span>
                       <span>•</span>
                       <span className="text-emerald-700">{report.inventoryType}</span>
                     </span>
+                    {hatcheryStage && (
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${hatcheryStage.badgeColor}`}>
+                        {hatcheryStage.stage}
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -163,6 +163,17 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       { category: 'Farm-produced', quantityKg: farmProducedKg }
     ];
 
+    let totalHatcheryFingerlings = 0;
+    let totalHatcheryBatches = 0;
+    filtered.forEach(r => {
+      if (r.formData?.batches && Array.isArray(r.formData.batches)) {
+        r.formData.batches.forEach((b: any) => {
+          totalHatcheryBatches++;
+          totalHatcheryFingerlings += Number(b.totalTransferredFingerlings) || 0;
+        });
+      }
+    });
+
     return {
       filteredReports: filtered,
       approvedCount,
@@ -171,6 +182,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       rejectedCount,
       approvalRate,
       totalFeedsKg,
+      totalHatcheryFingerlings,
+      totalHatcheryBatches,
       sectorChartData,
       statusPieData,
       trendChartData,
@@ -928,7 +941,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             </div>
 
             {/* Analytics KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
                 <span className="text-[10px] font-black uppercase text-slate-400">Total Filtered Logs</span>
                 <div className="text-2xl font-black text-slate-900">{analytics.filteredReports.length}</div>
@@ -953,6 +966,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 <div className="text-[10px] text-blue-700 font-bold flex items-center space-x-1">
                   <Zap className="w-3 h-3 text-blue-600" />
                   <span>Store & usage inventory</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400">Hatchery Fingerlings</span>
+                <div className="text-2xl font-black text-emerald-700">{analytics.totalHatcheryFingerlings.toLocaleString()}</div>
+                <div className="text-[10px] text-emerald-800 font-bold flex items-center space-x-1">
+                  <TrendingUp className="w-3 h-3 text-emerald-600" />
+                  <span>{analytics.totalHatcheryBatches} batches tracked</span>
                 </div>
               </div>
 

@@ -520,6 +520,47 @@ export async function updateReportStatus(
   return true;
 }
 
+export async function updateReport(reportId: string, updates: Partial<Report>): Promise<Report | null> {
+  const mergedUpdates: Record<string, any> = {
+    ...updates,
+    updatedAt: Date.now()
+  };
+
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      await insforge.database
+        .from('reports')
+        .update(mergedUpdates)
+        .eq('originalId', reportId);
+
+      await insforge.database
+        .from('reports')
+        .update(mergedUpdates)
+        .eq('id', reportId);
+    } catch (e) {
+      console.warn('InsForge updateReport error:', e);
+    }
+  }
+
+  let updatedReport: Report | null = null;
+  try {
+    const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
+    const updated = localReports.map(r => {
+      if (r.id === reportId) {
+        updatedReport = {
+          ...r,
+          ...mergedUpdates
+        };
+        return updatedReport;
+      }
+      return r;
+    });
+    localStorage.setItem('accad_reports_v2', JSON.stringify(updated));
+  } catch (e) {}
+
+  return updatedReport;
+}
+
 /**
  * Real-time Notifications Management synced with InsForge DB
  */
