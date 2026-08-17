@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Department, InventoryType, Report, ReportStatus } from '../types';
+import { User, Department, InventoryType, Report, ReportStatus, FisherySection } from '../types';
 import { getReports, createReport, getNotifications, createNotification } from '../lib/insforge';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
+import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { ReportDetails } from '../components/ReportDetails';
 import { FarmLogsTable } from '../components/FarmLogsTable';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
@@ -44,11 +45,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   }, [user]);
 
   const handleFormSubmit = async (formData?: any) => {
-    const effectiveTitle = selectedInvType === InventoryType.ASSET 
-      ? `${selectedDept} Asset Inventory`
-      : logTitle.trim();
+    let effectiveTitle = logTitle.trim();
+    if (selectedInvType === InventoryType.ASSET) {
+      effectiveTitle = `${selectedDept} Asset Inventory`;
+    } else if (selectedInvType === InventoryType.HATCHERY) {
+      const firstBatch = formData?.batches?.[0]?.batchNumber || 'Batch';
+      effectiveTitle = logTitle.trim() || `${selectedDept} Hatchery Transfer - ${firstBatch}`;
+    }
 
-    if (selectedInvType !== InventoryType.ASSET && !effectiveTitle) {
+    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -57,6 +62,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     try {
       const computerName = getComputerName();
       const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const section = selectedInvType === InventoryType.HATCHERY 
+        ? FisherySection.HATCHERY 
+        : FisherySection.GROW_OUT;
+
       const newReport: Report = {
         id: newReportId,
         userId: user.id,
@@ -64,6 +73,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         fullName: user.fullName,
         department: selectedDept,
         inventoryType: selectedInvType,
+        section,
         title: effectiveTitle,
         content: logContent.trim() || `${selectedDept} ${selectedInvType} Submission`,
         timestamp: Date.now(),
@@ -170,18 +180,23 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory Type</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory / Section Type</label>
             <select
               value={selectedInvType}
               onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
             >
-              <option value={InventoryType.ASSET}>Asset Inventory</option>
-              <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
+              <optgroup label="Growth-Out Section">
+                <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
+                <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
+              </optgroup>
+              <optgroup label="Hatchery Section">
+                <option value={InventoryType.HATCHERY}>Hatchery Record (Fingerling Transfers)</option>
+              </optgroup>
             </select>
           </div>
 
-          {selectedInvType !== InventoryType.ASSET && (
+          {selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
               <input
@@ -200,6 +215,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
             <FisheryAssetForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+          ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
+            <FisheryHatcheryForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
           ) : (
             <div className="space-y-4">
               <div>

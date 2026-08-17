@@ -111,8 +111,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user }) => {
                 if (dept.id !== Department.FISHERY) {
                   setDevModalDept(dept);
                 } else {
-                  if (user) navigate('/dashboard');
-                  else navigate('/login');
+                  navigate('/fishery');
                 }
               }}
               className="bg-white border border-slate-200 hover:border-emerald-500 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 flex items-start space-x-4 sm:space-x-6 relative group cursor-pointer select-none"

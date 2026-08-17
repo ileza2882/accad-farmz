@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType } from '../types';
+import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection } from '../types';
 import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
@@ -7,6 +7,7 @@ import { ReportDetails } from '../components/ReportDetails';
 import { FarmLogsTable } from '../components/FarmLogsTable';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
+import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
 import { 
   ResponsiveContainer, 
@@ -328,11 +329,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   };
 
   const handleEDFormSubmit = async (formData?: any) => {
-    const effectiveTitle = selectedInvType === InventoryType.ASSET 
-      ? `${selectedDept} Asset Inventory`
-      : logTitle.trim();
+    let effectiveTitle = logTitle.trim();
+    if (selectedInvType === InventoryType.ASSET) {
+      effectiveTitle = `${selectedDept} Asset Inventory`;
+    } else if (selectedInvType === InventoryType.HATCHERY) {
+      const firstBatch = formData?.batches?.[0]?.batchNumber || 'Batch';
+      effectiveTitle = logTitle.trim() || `${selectedDept} Hatchery Transfer - ${firstBatch}`;
+    }
 
-    if (selectedInvType !== InventoryType.ASSET && !effectiveTitle) {
+    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -341,6 +346,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     try {
       const computerName = getComputerName();
       const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const section = selectedInvType === InventoryType.HATCHERY 
+        ? FisherySection.HATCHERY 
+        : FisherySection.GROW_OUT;
+
       const newReport: Report = {
         id: newReportId,
         userId: user.id,
@@ -348,6 +357,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         fullName: user.fullName,
         department: selectedDept,
         inventoryType: selectedInvType,
+        section,
         title: effectiveTitle,
         content: logContent.trim() || `${selectedDept} ${selectedInvType} ED Direct Log Submission`,
         timestamp: Date.now(),
@@ -363,21 +373,21 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         user.fullName,
         user.email,
         'ED_DIRECT_LOG_ENTRY',
-        `ED ${user.fullName} created direct log "${formatLogName(newReport)}"`
+        `Executive Director created and auto-approved log "${formatLogName(newReport)}"`
       );
 
-      setSubmitSuccess('Direct farm log successfully logged and auto-approved!');
+      setSubmitSuccess('Direct farm log created and auto-approved successfully!');
       setLogTitle('');
       setLogContent('');
+      await loadData();
 
       setTimeout(() => {
         setSubmitSuccess(null);
         setActiveTab('all_logs');
-        loadData();
       }, 1500);
 
     } catch (e: any) {
-      alert('Submission failed: ' + e.message);
+      alert('Direct submission failed: ' + e.message);
     } finally {
       setIsActionProcessing(false);
     }
@@ -780,18 +790,23 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           )}
 
           <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory Type</label>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory / Section Type</label>
             <select
               value={selectedInvType}
               onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
             >
-              <option value={InventoryType.ASSET}>Asset Inventory</option>
-              <option value={InventoryType.LIVESTOCK}>Livestock Inventory</option>
+              <optgroup label="Growth-Out Section">
+                <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
+                <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
+              </optgroup>
+              <optgroup label="Hatchery Section">
+                <option value={InventoryType.HATCHERY}>Hatchery Record (Fingerling Transfers)</option>
+              </optgroup>
             </select>
           </div>
 
-          {selectedInvType !== InventoryType.ASSET && (
+          {selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
               <input
@@ -809,6 +824,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             <FisheryAssetForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
+          ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
+            <FisheryHatcheryForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
           ) : (
             <div className="space-y-4">
               <div>

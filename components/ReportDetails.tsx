@@ -1,5 +1,5 @@
 import React from 'react';
-import { Report, FisheryAssetFormData, FisheryLivestockFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS } from '../types';
+import { Report, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS } from '../types';
 import { formatLogName, exportLogToPDF, exportLogToWord, getComputerName, formatStatusLabel } from '../lib/exportUtils';
 import { 
   FileText, 
@@ -20,7 +20,14 @@ import {
   Info,
   ShieldCheck,
   Building,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Egg,
+  Scale,
+  MapPin,
+  Activity,
+  Hash,
+  Droplets,
+  Sparkles
 } from 'lucide-react';
 
 interface ReportDetailsProps {
@@ -32,6 +39,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
   const computer = report.computerName || getComputerName();
   const assetData = report.formData as FisheryAssetFormData;
   const livestockData = report.formData as FisheryLivestockFormData;
+  const hatcheryData = report.formData as FisheryHatcheryFormData;
 
   const getStatusBadge = (status: ReportStatus) => {
     switch (status) {
@@ -402,6 +410,102 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
 
               </div>
             ))}
+          </div>
+        )}
+
+        {/* HATCHERY INVENTORY EXHAUSTIVE DISPLAY */}
+        {(report.inventoryType === InventoryType.HATCHERY || hatcheryData?.batches) && hatcheryData?.batches && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs">
+                <Egg className="w-4 h-4 text-emerald-600" />
+                <span>Hatchery Production & Fingerling Transfer Audit</span>
+              </div>
+              <span className="text-[11px] font-black uppercase text-emerald-800 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
+                {hatcheryData.batches.length} {hatcheryData.batches.length === 1 ? 'Batch' : 'Batches'}
+              </span>
+            </div>
+
+            {hatcheryData.batches.map((batch, bIdx) => (
+              <div key={bIdx} className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
+                
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center">
+                      {bIdx + 1}
+                    </span>
+                    <h4 className="text-base font-black text-slate-900 uppercase">
+                      {batch.batchNumber || `Batch #${bIdx + 1}`}
+                    </h4>
+                  </div>
+                  <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
+                    batch.healthStatusTransferred === 'Excellent' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                    batch.healthStatusTransferred === 'Good' ? 'bg-teal-100 text-teal-800 border-teal-300' :
+                    batch.healthStatusTransferred === 'Fair' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                    'bg-rose-100 text-rose-800 border-rose-300'
+                  }`}>
+                    Health: {batch.healthStatusTransferred || 'Good'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-bold">
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Source of Broodstock</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.sourceOfBroodstock || 'N/A'}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Hatchery Date</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.hatcheryDate || 'N/A'}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">First Date of Feeding</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.firstDateOfFeeding || 'N/A'}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Date of Transfer to Grow-Out</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.dateOfTransferToGrowOut || 'N/A'}</p>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
+                    <span className="text-[10px] text-emerald-800 font-black uppercase">Total Transferred Fingerlings</span>
+                    <p className="text-emerald-950 font-black text-base">{Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Average Weight</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.averageWeightTransferred || 0} g</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Age of Fingerlings</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.ageOfFingerlingsTransferred || 'N/A'}</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 sm:col-span-2">
+                    <span className="text-[10px] text-slate-400 font-black uppercase">Destinated Pond</span>
+                    <p className="text-slate-900 font-black text-sm">{batch.destinatedPondTransferred || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {batch.remarks && (
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                    <span className="text-[10px] text-slate-400 font-black uppercase block">Batch Remarks / Notes</span>
+                    <p className="text-slate-700 font-medium mt-0.5">{batch.remarks}</p>
+                  </div>
+                )}
+
+              </div>
+            ))}
+
+            {hatcheryData.generalNotes && (
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
+                <span className="text-[10px] text-slate-500 font-black uppercase">General Hatchery Notes</span>
+                <p className="text-slate-700 font-medium">{hatcheryData.generalNotes}</p>
+              </div>
+            )}
           </div>
         )}
 

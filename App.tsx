@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { StaffDashboard } from './pages/StaffDashboard';
 import { ManagerDashboard } from './pages/ManagerDashboard';
 import { ExecutiveDashboard } from './pages/ExecutiveDashboard';
+import { FisheryDepartmentPage } from './pages/FisheryDepartmentPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Header } from './components/Header';
@@ -61,6 +62,9 @@ const App: React.FC = () => {
           <Routes>
             {/* Public Homepage */}
             <Route path="/" element={<Homepage user={currentUser} />} />
+
+            {/* Dedicated Fishery Department Hub (Growth-Out & Hatchery Sections) */}
+            <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} />} />
 
             {/* Public Login Page */}
             <Route 

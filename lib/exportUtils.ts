@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData, MACHINE_LABELS } from '../types';
+import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, InventoryType, MACHINE_LABELS } from '../types';
 
 /**
  * Get device or computer name fallback
@@ -386,6 +386,64 @@ export function exportLogToPDF(report: Report): void {
           }
         });
       }
+
+      // Section 5: Forms Audit (Hatchery Record)
+      const hatcheryData = report.formData as FisheryHatcheryFormData;
+      if (hatcheryData?.batches && Array.isArray(hatcheryData.batches) && hatcheryData.batches.length > 0) {
+        if (currentY > 230) { doc.addPage(); currentY = 20; }
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(5, 150, 105);
+        doc.text('HATCHERY PRODUCTION & FINGERLING TRANSFER AUDIT', 14, currentY);
+        currentY += 4;
+
+        hatcheryData.batches.forEach((batch, idx) => {
+          if (currentY > 240) { doc.addPage(); currentY = 20; }
+
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 41, 59);
+          doc.text(`BATCH #${idx + 1}: ${batch.batchNumber || 'Batch'}`, 14, currentY);
+          currentY += 3;
+
+          const batchRows = [
+            ['Source of Broodstock', batch.sourceOfBroodstock || 'N/A'],
+            ['Batch Number', batch.batchNumber || 'N/A'],
+            ['Hatchery Date', batch.hatcheryDate || 'N/A'],
+            ['First Date of Feeding', batch.firstDateOfFeeding || 'N/A'],
+            ['Date of Transfer to Grow-Out', batch.dateOfTransferToGrowOut || 'N/A'],
+            ['Total Transferred Fingerlings', `${Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish`],
+            ['Average Weight of Fingerlings', `${batch.averageWeightTransferred || 0} g`],
+            ['Age of Fingerlings', String(batch.ageOfFingerlingsTransferred || 'N/A')],
+            ['Health Status of Fingerlings', batch.healthStatusTransferred || 'Good'],
+            ['Destinated Pond of Fingerlings', batch.destinatedPondTransferred || 'N/A']
+          ];
+
+          if (batch.remarks) {
+            batchRows.push(['Batch Remarks / Notes', batch.remarks]);
+          }
+
+          autoTable(doc, {
+            startY: currentY,
+            head: [['HATCHERY METRIC / PARAMETER', 'RECORDED AUDIT VALUE']],
+            body: batchRows,
+            theme: 'grid',
+            headStyles: { fillColor: [5, 150, 105], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 8, cellPadding: 2 }
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 6;
+        });
+
+        if (hatcheryData.generalNotes) {
+          if (currentY > 250) { doc.addPage(); currentY = 20; }
+          doc.setFontSize(8.5);
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(71, 85, 105);
+          doc.text(`General Notes: ${hatcheryData.generalNotes}`, 14, currentY);
+          currentY += 6;
+        }
+      }
     }
 
     // Dynamic Page Numbering & Footer Setup on Every Page
@@ -434,6 +492,7 @@ export function exportLogToWord(report: Report): void {
 
     const assetData = report.formData as FisheryAssetFormData;
     const livestockData = report.formData as FisheryLivestockFormData;
+    const hatcheryData = report.formData as FisheryHatcheryFormData;
 
     // Build Exhaustive Word HTML Blob
     const htmlContent = `
@@ -632,6 +691,36 @@ export function exportLogToWord(report: Report): void {
               </div>
             ` : ''}
           `).join('')}
+        ` : ''}
+
+        <!-- Section 5: Hatchery Record Data -->
+        ${hatcheryData?.batches?.length ? `
+          <div class="section-title">HATCHERY PRODUCTION & FINGERLING TRANSFER AUDIT</div>
+          ${hatcheryData.batches.map((batch, bIdx) => `
+            <table style="margin-top: 12px;">
+              <thead>
+                <tr><th colspan="2">BATCH #${bIdx + 1}: ${batch.batchNumber || 'Batch'}</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="label">Source of Broodstock</td><td class="value"><strong>${batch.sourceOfBroodstock || 'N/A'}</strong></td></tr>
+                <tr><td class="label">Batch Number</td><td class="value">${batch.batchNumber || 'N/A'}</td></tr>
+                <tr><td class="label">Hatchery Date</td><td class="value">${batch.hatcheryDate || 'N/A'}</td></tr>
+                <tr><td class="label">First Date of Feeding</td><td class="value">${batch.firstDateOfFeeding || 'N/A'}</td></tr>
+                <tr><td class="label">Date of Transfer to Grow-Out</td><td class="value">${batch.dateOfTransferToGrowOut || 'N/A'}</td></tr>
+                <tr><td class="label">Total Transferred Fingerlings</td><td class="value"><strong>${Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish</strong></td></tr>
+                <tr><td class="label">Average Weight of Fingerlings</td><td class="value">${batch.averageWeightTransferred || 0} g</td></tr>
+                <tr><td class="label">Age of Fingerlings</td><td class="value">${batch.ageOfFingerlingsTransferred || 'N/A'}</td></tr>
+                <tr><td class="label">Health Status</td><td class="value">${batch.healthStatusTransferred || 'Good'}</td></tr>
+                <tr><td class="label">Destinated Pond</td><td class="value">${batch.destinatedPondTransferred || 'N/A'}</td></tr>
+                ${batch.remarks ? `<tr><td class="label">Batch Remarks</td><td class="value">${batch.remarks}</td></tr>` : ''}
+              </tbody>
+            </table>
+          `).join('')}
+          ${hatcheryData.generalNotes ? `
+            <div style="margin-top: 10px; padding: 8px; background-color: #f1f5f9; border-radius: 4px; font-size: 11px;">
+              <strong>General Hatchery Notes:</strong> ${hatcheryData.generalNotes}
+            </div>
+          ` : ''}
         ` : ''}
 
         <div class="footer">

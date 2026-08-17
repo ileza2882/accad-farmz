@@ -13,7 +13,13 @@ export enum Department {
 
 export enum InventoryType {
   ASSET = 'Asset Inventory',
-  LIVESTOCK = 'Livestock Inventory'
+  LIVESTOCK = 'Livestock Inventory',
+  HATCHERY = 'Hatchery Record'
+}
+
+export enum FisherySection {
+  GROW_OUT = 'Growth-Out Section',
+  HATCHERY = 'Hatchery Section'
 }
 
 export enum ReportStatus {
@@ -174,6 +180,25 @@ export interface FisheryLivestockFormData {
   ponds: FisheryLivestockPondData[];
 }
 
+export interface FisheryHatcheryBatchData {
+  sourceOfBroodstock: string;
+  batchNumber: string;
+  hatcheryDate: string;
+  firstDateOfFeeding: string;
+  dateOfTransferToGrowOut: string;
+  totalTransferredFingerlings: number | string;
+  averageWeightTransferred: number | string;
+  ageOfFingerlingsTransferred: number | string;
+  healthStatusTransferred: 'Excellent' | 'Good' | 'Fair' | 'Under Observation' | 'Poor' | string;
+  destinatedPondTransferred: string;
+  remarks?: string;
+}
+
+export interface FisheryHatcheryFormData {
+  batches: FisheryHatcheryBatchData[];
+  generalNotes?: string;
+}
+
 export interface Report {
   id: string;
   userId: string;
@@ -181,11 +206,12 @@ export interface Report {
   fullName?: string; // Staff name for manager/ED view
   department: Department;
   inventoryType: InventoryType;
+  section?: FisherySection | string;
   title: string;
   content: string;
   timestamp: number;
   status: ReportStatus;
-  formData?: FisheryAssetFormData | FisheryLivestockFormData | any;
+  formData?: FisheryAssetFormData | FisheryLivestockFormData | FisheryHatcheryFormData | any;
   isReEntry?: boolean;
   rejectionReason?: string;
   managerApprovedBy?: string;
