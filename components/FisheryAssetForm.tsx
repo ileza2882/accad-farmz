@@ -64,6 +64,10 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
       pumpingMachineC: 'Good',
       pumpingMachineD: 'Good',
       pumpingMachineE: 'Good',
+      chineseMixer: 'Good',
+      locallyFabricatedMixer: 'Good',
+      chineseGrindingMachine: 'Good',
+      locallyFabricatedGrindingMachine: 'Good',
       solarSystemA: 'Good',
       solarSystemB: 'Good',
       solarSystemC: 'Good',
@@ -349,29 +353,49 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
           <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-tight">Machine Health Checks</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.entries(formData.machineCheck).map(([key, status]) => {
-            const label = MACHINE_LABELS[key] || key.replace(/([A-Z])/g, ' $1');
+        {/* Render machine checks grouped by category */}
+        {(() => {
+          const machineCategories: { title: string; keys: string[] }[] = [
+            { title: 'General Machines', keys: ['localWetMixer', 'grinder', 'dryerUnit', 'extrudingPelletingMachine', 'shapeQuality'] },
+            { title: 'Pumping Machines', keys: ['pumpingMachineA', 'pumpingMachineB', 'pumpingMachineC', 'pumpingMachineD', 'pumpingMachineE'] },
+            { title: 'Mixer', keys: ['chineseMixer', 'locallyFabricatedMixer'] },
+            { title: 'Grinding Machine', keys: ['chineseGrindingMachine', 'locallyFabricatedGrindingMachine'] },
+            { title: 'Solar System', keys: ['solarSystemA', 'solarSystemB', 'solarSystemC', 'solarSystemD', 'solarSystemE'] },
+          ];
+          return machineCategories.map((cat) => {
+            const entries = cat.keys.filter(k => k in formData.machineCheck);
+            if (entries.length === 0) return null;
             return (
-              <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-slate-700">{label}</span>
-                <select
-                  value={status}
-                  onChange={(e) => handleMachineChange(key as any, e.target.value as any)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-black outline-none cursor-pointer shrink-0 ${
-                    status === 'Good' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' :
-                    status === 'Faulty' ? 'bg-rose-100 text-rose-700 border border-rose-300' :
-                    'bg-amber-100 text-amber-700 border border-amber-300'
-                  }`}
-                >
-                  <option value="Good">Good</option>
-                  <option value="Faulty">Faulty</option>
-                  <option value="Needs Maintenance">Needs Maintenance</option>
-                </select>
+              <div key={cat.title} className="space-y-2 mt-3">
+                <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider pl-1">{cat.title}</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {entries.map((key) => {
+                    const status = formData.machineCheck[key];
+                    const label = MACHINE_LABELS[key] || key.replace(/([A-Z])/g, ' $1');
+                    return (
+                      <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-700">{label}</span>
+                        <select
+                          value={status}
+                          onChange={(e) => handleMachineChange(key as any, e.target.value as any)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-black outline-none cursor-pointer shrink-0 ${
+                            status === 'Good' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' :
+                            status === 'Faulty' ? 'bg-rose-100 text-rose-700 border border-rose-300' :
+                            'bg-amber-100 text-amber-700 border border-amber-300'
+                          }`}
+                        >
+                          <option value="Good">Good</option>
+                          <option value="Faulty">Faulty</option>
+                          <option value="Needs Maintenance">Needs Maintenance</option>
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
-          })}
-        </div>
+          });
+        })()}
       </div>
 
       {/* D. Technical & Fuel */}

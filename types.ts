@@ -97,6 +97,10 @@ export interface FisheryAssetFormData {
     pumpingMachineD?: 'Good' | 'Faulty' | 'Needs Maintenance';
     pumpingMachineE?: 'Good' | 'Faulty' | 'Needs Maintenance';
     pumpingMachine?: 'Good' | 'Faulty' | 'Needs Maintenance';
+    chineseMixer?: 'Good' | 'Faulty' | 'Needs Maintenance';
+    locallyFabricatedMixer?: 'Good' | 'Faulty' | 'Needs Maintenance';
+    chineseGrindingMachine?: 'Good' | 'Faulty' | 'Needs Maintenance';
+    locallyFabricatedGrindingMachine?: 'Good' | 'Faulty' | 'Needs Maintenance';
     solarSystemA?: 'Good' | 'Faulty' | 'Needs Maintenance';
     solarSystemB?: 'Good' | 'Faulty' | 'Needs Maintenance';
     solarSystemC?: 'Good' | 'Faulty' | 'Needs Maintenance';
@@ -130,6 +134,10 @@ export const MACHINE_LABELS: Record<string, string> = {
   pumpingMachineC: '1.5 HP pumping machine – C',
   pumpingMachineD: '1 HP pumping machine – D',
   pumpingMachineE: '5.5 HP pumping machine – E',
+  chineseMixer: 'Chinese mixer',
+  locallyFabricatedMixer: 'Locally fabricated mixer',
+  chineseGrindingMachine: 'Chinese grinding machine',
+  locallyFabricatedGrindingMachine: 'Locally fabricated grinding machine',
   solarSystemA: 'Solar system A',
   solarSystemB: 'Solar system B',
   solarSystemC: 'Solar system C',
