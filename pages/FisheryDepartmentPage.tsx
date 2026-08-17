@@ -265,8 +265,8 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
     : {
         batches: [
           {
-            sourceOfBroodstock: '',
-            batchNumber: 'BATCH-001',
+            sourceOfBroodstock: 'Outside the Farm',
+            batchNumber: '1st',
             hatcheryDate: new Date().toISOString().split('T')[0],
             firstDateOfFeeding: '',
             dateOfTransferToGrowOut: '',

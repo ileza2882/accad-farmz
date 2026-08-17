@@ -3,7 +3,8 @@ import {
   FisheryHatcheryFormData, 
   FisheryHatcheryBatchData, 
   getHatcheryBatchStage, 
-  BATCH_NUMBER_OPTIONS 
+  BATCH_NUMBER_OPTIONS,
+  BROODSTOCK_SOURCE_OPTIONS
 } from '../types';
 import { 
   Plus, 
@@ -69,7 +70,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     const todayStr = new Date().toISOString().split('T')[0];
     return [
       {
-        sourceOfBroodstock: '',
+        sourceOfBroodstock: 'Outside the Farm',
         batchNumber: '1st',
         hatcheryDate: todayStr,
         firstDateOfFeeding: '',
@@ -117,7 +118,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     const defaultBatchOption = BATCH_NUMBER_OPTIONS[nextIdx] || `${nextIdx + 1}th`;
     const todayStr = new Date().toISOString().split('T')[0];
     const newBatch: FisheryHatcheryBatchData = {
-      sourceOfBroodstock: batches[batches.length - 1]?.sourceOfBroodstock || '',
+      sourceOfBroodstock: batches[batches.length - 1]?.sourceOfBroodstock || 'Outside the Farm',
       batchNumber: defaultBatchOption,
       hatcheryDate: todayStr,
       firstDateOfFeeding: '',
@@ -450,24 +451,33 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
               {/* VERTICAL FORM FIELDS (1 to 10 stacked in a clean, vertical sequence) */}
               <div className="space-y-4">
                 
-                {/* 1. Source of Broodstock */}
+                {/* 1. Source of Broodstock (DROPDOWN: Outside the Farm / Farm Produced) */}
                 <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
                   <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
                     <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">1</span>
-                    <span>Source of Broodstock</span>
+                    <span>Source of Broodstock (Dropdown)</span>
                   </label>
-                  <input
-                    type="text"
-                    disabled={isLocked}
-                    value={batch.sourceOfBroodstock}
-                    onChange={(e) => handleFieldChange(index, 'sourceOfBroodstock', e.target.value)}
-                    placeholder="e.g. Tank A In-House Broodstock / Certified Breeder"
-                    className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
-                      isLocked 
-                        ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
-                        : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
-                    }`}
-                  />
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3.5 text-slate-400">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    </span>
+                    <select
+                      disabled={isLocked}
+                      value={batch.sourceOfBroodstock || 'Outside the Farm'}
+                      onChange={(e) => handleFieldChange(index, 'sourceOfBroodstock', e.target.value)}
+                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs font-black outline-none transition-all cursor-pointer ${
+                        isLocked 
+                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
+                      }`}
+                    >
+                      {BROODSTOCK_SOURCE_OPTIONS.map((source) => (
+                        <option key={source} value={source}>
+                          {source}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* 2. Batch Number (DROPDOWN MENU: 1st, 2nd, 3rd, 4th, 5th...) */}
