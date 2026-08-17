@@ -8,7 +8,7 @@ interface FisheryLivestockFormProps {
   color?: string;
 }
 
-const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen"];
+const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen", "Skretting"];
 const SIZES = ["0.2mm", "0.3mm", "0.5mm", "0.8mm", "1.2mm", "1.5mm", "2mm", "3mm", "4mm", "6mm", "9mm"];
 
 export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({ onSubmit, isSubmitting }) => {

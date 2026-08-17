@@ -44,7 +44,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   }, [user]);
 
   const handleFormSubmit = async (formData?: any) => {
-    if (!logTitle.trim()) {
+    const effectiveTitle = selectedInvType === InventoryType.ASSET 
+      ? `${selectedDept} Asset Inventory`
+      : logTitle.trim();
+
+    if (selectedInvType !== InventoryType.ASSET && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -60,7 +64,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         fullName: user.fullName,
         department: selectedDept,
         inventoryType: selectedInvType,
-        title: logTitle.trim(),
+        title: effectiveTitle,
         content: logContent.trim() || `${selectedDept} ${selectedInvType} Submission`,
         timestamp: Date.now(),
         status: ReportStatus.PENDING_MANAGER,
@@ -177,17 +181,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
-            <input
-              type="text"
-              required
-              value={logTitle}
-              onChange={(e) => setLogTitle(e.target.value)}
-              placeholder="e.g. Daily Morning Feed & Water Quality Audit"
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
-            />
-          </div>
+          {selectedInvType !== InventoryType.ASSET && (
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
+              <input
+                type="text"
+                required
+                value={logTitle}
+                onChange={(e) => setLogTitle(e.target.value)}
+                placeholder="e.g. Daily Morning Feed & Water Quality Audit"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+          )}
 
           {/* Form component depending on department & type */}
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (

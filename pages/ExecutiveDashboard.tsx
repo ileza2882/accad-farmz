@@ -328,7 +328,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   };
 
   const handleEDFormSubmit = async (formData?: any) => {
-    if (!logTitle.trim()) {
+    const effectiveTitle = selectedInvType === InventoryType.ASSET 
+      ? `${selectedDept} Asset Inventory`
+      : logTitle.trim();
+
+    if (selectedInvType !== InventoryType.ASSET && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -344,7 +348,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         fullName: user.fullName,
         department: selectedDept,
         inventoryType: selectedInvType,
-        title: logTitle.trim(),
+        title: effectiveTitle,
         content: logContent.trim() || `${selectedDept} ${selectedInvType} ED Direct Log Submission`,
         timestamp: Date.now(),
         status: ReportStatus.APPROVED,
@@ -787,17 +791,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
-            <input
-              type="text"
-              required
-              value={logTitle}
-              onChange={(e) => setLogTitle(e.target.value)}
-              placeholder="e.g. Executive Feed & Livestock Water Audit"
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
-            />
-          </div>
+          {selectedInvType !== InventoryType.ASSET && (
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
+              <input
+                type="text"
+                required
+                value={logTitle}
+                onChange={(e) => setLogTitle(e.target.value)}
+                placeholder="e.g. Executive Feed & Livestock Water Audit"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+          )}
 
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
             <FisheryAssetForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />

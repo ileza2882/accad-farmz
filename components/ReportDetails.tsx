@@ -1,5 +1,5 @@
 import React from 'react';
-import { Report, FisheryAssetFormData, FisheryLivestockFormData, Department, InventoryType, ReportStatus } from '../types';
+import { Report, FisheryAssetFormData, FisheryLivestockFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS } from '../types';
 import { formatLogName, exportLogToPDF, exportLogToWord, getComputerName, formatStatusLabel } from '../lib/exportUtils';
 import { 
   FileText, 
@@ -270,15 +270,18 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {Object.entries(assetData.machineCheck).map(([mName, mStatus]) => (
-                    <div key={mName} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
-                      <span className="text-[10px] font-bold text-slate-500 capitalize">{mName.replace(/([A-Z])/g, ' $1')}</span>
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-xl mt-2 w-fit ${
-                        mStatus === 'Good' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                        mStatus === 'Faulty' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                      }`}>{mStatus}</span>
-                    </div>
-                  ))}
+                  {Object.entries(assetData.machineCheck).map(([mName, mStatus]) => {
+                    const label = MACHINE_LABELS[mName] || mName.replace(/([A-Z])/g, ' $1');
+                    return (
+                      <div key={mName} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                        <span className="text-[10px] font-bold text-slate-500">{label}</span>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-xl mt-2 w-fit ${
+                          mStatus === 'Good' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                          mStatus === 'Faulty' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>{mStatus}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

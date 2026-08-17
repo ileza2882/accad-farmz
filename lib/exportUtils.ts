@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData } from '../types';
+import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData, MACHINE_LABELS } from '../types';
 
 /**
  * Get device or computer name fallback
@@ -275,7 +275,7 @@ export function exportLogToPDF(report: Report): void {
 
         const mc = assetData.machineCheck;
         const machineRows = Object.entries(mc).map(([key, val]) => [
-          key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+          MACHINE_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
           val || 'Good'
         ]);
 
@@ -581,7 +581,7 @@ export function exportLogToWord(report: Report): void {
               <tbody>
                 ${Object.entries(assetData.machineCheck).map(([k, v]) => `
                   <tr>
-                    <td class="label">${k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</td>
+                    <td class="label">${MACHINE_LABELS[k] || k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</td>
                     <td class="value"><strong>${v || 'Good'}</strong></td>
                   </tr>
                 `).join('')}

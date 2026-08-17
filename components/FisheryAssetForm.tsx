@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FisheryAssetFormData } from '../types';
+import { FisheryAssetFormData, MACHINE_LABELS } from '../types';
 import { Plus, Trash2, CheckCircle2, Factory, Package, Wrench, Droplet, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface FisheryAssetFormProps {
@@ -8,7 +8,7 @@ interface FisheryAssetFormProps {
   color?: string;
 }
 
-const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen"];
+const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen", "Skretting"];
 const SIZES = ["0.2mm", "0.3mm", "0.5mm", "0.8mm", "1.2mm", "1.5mm", "2mm", "3mm", "4mm", "6mm", "9mm"];
 
 export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, isSubmitting }) => {
@@ -57,10 +57,18 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
       localWetMixer: 'Good',
       grinder: 'Good',
       dryerUnit: 'Good',
-      pumpingMachine: 'Good',
-      solarInverter: 'Good',
-      pelletQuality: 'Good',
+      extrudingPelletingMachine: 'Good',
       shapeQuality: 'Good',
+      pumpingMachineA: 'Good',
+      pumpingMachineB: 'Good',
+      pumpingMachineC: 'Good',
+      pumpingMachineD: 'Good',
+      pumpingMachineE: 'Good',
+      solarSystemA: 'Good',
+      solarSystemB: 'Good',
+      solarSystemC: 'Good',
+      solarSystemD: 'Good',
+      solarSystemE: 'Good',
     },
     feedStorage: {
       totalFeedInStoreKg: "",
@@ -342,24 +350,27 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({ onSubmit, is
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.entries(formData.machineCheck).map(([key, status]) => (
-            <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-              <select
-                value={status}
-                onChange={(e) => handleMachineChange(key as any, e.target.value as any)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-black outline-none cursor-pointer ${
-                  status === 'Good' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' :
-                  status === 'Faulty' ? 'bg-rose-100 text-rose-700 border border-rose-300' :
-                  'bg-amber-100 text-amber-700 border border-amber-300'
-                }`}
-              >
-                <option value="Good">Good</option>
-                <option value="Faulty">Faulty</option>
-                <option value="Needs Maintenance">Needs Maintenance</option>
-              </select>
-            </div>
-          ))}
+          {Object.entries(formData.machineCheck).map(([key, status]) => {
+            const label = MACHINE_LABELS[key] || key.replace(/([A-Z])/g, ' $1');
+            return (
+              <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-700">{label}</span>
+                <select
+                  value={status}
+                  onChange={(e) => handleMachineChange(key as any, e.target.value as any)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black outline-none cursor-pointer shrink-0 ${
+                    status === 'Good' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' :
+                    status === 'Faulty' ? 'bg-rose-100 text-rose-700 border border-rose-300' :
+                    'bg-amber-100 text-amber-700 border border-amber-300'
+                  }`}
+                >
+                  <option value="Good">Good</option>
+                  <option value="Faulty">Faulty</option>
+                  <option value="Needs Maintenance">Needs Maintenance</option>
+                </select>
+              </div>
+            );
+          })}
         </div>
       </div>
 
