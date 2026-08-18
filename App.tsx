@@ -9,7 +9,7 @@ import { FisheryDepartmentPage } from './pages/FisheryDepartmentPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Header } from './components/Header';
-import { User, Role } from './types';
+import { User, Role, Department } from './types';
 import { getUsers, updateUser } from './lib/insforge';
 
 const DEFAULT_STAFF_USER: User = {
@@ -17,7 +17,8 @@ const DEFAULT_STAFF_USER: User = {
   fullName: 'David Ileza (Staff)',
   email: 'staff@accadfarms.com',
   role: Role.STAFF,
-  department: Department.FISHERY
+  department: Department.FISHERY,
+  status: 'active'
 };
 
 const App: React.FC = () => {

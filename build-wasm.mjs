@@ -78,7 +78,7 @@ console.log(`✅ JS Bundle created: dist/assets/${jsBundleName}`);
 const sourceHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf-8');
 const finalHtml = sourceHtml.replace(
   '<script type="module" src="/index.tsx"></script>',
-  `<script type="module" src="./assets/${jsBundleName}"></script>`
+  `<script type="module" src="/assets/${jsBundleName}"></script>`
 );
 fs.writeFileSync(path.join(distDir, 'index.html'), finalHtml, 'utf-8');
 console.log('✅ Generated dist/index.html');
