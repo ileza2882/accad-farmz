@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Department, InventoryType, Report, ReportStatus, FisherySection } from '../types';
-import { getReports, createReport, getNotifications, createNotification } from '../lib/insforge';
+import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData } from '../types';
+import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
@@ -26,6 +26,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [logContent, setLogContent] = useState('');
   const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [activeHatcheryReport, setActiveHatcheryReport] = useState<Report | null>(null);
 
   const fetchUserReports = async () => {
     setLoading(true);
@@ -33,6 +34,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
       const all = await getReports();
       const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
       setReports(userLogs);
+      
+      const hatcheryLog = userLogs.find(r => 
+        r.department === Department.FISHERY && 
+        (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+      );
+      if (hatcheryLog && !activeHatcheryReport) {
+        setActiveHatcheryReport(hatcheryLog);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -43,6 +52,89 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   useEffect(() => {
     fetchUserReports();
   }, [user]);
+
+  // Handle single row save for Hatchery — saves data & keeps user on the same page with locked view
+  const handleSaveSingleRow = async (
+    rowIndex: number, 
+    batch: FisheryHatcheryBatchData, 
+    allBatches: FisheryHatcheryBatchData[]
+  ) => {
+    const firstBatch = allBatches[0]?.batchNumber || 'Batch';
+    const effectiveTitle = `Hatchery Log - ${firstBatch}`;
+    const computerName = getComputerName();
+
+    if (activeHatcheryReport) {
+      const updated = await updateReport(activeHatcheryReport.id, {
+        title: effectiveTitle,
+        content: `Hatchery log updated with ${allBatches.length} batch entries (Row #${rowIndex + 1} locked).`,
+        formData: {
+          batches: allBatches,
+          generalNotes: activeHatcheryReport.formData?.generalNotes
+        },
+        status: ReportStatus.PENDING_MANAGER,
+        updatedAt: Date.now()
+      });
+
+      if (updated) {
+        setActiveHatcheryReport(updated);
+      }
+
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'HATCHERY_ROW_LOCKED_SAVED',
+        `Hatchery batch row #${rowIndex + 1} (${batch.batchNumber || `Row ${rowIndex + 1}`}) confirmed and permanently locked by ${user.fullName}`
+      );
+    } else {
+      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newReport: Report = {
+        id: newReportId,
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        department: Department.FISHERY,
+        inventoryType: InventoryType.HATCHERY,
+        section: FisherySection.HATCHERY,
+        title: effectiveTitle,
+        content: `Hatchery Section batch record (${allBatches.length} batch rows).`,
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName,
+        formData: {
+          batches: allBatches
+        }
+      };
+
+      await createReport(newReport);
+      setActiveHatcheryReport(newReport);
+
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'HATCHERY_ROW_CREATED_LOCKED',
+        `New hatchery batch row #${rowIndex + 1} (${batch.batchNumber || 'New'}) created and locked by ${user.fullName}`
+      );
+    }
+
+    // Refresh background list without redirecting
+    const all = await getReports();
+    const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
+    setReports(userLogs);
+  };
+
+  // Handle request change for locked batch from Staff Dashboard
+  const handleRequestChange = async (batchIndex: number, batch: FisheryHatcheryBatchData, reason: string) => {
+    const repId = activeHatcheryReport?.id || `rep_hatchery_${user.id}`;
+    await createHatcheryChangeRequest({
+      reportId: repId,
+      batchIndex,
+      batchNumber: `${batch.batchNumber} Batch`,
+      requestedBy: user.fullName,
+      requestedByEmail: user.email,
+      reason
+    });
+    fetchUserReports();
+  };
 
   const handleFormSubmit = async (formData?: any) => {
     let effectiveTitle = logTitle.trim();
@@ -93,7 +185,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         type: 'info'
       });
 
-      setSubmitSuccess('Farm log successfully submitted to Manager for review!');
+      setSubmitSuccess('Farm log successfully saved and submitted to Manager for review!');
       setLogTitle('');
       setLogContent('');
 
@@ -217,8 +309,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
             <FisheryLivestockForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
             <FisheryHatcheryForm 
+              initialData={activeHatcheryReport?.formData}
+              reportId={activeHatcheryReport?.id}
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleFormSubmit} 
+              onSaveSingleRow={handleSaveSingleRow}
+              onRequestChange={handleRequestChange}
               isSubmitting={isSubmitting} 
             />
           ) : (
@@ -259,7 +355,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
             <button
               onClick={() => setSelectedReportForModal(null)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold"
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
             >
               ✕
             </button>

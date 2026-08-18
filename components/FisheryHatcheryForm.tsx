@@ -3,8 +3,8 @@ import {
   FisheryHatcheryFormData, 
   FisheryHatcheryBatchData, 
   getHatcheryBatchStage, 
-  BATCH_NUMBER_OPTIONS,
-  BROODSTOCK_SOURCE_OPTIONS
+  BATCH_NUMBER_OPTIONS, 
+  BROODSTOCK_SOURCE_OPTIONS 
 } from '../types';
 import { 
   Plus, 
@@ -15,15 +15,11 @@ import {
   Scale, 
   Activity, 
   MapPin, 
-  Layers, 
-  Sparkles, 
   Hash, 
   Droplets, 
   Save, 
   Check, 
   Clock, 
-  Info, 
-  HelpCircle, 
   X, 
   ShieldCheck, 
   Egg, 
@@ -95,7 +91,6 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     batchIndex: number;
-    actionType: 'save' | 'update';
     fieldName?: string;
   } | null>(null);
 
@@ -151,17 +146,16 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     setBatches(updated);
   };
 
-  // Open confirmation prompt
-  const triggerConfirmation = (index: number, actionType: 'save' | 'update', fieldName?: string) => {
+  // Open confirmation prompt with single Save action
+  const triggerConfirmation = (index: number, fieldName?: string) => {
     setConfirmModal({
       isOpen: true,
       batchIndex: index,
-      actionType,
       fieldName
     });
   };
 
-  // Confirm Save / Update and Lock Log
+  // Confirm Save and Permanently Lock Log Entry (stays on same page)
   const handleConfirmLockAndSave = async () => {
     if (!confirmModal) return;
     const index = confirmModal.batchIndex;
@@ -170,7 +164,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
     try {
       const updatedBatches = [...batches];
-      // Mark entry as permanently locked
+      // Mark entry as permanently locked and immutable
       updatedBatches[index] = {
         ...updatedBatches[index],
         isLocked: true,
@@ -193,7 +187,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       setSavedBatchIdx(index);
       setFeedbackMsg({
         idx: index,
-        text: `Log entry for ${updatedBatches[index].batchNumber} Batch confirmed & permanently locked. Live synced to ED Dashboard.`
+        text: `Log entry for ${updatedBatches[index].batchNumber} Batch successfully saved & locked in permanent format.`
       });
 
       setTimeout(() => {
@@ -207,7 +201,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     }
   };
 
-  // Submit Change Request
+  // Submit Change Request to Executive Director
   const handleSubmitChangeRequest = async () => {
     if (!changeRequestModal || !changeRequestModal.reason.trim()) {
       alert('Please state a reason for requesting this correction.');
@@ -240,7 +234,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       setChangeRequestModal(null);
       setFeedbackMsg({
         idx: batchIndex,
-        text: `Change request for ${targetBatch.batchNumber} Batch submitted to Executive Director for approval.`
+        text: `Change request for ${targetBatch.batchNumber} Batch submitted to Executive Director for authorization.`
       });
 
       setTimeout(() => {
@@ -253,12 +247,12 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
   const totalFingerlings = batches.reduce((acc, b) => acc + (Number(b.totalTransferredFingerlings) || 0), 0);
 
-  // Helper to render per-row Save and Update buttons
-  const renderRowActionButtons = (batchIdx: number, fieldTitle: string, isRowLocked?: boolean) => {
+  // Helper to render a SINGLE Save button per row (no Update button)
+  const renderRowActionButton = (batchIdx: number, fieldTitle: string, isRowLocked?: boolean) => {
     if (isRowLocked) {
       return (
-        <span className="text-[10px] font-bold text-slate-400 flex items-center space-x-1 shrink-0">
-          <Lock className="w-3 h-3 text-slate-400" />
+        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center space-x-1 shrink-0">
+          <Lock className="w-3 h-3 text-slate-500" />
           <span>Locked</span>
         </span>
       );
@@ -268,20 +262,9 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       <div className="flex items-center space-x-1.5 shrink-0">
         <button
           type="button"
-          onClick={() => triggerConfirmation(batchIdx, 'update', fieldTitle)}
+          onClick={() => triggerConfirmation(batchIdx, fieldTitle)}
           disabled={savingBatchIdx === batchIdx || isSubmitting}
-          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs active:scale-95"
-          title={`Update ${fieldTitle}`}
-        >
-          <RefreshCw className="w-3 h-3" />
-          <span>Update</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => triggerConfirmation(batchIdx, 'save', fieldTitle)}
-          disabled={savingBatchIdx === batchIdx || isSubmitting}
-          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs shadow-emerald-200 active:scale-95"
+          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs shadow-emerald-200 active:scale-95 disabled:opacity-50"
           title={`Save ${fieldTitle}`}
         >
           {savingBatchIdx === batchIdx ? (
@@ -296,7 +279,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   };
 
   return (
-    <div className="space-y-8 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900">
+    <div className="space-y-8 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
       
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
@@ -316,7 +299,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             Hatchery Section Logs
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Input data per log entry and click Save or Update to confirm permanent lock. Locked entries require Executive Director authorization for corrections.
+            Input data per log entry and click Save to confirm permanent lock. Saved entries display in locked format; corrections require Executive Director approval.
           </p>
         </div>
 
@@ -343,7 +326,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         </div>
       </div>
 
-      {/* ===== BATCH RECORDS (Stacked Cards with Per-Row Update & Save Buttons) ===== */}
+      {/* ===== BATCH RECORDS (Stacked Cards with Single Save Button per Row/Batch) ===== */}
       <div className="space-y-6">
         {batches.map((batch, index) => {
           const stageInfo = getHatcheryBatchStage(batch);
@@ -416,7 +399,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                   </div>
                 </div>
 
-                {/* Per-Batch Top Actions (Update, Save, or Request Change) */}
+                {/* Per-Batch Top Actions (Request for Change or Single Save Button) */}
                 <div className="flex items-center space-x-2">
                   
                   {/* If Log is LOCKED -> Render "Request for Change" Button in front of that entry */}
@@ -432,43 +415,30 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       })}
                       className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md active:scale-95 ${
                         isPendingChange
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300 cursor-not-allowed'
                           : 'bg-purple-900 hover:bg-purple-950 text-white shadow-purple-200'
                       }`}
-                      title="Request Executive Director approval to unlock and edit this entry"
+                      title="Request Executive Director authorization to unlock and edit this entry"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>{isPendingChange ? 'Request Pending...' : 'Request for Change'}</span>
+                      <span>{isPendingChange ? 'Request Pending ED Review...' : 'Request for Change'}</span>
                     </button>
                   ) : (
-                    /* If Log is UNLOCKED -> Render "Save" and "Update" Buttons */
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => triggerConfirmation(index, 'update', 'Batch Header')}
-                        disabled={isSavingThis || isSubmitting}
-                        className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95"
-                        title="Update and confirm lock"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Update</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => triggerConfirmation(index, 'save', 'Batch Header')}
-                        disabled={isSavingThis || isSubmitting}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95"
-                        title="Save and confirm permanent lock"
-                      >
-                        {isSavingThis ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Save className="w-3.5 h-3.5" />
-                        )}
-                        <span>Save</span>
-                      </button>
-                    </div>
+                    /* If Log is UNLOCKED -> Render SINGLE "Save" Button */
+                    <button
+                      type="button"
+                      onClick={() => triggerConfirmation(index, 'Batch Record')}
+                      disabled={isSavingThis || isSubmitting}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95 disabled:opacity-50"
+                      title="Save and confirm permanent lock"
+                    >
+                      {isSavingThis ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5" />
+                      )}
+                      <span>Save</span>
+                    </button>
                   )}
 
                   {!isLocked && batches.length > 1 && (
@@ -484,7 +454,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
               </div>
 
-              {/* Instant Row/Batch Feedback Toast */}
+              {/* Instant Feedback Toast */}
               {isFeedbackForThis && (
                 <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold flex items-center space-x-2 animate-fadeIn">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -492,7 +462,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
               )}
 
-              {/* FORM FIELDS (Each row with dedicated Update and Save buttons) */}
+              {/* FORM FIELDS (Each row with dedicated Single Save button) */}
               <div className="space-y-4">
                 
                 {/* 1. Source of Broodstock */}
@@ -502,7 +472,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">1</span>
                       <span>Source of Broodstock</span>
                     </label>
-                    {renderRowActionButtons(index, 'Source of Broodstock', isLocked)}
+                    {renderRowActionButton(index, 'Source of Broodstock', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -514,7 +484,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'sourceOfBroodstock', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs font-black outline-none transition-all cursor-pointer ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                       }`}
                     >
@@ -534,7 +504,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">2</span>
                       <span>Batch Number</span>
                     </label>
-                    {renderRowActionButtons(index, 'Batch Number', isLocked)}
+                    {renderRowActionButton(index, 'Batch Number', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -546,7 +516,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'batchNumber', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs font-black outline-none transition-all cursor-pointer ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                       }`}
                     >
@@ -566,7 +536,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
                       <span>Hatchery Date</span>
                     </label>
-                    {renderRowActionButtons(index, 'Hatchery Date', isLocked)}
+                    {renderRowActionButton(index, 'Hatchery Date', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -579,7 +549,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'hatcheryDate', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
                       }`}
                     />
@@ -593,7 +563,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">4</span>
                       <span>First Date of Feeding</span>
                     </label>
-                    {renderRowActionButtons(index, 'First Date of Feeding', isLocked)}
+                    {renderRowActionButton(index, 'First Date of Feeding', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -606,7 +576,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'firstDateOfFeeding', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
                       }`}
                     />
@@ -620,7 +590,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">5</span>
                       <span>Date of Transfer to Grow-Out</span>
                     </label>
-                    {renderRowActionButtons(index, 'Date of Transfer to Grow-Out', isLocked)}
+                    {renderRowActionButton(index, 'Date of Transfer to Grow-Out', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -633,7 +603,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'dateOfTransferToGrowOut', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
                       }`}
                     />
@@ -647,7 +617,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">6</span>
                       <span>Total Number of Transferred Fingerlings</span>
                     </label>
-                    {renderRowActionButtons(index, 'Total Number of Transferred Fingerlings', isLocked)}
+                    {renderRowActionButton(index, 'Total Number of Transferred Fingerlings', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <input
@@ -659,7 +629,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       placeholder="e.g. 15000"
                       className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-black outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-emerald-900 cursor-not-allowed select-text font-black' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-emerald-800'
                       }`}
                     />
@@ -676,7 +646,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">7</span>
                       <span>Average Weight of Fingerlings Transferred</span>
                     </label>
-                    {renderRowActionButtons(index, 'Average Weight of Fingerlings Transferred', isLocked)}
+                    {renderRowActionButton(index, 'Average Weight of Fingerlings Transferred', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -692,7 +662,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       placeholder="e.g. 5.5"
                       className={`w-full border rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                       }`}
                     />
@@ -709,7 +679,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">8</span>
                       <span>Age of Fingerlings Transferred</span>
                     </label>
-                    {renderRowActionButtons(index, 'Age of Fingerlings Transferred', isLocked)}
+                    {renderRowActionButton(index, 'Age of Fingerlings Transferred', isLocked)}
                   </div>
                   <input
                     type="text"
@@ -719,7 +689,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                     placeholder="e.g. 45 Days or 6 Weeks"
                     className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
                       isLocked 
-                        ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                        ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                         : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                     }`}
                   />
@@ -732,7 +702,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">9</span>
                       <span>Health Status of Fingerlings Transferred</span>
                     </label>
-                    {renderRowActionButtons(index, 'Health Status of Fingerlings Transferred', isLocked)}
+                    {renderRowActionButton(index, 'Health Status of Fingerlings Transferred', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -744,7 +714,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       onChange={(e) => handleFieldChange(index, 'healthStatusTransferred', e.target.value)}
                       className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all cursor-pointer ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                       }`}
                     >
@@ -762,7 +732,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">10</span>
                       <span>Destinated Pond of Fingerlings Transferred</span>
                     </label>
-                    {renderRowActionButtons(index, 'Destinated Pond of Fingerlings Transferred', isLocked)}
+                    {renderRowActionButton(index, 'Destinated Pond of Fingerlings Transferred', isLocked)}
                   </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
@@ -776,7 +746,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       placeholder="e.g. Grow-Out Pond 3 / Earthen Pond B"
                       className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
                         isLocked 
-                          ? 'bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed' 
+                          ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
                           : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
                       }`}
                     />
@@ -794,7 +764,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <span>This log is permanent and locked. Click "Request for Change" above to ask ED to unlock.</span>
                     </span>
                   ) : (
-                    <span>Input data and click <strong>Update</strong> or <strong>Save</strong> to confirm.</span>
+                    <span>Input data and click <strong>Save</strong> to confirm and lock entry.</span>
                   )}
                 </div>
 
@@ -802,19 +772,9 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                   <div className="flex items-center space-x-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={() => triggerConfirmation(index, 'update', 'Batch Record')}
+                      onClick={() => triggerConfirmation(index, 'Batch Record')}
                       disabled={isSavingThis || isSubmitting}
-                      className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm active:scale-95"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Update Batch</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => triggerConfirmation(index, 'save', 'Batch Record')}
-                      disabled={isSavingThis || isSubmitting}
-                      className="flex-1 sm:flex-initial px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md shadow-emerald-200 active:scale-95"
+                      className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md shadow-emerald-200 active:scale-95 disabled:opacity-50"
                     >
                       {isSavingThis ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -862,7 +822,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         />
       </div>
 
-      {/* ===== 1. CONFIRMATION MODAL / PROMPT ===== */}
+      {/* ===== 1. CONFIRMATION MODAL / PROMPT (Exact Question Prompt) ===== */}
       {confirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 relative">
@@ -873,13 +833,13 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
             <div className="text-center space-y-2">
               <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                Confirm {confirmModal.actionType === 'save' ? 'Save' : 'Update'} Log
+                Save Farm Log
               </h3>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">
-                <em>"Are you sure you want to save/update this log?"</em>
+              <p className="text-sm text-slate-800 font-extrabold leading-relaxed">
+                Are you sure you want to save this log?
               </p>
-              <p className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2">
-                🔒 Once confirmed, this log entry for <strong>{batches[confirmModal.batchIndex]?.batchNumber} Batch</strong> will become <strong>immutable and permanent</strong>. Any future correction will require Executive Director authorization.
+              <p className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2 text-left leading-relaxed">
+                🔒 Once confirmed, this log entry for <strong>{batches[confirmModal.batchIndex]?.batchNumber} Batch</strong> will become <strong>immutable and permanent</strong>. It cannot be edited directly. To make corrections later, use the <em>Request for Change</em> button.
               </p>
             </div>
 
@@ -913,7 +873,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             
             <button
               onClick={() => setChangeRequestModal(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 font-bold"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
             >
               ✕
             </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest } from '../types';
+import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest, FisheryHatcheryBatchData } from '../types';
 import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
@@ -421,6 +421,43 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     } finally {
       setIsActionProcessing(false);
     }
+  };
+
+  const handleEDSaveSingleRow = async (
+    rowIndex: number,
+    batch: FisheryHatcheryBatchData,
+    allBatches: FisheryHatcheryBatchData[]
+  ) => {
+    const firstBatch = allBatches[0]?.batchNumber || 'Batch';
+    const effectiveTitle = `Hatchery Log - ${firstBatch}`;
+    const computerName = getComputerName();
+    const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    const newReport: Report = {
+      id: newReportId,
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      department: selectedDept,
+      inventoryType: InventoryType.HATCHERY,
+      section: FisherySection.HATCHERY,
+      title: effectiveTitle,
+      content: `Hatchery Section ED entry (${allBatches.length} batch rows).`,
+      timestamp: Date.now(),
+      status: ReportStatus.APPROVED,
+      edApprovedBy: user.fullName,
+      computerName,
+      formData: { batches: allBatches }
+    };
+
+    await createReport(newReport);
+    await createAuditLog(
+      user.fullName,
+      user.email,
+      'ED_HATCHERY_ROW_SAVED',
+      `ED confirmed and locked hatchery batch #${rowIndex + 1} (${batch.batchNumber || 'New'})`
+    );
+    await loadData();
   };
 
   const pendingEDReports = reportsList.filter(r => r.status === ReportStatus.PENDING_ED);
@@ -927,6 +964,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             <FisheryHatcheryForm 
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleEDFormSubmit} 
+              onSaveSingleRow={handleEDSaveSingleRow}
               isSubmitting={isActionProcessing} 
             />
           ) : (
