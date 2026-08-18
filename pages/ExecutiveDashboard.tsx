@@ -20,8 +20,8 @@ import {
   PieChart, 
   Pie, 
   Cell,
-  AreaChart,
-  Area
+  AreaChart, 
+  Area 
 } from 'recharts';
 import { 
   Users, 
@@ -46,7 +46,15 @@ import {
   Filter,
   Calendar,
   Zap,
-  Award
+  Award,
+  Waves,
+  Egg,
+  Fish,
+  Building2,
+  FolderArchive,
+  Search,
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
@@ -63,6 +71,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   const [activeTab, setActiveTab] = useState<'all_logs' | 'approvals' | 'manager_hub' | 'staff_entry' | 'users' | 'analytics' | 'audit'>('all_logs');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
+  // Department & Log Type Organization State for ED Central Dashboard
+  const [selectedDashboardDept, setSelectedDashboardDept] = useState<string>('ALL');
+  const [selectedFisherySection, setSelectedFisherySection] = useState<'ALL' | 'GROW_OUT' | 'HATCHERY'>('ALL');
+
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [rejectionReport, setRejectionReport] = useState<Report | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -71,153 +83,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
   // Staff Entry state for ED
   const [selectedDept, setSelectedDept] = useState<Department>(Department.FISHERY);
-  
-  // Analytics Filter States
-  const [analyticsTimeFilter, setAnalyticsTimeFilter] = useState<'ALL' | '30DAYS' | '7DAYS'>('ALL');
-  const [analyticsDeptFilter, setAnalyticsDeptFilter] = useState<string>('ALL');
-
-  const getAnalyticsData = () => {
-    const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-
-    const filtered = reportsList.filter(r => {
-      const matchesTime = 
-        analyticsTimeFilter === '7DAYS' ? r.timestamp >= sevenDaysAgo :
-        analyticsTimeFilter === '30DAYS' ? r.timestamp >= thirtyDaysAgo : true;
-      
-      const matchesDept = analyticsDeptFilter === 'ALL' || r.department === analyticsDeptFilter;
-      return matchesTime && matchesDept;
-    });
-
-    const approvedCount = filtered.filter(r => r.status === ReportStatus.APPROVED).length;
-    const pendingEDCount = filtered.filter(r => r.status === ReportStatus.PENDING_ED).length;
-    const pendingManagerCount = filtered.filter(r => r.status === ReportStatus.PENDING_MANAGER).length;
-    const rejectedCount = filtered.filter(r => r.status.includes('rejected')).length;
-
-    const totalCount = filtered.length || 1;
-    const approvalRate = ((approvedCount / totalCount) * 100).toFixed(1);
-
-    let totalFeedsKg = 0;
-    filtered.forEach(r => {
-      if (r.formData?.feedsInventory?.items) {
-        r.formData.feedsInventory.items.forEach((item: any) => {
-          totalFeedsKg += Number(item.quantityKg) || 0;
-        });
-      }
-      if (r.formData?.feedStorage?.totalFeedInStoreKg) {
-        totalFeedsKg += Number(r.formData.feedStorage.totalFeedInStoreKg) || 0;
-      }
-    });
-
-    const deptMap: Record<string, number> = {
-      Fishery: 0,
-      Poultry: 0,
-      Cattle: 0,
-      Pigs: 0
-    };
-    filtered.forEach(r => {
-      if (r.department) {
-        deptMap[r.department] = (deptMap[r.department] || 0) + 1;
-      }
-    });
-    const sectorChartData = Object.entries(deptMap).map(([name, count]) => ({ name, count }));
-
-    const statusPieData = [
-      { name: 'ED Approved', value: approvedCount, color: '#059669' },
-      { name: 'Pending ED', value: pendingEDCount, color: '#9333ea' },
-      { name: 'Pending Manager', value: pendingManagerCount, color: '#3b82f6' },
-      { name: 'Rejected', value: rejectedCount, color: '#e11d48' }
-    ].filter(s => s.value > 0);
-
-    const dateMap: Record<string, number> = {};
-    const days = 10;
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now - i * 24 * 60 * 60 * 1000);
-      const dateStr = d.toISOString().split('T')[0];
-      dateMap[dateStr] = 0;
-    }
-    filtered.forEach(r => {
-      const dateStr = new Date(r.timestamp).toISOString().split('T')[0];
-      if (dateMap[dateStr] !== undefined) {
-        dateMap[dateStr]++;
-      }
-    });
-    const trendChartData = Object.entries(dateMap).map(([date, submissions]) => ({
-      date: date.substring(5),
-      submissions
-    }));
-
-    let brandedKg = 0;
-    let farmProducedKg = 0;
-    filtered.forEach(r => {
-      if (r.formData?.feedsInventory?.items) {
-        r.formData.feedsInventory.items.forEach((item: any) => {
-          const qty = Number(item.quantityKg) || 0;
-          if (item.type === 'Branded') brandedKg += qty;
-          else farmProducedKg += qty;
-        });
-      }
-    });
-    const resourceBreakdownData = [
-      { category: 'Branded Feeds', quantityKg: brandedKg },
-      { category: 'Farm-produced', quantityKg: farmProducedKg }
-    ];
-
-    let totalHatcheryFingerlings = 0;
-    let totalHatcheryBatches = 0;
-    filtered.forEach(r => {
-      if (r.formData?.batches && Array.isArray(r.formData.batches)) {
-        r.formData.batches.forEach((b: any) => {
-          totalHatcheryBatches++;
-          totalHatcheryFingerlings += Number(b.totalTransferredFingerlings) || 0;
-        });
-      }
-    });
-
-    return {
-      filteredReports: filtered,
-      approvedCount,
-      pendingEDCount,
-      pendingManagerCount,
-      rejectedCount,
-      approvalRate,
-      totalFeedsKg,
-      totalHatcheryFingerlings,
-      totalHatcheryBatches,
-      sectorChartData,
-      statusPieData,
-      trendChartData,
-      resourceBreakdownData
-    };
-  };
-
-  const handleExportAnalyticsSummary = () => {
-    const analytics = getAnalyticsData();
-    const summaryData = {
-      title: "ACCAD FARMS - Executive Analytics Summary Report",
-      generatedAt: new Date().toLocaleString(),
-      timeFilter: analyticsTimeFilter,
-      departmentFilter: analyticsDeptFilter,
-      totalSubmissions: analytics.filteredReports.length,
-      edApprovalRate: `${analytics.approvalRate}%`,
-      totalFeedsKgRecorded: `${analytics.totalFeedsKg} Kg`,
-      sectorBreakdown: analytics.sectorChartData,
-      statusDistribution: analytics.statusPieData
-    };
-
-    const blob = new Blob([JSON.stringify(summaryData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `accad_analytics_summary_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
   const [selectedInvType, setSelectedInvType] = useState<InventoryType>(InventoryType.ASSET);
   const [logTitle, setLogTitle] = useState('');
   const [logContent, setLogContent] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  
+  // Analytics Filter States
+  const [analyticsTimeFilter, setAnalyticsTimeFilter] = useState<'ALL' | '30DAYS' | '7DAYS'>('ALL');
+  const [analyticsDeptFilter, setAnalyticsDeptFilter] = useState<string>('ALL');
 
   const loadData = async () => {
     setLoading(true);
@@ -455,7 +328,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       user.fullName,
       user.email,
       'ED_HATCHERY_ROW_SAVED',
-      `ED confirmed and locked hatchery batch #${rowIndex + 1} (${batch.batchNumber || 'New'})`
+      `ED confirmed and locked hatchery batch row #${rowIndex + 1} (${batch.batchNumber})`
     );
     await loadData();
   };
@@ -465,7 +338,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     pond: FisheryLivestockPondData,
     allPonds: FisheryLivestockPondData[]
   ) => {
-    const effectiveTitle = `${selectedDept} Livestock Inventory`;
+    const effectiveTitle = `Grow-Out Livestock - ${pond.pondNo}`;
     const computerName = getComputerName();
     const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -478,7 +351,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       inventoryType: InventoryType.LIVESTOCK,
       section: FisherySection.GROW_OUT,
       title: effectiveTitle,
-      content: `Livestock Section ED entry (${allPonds.length} ponds).`,
+      content: `Grow-Out Pond ED entry (${allPonds.length} ponds).`,
       timestamp: Date.now(),
       status: ReportStatus.APPROVED,
       edApprovedBy: user.fullName,
@@ -490,7 +363,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     await createAuditLog(
       user.fullName,
       user.email,
-      'ED_LIVESTOCK_ROW_SAVED',
+      'ED_LIVESTOCK_POND_SAVED',
       `ED confirmed and locked livestock pond #${pondIndex + 1} (${pond.pondNo})`
     );
     await loadData();
@@ -531,23 +404,142 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     await loadData();
   };
 
+  // Filter and breakdown calculations for Department & Log Type Organization
   const pendingEDReports = reportsList.filter(r => r.status === ReportStatus.PENDING_ED);
   const pendingManagerReports = reportsList.filter(r => r.status === ReportStatus.PENDING_MANAGER);
   const approvedReports = reportsList.filter(r => r.status === ReportStatus.APPROVED);
   const pendingChangeRequests = hatcheryChangeRequests.filter(c => c.status === 'PENDING');
 
-  // Analytics Chart Data Preparation
-  const deptStats = Object.values(Department).map(dept => {
-    const count = reportsList.filter(r => r.department === dept).length;
-    return { name: dept, count };
+  // Department counts
+  const fisheryReports = reportsList.filter(r => r.department === Department.FISHERY);
+  const growOutReports = fisheryReports.filter(r => 
+    r.section === FisherySection.GROW_OUT || 
+    r.inventoryType === InventoryType.LIVESTOCK || 
+    r.inventoryType === InventoryType.ASSET || 
+    Boolean(r.formData?.ponds && r.formData.ponds.length > 0) || 
+    Boolean(r.formData?.feedsInventory)
+  );
+  const hatcheryReports = fisheryReports.filter(r => 
+    r.section === FisherySection.HATCHERY || 
+    r.inventoryType === InventoryType.HATCHERY || 
+    Boolean(r.formData?.batches && r.formData.batches.length > 0)
+  );
+  const poultryReports = reportsList.filter(r => r.department === Department.POULTRY);
+  const cattleReports = reportsList.filter(r => r.department === Department.CATTLE);
+  const pigsReports = reportsList.filter(r => r.department === Department.PIGS);
+
+  // Fishery detailed stats
+  let totalGrowOutFish = 0;
+  let totalGrowOutPonds = 0;
+  let totalGrowOutMortality = 0;
+  growOutReports.forEach(r => {
+    if (r.formData?.ponds && Array.isArray(r.formData.ponds)) {
+      r.formData.ponds.forEach((p: any) => {
+        totalGrowOutPonds++;
+        totalGrowOutFish += Number(p.quantityOfFish) || 0;
+        totalGrowOutMortality += Number(p.mortality) || 0;
+      });
+    }
   });
 
-  const statusStats = [
-    { name: 'Fully Approved', value: approvedReports.length, color: '#10b981' },
-    { name: 'Pending ED', value: pendingEDReports.length, color: '#9333ea' },
-    { name: 'Pending Manager', value: pendingManagerReports.length, color: '#2563eb' },
-    { name: 'Rejected', value: reportsList.filter(r => r.status.includes('rejected')).length, color: '#e11d48' }
-  ];
+  let totalHatcheryBatches = 0;
+  let totalHatcheryFingerlings = 0;
+  hatcheryReports.forEach(r => {
+    if (r.formData?.batches && Array.isArray(r.formData.batches)) {
+      r.formData.batches.forEach((b: any) => {
+        totalHatcheryBatches++;
+        totalHatcheryFingerlings += Number(b.totalTransferredFingerlings) || 0;
+      });
+    }
+  });
+
+  const getAnalyticsData = () => {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+    const filtered = reportsList.filter(r => {
+      const matchesTime = 
+        analyticsTimeFilter === '7DAYS' ? r.timestamp >= sevenDaysAgo :
+        analyticsTimeFilter === '30DAYS' ? r.timestamp >= thirtyDaysAgo : true;
+      
+      const matchesDept = analyticsDeptFilter === 'ALL' || r.department === analyticsDeptFilter;
+      return matchesTime && matchesDept;
+    });
+
+    const approvedCount = filtered.filter(r => r.status === ReportStatus.APPROVED).length;
+    const pendingEDCount = filtered.filter(r => r.status === ReportStatus.PENDING_ED).length;
+    const pendingManagerCount = filtered.filter(r => r.status === ReportStatus.PENDING_MANAGER).length;
+    const rejectedCount = filtered.filter(r => r.status.includes('rejected')).length;
+
+    const totalCount = filtered.length || 1;
+    const approvalRate = ((approvedCount / totalCount) * 100).toFixed(1);
+
+    let totalFeedsKg = 0;
+    filtered.forEach(r => {
+      if (r.formData?.feedsInventory?.items) {
+        r.formData.feedsInventory.items.forEach((item: any) => {
+          totalFeedsKg += Number(item.quantityKg) || 0;
+        });
+      }
+      if (r.formData?.feedStorage?.totalFeedInStoreKg) {
+        totalFeedsKg += Number(r.formData.feedStorage.totalFeedInStoreKg) || 0;
+      }
+    });
+
+    const deptMap: Record<string, number> = {
+      Fishery: 0,
+      Poultry: 0,
+      Cattle: 0,
+      Pigs: 0
+    };
+    filtered.forEach(r => {
+      if (r.department) {
+        deptMap[r.department] = (deptMap[r.department] || 0) + 1;
+      }
+    });
+    const sectorChartData = Object.entries(deptMap).map(([name, count]) => ({ name, count }));
+
+    const statusPieData = [
+      { name: 'ED Approved', value: approvedCount, color: '#059669' },
+      { name: 'Pending ED', value: pendingEDCount, color: '#9333ea' },
+      { name: 'Pending Manager', value: pendingManagerCount, color: '#3b82f6' },
+      { name: 'Rejected', value: rejectedCount, color: '#e11d48' }
+    ].filter(s => s.value > 0);
+
+    const dateMap: Record<string, number> = {};
+    const days = 10;
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now - i * 24 * 60 * 60 * 1000);
+      const dateStr = d.toISOString().split('T')[0];
+      dateMap[dateStr] = 0;
+    }
+    filtered.forEach(r => {
+      const dateStr = new Date(r.timestamp).toISOString().split('T')[0];
+      if (dateMap[dateStr] !== undefined) {
+        dateMap[dateStr]++;
+      }
+    });
+    const trendChartData = Object.entries(dateMap).map(([date, submissions]) => ({
+      date: date.substring(5),
+      submissions
+    }));
+
+    return {
+      filteredReports: filtered,
+      approvedCount,
+      pendingEDCount,
+      pendingManagerCount,
+      rejectedCount,
+      approvalRate,
+      totalFeedsKg,
+      totalHatcheryFingerlings,
+      totalHatcheryBatches,
+      sectorChartData,
+      statusPieData,
+      trendChartData
+    };
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-900 px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-8 font-sans">
@@ -603,7 +595,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
         <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Logs</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Logs Total</span>
             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900">{reportsList.length}</div>
@@ -632,7 +624,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
       </div>
 
-      {/* Scrollable Tab Navigation */}
+      {/* Main Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
         
         <button
@@ -644,7 +636,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>All Farm Logs Registry ({reportsList.length})</span>
+          <span>Department Reports Hub ({reportsList.length})</span>
         </button>
 
         <button
@@ -680,7 +672,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           }`}
         >
           <Plus className="w-4 h-4 text-emerald-400" />
-          <span>ED Direct Log Entry</span>
+          <span>ED Direct Entry</span>
         </button>
 
         <button
@@ -692,7 +684,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>User Directory ({usersList.length})</span>
+          <span>Users ({usersList.length})</span>
         </button>
 
         <button
@@ -704,7 +696,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           }`}
         >
           <Activity className="w-4 h-4" />
-          <span>Analytics & Visuals</span>
+          <span>Analytics</span>
         </button>
 
         <button
@@ -721,19 +713,314 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
       </div>
 
-      {/* TAB 1: ALL FARM LOGS REGISTRY TABLE */}
+      {/* ===== TAB 1: DEPARTMENT & LOG TYPE GOVERNANCE HUB ===== */}
       {activeTab === 'all_logs' && (
-        <FarmLogsTable
-          reports={reportsList}
-          user={user}
-          onRefresh={loadData}
-          onApprove={handleEDApprove}
-          onReject={(report) => setRejectionReport(report)}
-          onViewDetails={(report) => setSelectedReport(report)}
-        />
+        <div className="space-y-6">
+          
+          {/* Department & Log Type Categorization Navigator */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-5">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1 rounded-full">
+                  Executive Department Registry
+                </span>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mt-1.5">
+                  Categorized Operational Ledger
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Select a department to view records. Fishery is subdivided into <strong>Grow-Out</strong> and <strong>Hatchery</strong> sections. Other departments are displayed in a general department view.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleClearOldLogs}
+                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                  title="Clear all database logs and reset"
+                >
+                  Clear Old Logs
+                </button>
+              </div>
+            </div>
+
+            {/* Department Level Selector */}
+            <div className="space-y-3">
+              <label className="block text-[11px] font-black uppercase text-slate-400 tracking-wider">
+                Select Department:
+              </label>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+                
+                {/* Global View */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDashboardDept('ALL');
+                    setSelectedFisherySection('ALL');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                    selectedDashboardDept === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-400'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Unified</span>
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase">All Departments</div>
+                    <div className="text-[11px] font-bold opacity-80">{reportsList.length} Total Logs</div>
+                  </div>
+                </button>
+
+                {/* Fishery Department */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDashboardDept(Department.FISHERY);
+                    setSelectedFisherySection('ALL');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                    selectedDashboardDept === Department.FISHERY
+                      ? 'bg-emerald-800 text-white shadow-md ring-2 ring-emerald-300'
+                      : 'bg-emerald-50/50 border-emerald-200 text-emerald-950 hover:bg-emerald-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Subdivided</span>
+                    <Fish className="w-4 h-4 text-amber-300" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase">Fishery</div>
+                    <div className="text-[11px] font-bold opacity-80">{fisheryReports.length} Reports (2 Sections)</div>
+                  </div>
+                </button>
+
+                {/* Poultry Department */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDashboardDept(Department.POULTRY);
+                    setSelectedFisherySection('ALL');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                    selectedDashboardDept === Department.POULTRY
+                      ? 'bg-orange-700 text-white shadow-md ring-2 ring-orange-300'
+                      : 'bg-orange-50/50 border-orange-200 text-orange-950 hover:bg-orange-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">General View</span>
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase">Poultry</div>
+                    <div className="text-[11px] font-bold opacity-80">{poultryReports.length} Reports</div>
+                  </div>
+                </button>
+
+                {/* Cattle Department */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDashboardDept(Department.CATTLE);
+                    setSelectedFisherySection('ALL');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                    selectedDashboardDept === Department.CATTLE
+                      ? 'bg-amber-700 text-white shadow-md ring-2 ring-amber-300'
+                      : 'bg-amber-50/50 border-amber-200 text-amber-950 hover:bg-amber-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">General View</span>
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase">Cattle</div>
+                    <div className="text-[11px] font-bold opacity-80">{cattleReports.length} Reports</div>
+                  </div>
+                </button>
+
+                {/* Pigs Department */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDashboardDept(Department.PIGS);
+                    setSelectedFisherySection('ALL');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                    selectedDashboardDept === Department.PIGS
+                      ? 'bg-rose-700 text-white shadow-md ring-2 ring-rose-300'
+                      : 'bg-rose-50/50 border-rose-200 text-rose-950 hover:bg-rose-100/70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-80">General View</span>
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-black uppercase">Pigs</div>
+                    <div className="text-[11px] font-bold opacity-80">{pigsReports.length} Reports</div>
+                  </div>
+                </button>
+
+              </div>
+            </div>
+
+            {/* Fishery Sub-Section / Log Type Selector */}
+            {selectedDashboardDept === Department.FISHERY && (
+              <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-900 flex items-center space-x-1.5">
+                    <Waves className="w-4 h-4 text-emerald-700" />
+                    <span>Fishery Log Categories (Grow-Out vs Hatchery):</span>
+                  </span>
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2.5 py-0.5 rounded-md border border-emerald-200">
+                    {fisheryReports.length} Total Fishery Logs
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  
+                  {/* All Fishery */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFisherySection('ALL')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      selectedFisherySection === 'ALL'
+                        ? 'bg-emerald-800 text-white border-emerald-900 shadow-sm ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <div className="text-xs font-black uppercase">All Fishery Logs</div>
+                    <div className="text-[10px] opacity-80 font-medium">Combined Grow-Out & Hatchery ({fisheryReports.length})</div>
+                  </button>
+
+                  {/* Grow-Out Section */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFisherySection('GROW_OUT')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      selectedFisherySection === 'GROW_OUT'
+                        ? 'bg-emerald-800 text-white border-emerald-900 shadow-sm ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1 text-xs font-black uppercase">
+                      <Waves className="w-3.5 h-3.5" />
+                      <span>Grow-Out Section</span>
+                    </div>
+                    <div className="text-[10px] opacity-80 font-medium">
+                      Livestock Ponds & Assets ({growOutReports.length} logs)
+                    </div>
+                  </button>
+
+                  {/* Hatchery Section */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFisherySection('HATCHERY')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      selectedFisherySection === 'HATCHERY'
+                        ? 'bg-purple-900 text-white border-purple-950 shadow-sm ring-2 ring-purple-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1 text-xs font-black uppercase">
+                      <Egg className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Hatchery Section</span>
+                    </div>
+                    <div className="text-[10px] opacity-80 font-medium">
+                      Progressive Batch Ledgers ({hatcheryReports.length} logs)
+                    </div>
+                  </button>
+
+                </div>
+              </div>
+            )}
+
+            {/* Category Key Metrics Banner */}
+            {selectedDashboardDept === Department.FISHERY && selectedFisherySection === 'GROW_OUT' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-emerald-50/40 p-4 rounded-2xl border border-emerald-200 text-xs">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Total Ponds Logged</span>
+                  <span className="text-base font-black text-emerald-800">{totalGrowOutPonds} Ponds</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Fish in Grow-Out</span>
+                  <span className="text-base font-black text-emerald-800">{totalGrowOutFish.toLocaleString()} Fish</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Grow-Out Mortality</span>
+                  <span className="text-base font-black text-rose-600">{totalGrowOutMortality} Fish</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Grow-Out Logs</span>
+                  <span className="text-base font-black text-slate-800">{growOutReports.length} Submitted</span>
+                </div>
+              </div>
+            ) : selectedDashboardDept === Department.FISHERY && selectedFisherySection === 'HATCHERY' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-purple-50/40 p-4 rounded-2xl border border-purple-200 text-xs">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Batches</span>
+                  <span className="text-base font-black text-purple-900">{totalHatcheryBatches} Batches</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Transferred Fingerlings</span>
+                  <span className="text-base font-black text-purple-900">{totalHatcheryFingerlings.toLocaleString()} Fish</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Pending Unlock Requests</span>
+                  <span className="text-base font-black text-amber-700">{pendingChangeRequests.length} Requests</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Logs</span>
+                  <span className="text-base font-black text-slate-800">{hatcheryReports.length} Submitted</span>
+                </div>
+              </div>
+            ) : selectedDashboardDept !== 'ALL' && selectedDashboardDept !== Department.FISHERY ? (
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 block">{selectedDashboardDept} Department</span>
+                  <span className="font-extrabold text-slate-800">
+                    Displaying all logs submitted for {selectedDashboardDept} under the general department view.
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedDept(selectedDashboardDept as Department);
+                    setActiveTab('staff_entry');
+                  }}
+                  className="px-3.5 py-1.5 bg-purple-900 text-white rounded-xl text-xs font-black uppercase tracking-wider"
+                >
+                  + Direct {selectedDashboardDept} Entry
+                </button>
+              </div>
+            ) : null}
+
+          </div>
+
+          {/* Farm Logs Table Filtered by Department and Category */}
+          <FarmLogsTable
+            reports={reportsList}
+            user={user}
+            selectedDept={selectedDashboardDept}
+            selectedSection={selectedFisherySection}
+            onDepartmentChange={(dept) => setSelectedDashboardDept(dept)}
+            onSectionChange={(sec) => setSelectedFisherySection(sec as any)}
+            onRefresh={loadData}
+            onApprove={handleEDApprove}
+            onReject={(report) => setRejectionReport(report)}
+            onViewDetails={(report) => setSelectedReport(report)}
+          />
+
+        </div>
       )}
 
-      {/* TAB 2: ED FINAL APPROVALS & CHANGE REQUESTS */}
+      {/* ===== TAB 2: ED FINAL APPROVALS & CHANGE REQUESTS ===== */}
       {activeTab === 'approvals' && (
         <div className="space-y-6">
           
@@ -812,7 +1099,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
             <button
               onClick={loadData}
-              className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
+              className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4 text-purple-700" />
@@ -857,7 +1144,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setSelectedReport(r)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
+                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />
@@ -865,7 +1152,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
                       <button
                         onClick={() => setRejectionReport(r)}
-                        className="flex items-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                        className="flex items-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Reject</span>
@@ -873,7 +1160,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                       <button
                         onClick={() => handleEDApprove(r)}
                         disabled={isActionProcessing}
-                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
                       >
                         {isActionProcessing ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -891,7 +1178,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         </div>
       )}
 
-      {/* TAB 3: MANAGER VETTING HUB */}
+      {/* ===== TAB 3: MANAGER VETTING HUB ===== */}
       {activeTab === 'manager_hub' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -902,7 +1189,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
             <button
               onClick={loadData}
-              className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
+              className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4 text-purple-700" />
@@ -944,7 +1231,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setSelectedReport(r)}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all active:scale-95"
+                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />
@@ -952,7 +1239,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
                       <button
                         onClick={() => setRejectionReport(r)}
-                        className="flex items-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                        className="flex items-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Reject</span>
@@ -960,7 +1247,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                       <button
                         onClick={() => handleEDApprove(r)}
                         disabled={isActionProcessing}
-                        className="flex items-center space-x-1 bg-purple-900 hover:bg-purple-950 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                        className="flex items-center space-x-1 bg-purple-900 hover:bg-purple-950 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
                       >
                         {isActionProcessing ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -978,7 +1265,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         </div>
       )}
 
-      {/* TAB 4: ED DIRECT LOG ENTRY */}
+      {/* ===== TAB 4: ED DIRECT LOG ENTRY ===== */}
       {activeTab === 'staff_entry' && (
         <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
           <div className="border-b border-slate-200 pb-4">
@@ -996,36 +1283,38 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory / Section Type</label>
-            <select
-              value={selectedInvType}
-              onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
-            >
-              <optgroup label="Grow-Out Section">
-                <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
-                <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
-              </optgroup>
-              <optgroup label="Hatchery Section">
-                <option value={InventoryType.HATCHERY}>Hatchery Record (Fingerling Transfers)</option>
-              </optgroup>
-            </select>
-          </div>
-
-          {selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
-              <input
-                type="text"
-                required
-                value={logTitle}
-                onChange={(e) => setLogTitle(e.target.value)}
-                placeholder="e.g. Executive Feed & Livestock Water Audit"
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
-              />
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Target Department</label>
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value as Department)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
+              >
+                <option value={Department.FISHERY}>Fishery Department</option>
+                <option value={Department.POULTRY}>Poultry Department</option>
+                <option value={Department.CATTLE}>Cattle Department</option>
+                <option value={Department.PIGS}>Pigs Department</option>
+              </select>
             </div>
-          )}
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory / Section Type</label>
+              <select
+                value={selectedInvType}
+                onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
+              >
+                <optgroup label="Grow-Out Section">
+                  <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
+                  <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
+                </optgroup>
+                <optgroup label="Hatchery Section">
+                  <option value={InventoryType.HATCHERY}>Hatchery Record (Fingerling Transfers)</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
 
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
             <FisheryAssetForm 
@@ -1050,6 +1339,18 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             />
           ) : (
             <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={logTitle}
+                  onChange={(e) => setLogTitle(e.target.value)}
+                  placeholder={`e.g. ${selectedDept} Department Operational Audit`}
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Details / Narrative *</label>
                 <textarea
@@ -1080,7 +1381,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         </div>
       )}
 
-      {/* TAB 5: USER DIRECTORY & GOVERNANCE */}
+      {/* ===== TAB 5: USER DIRECTORY & GOVERNANCE ===== */}
       {activeTab === 'users' && (
         <UserManagementTable
           users={usersList}
@@ -1089,208 +1390,87 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         />
       )}
 
-      {/* TAB 6: VISUAL ANALYTICS & GOVERNANCE HUB */}
+      {/* ===== TAB 6: VISUAL ANALYTICS & KPI HUB ===== */}
       {activeTab === 'analytics' && (() => {
         const analytics = getAnalyticsData();
         return (
           <div className="space-y-6">
             
-            {/* Analytics Header Controls & Filters */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Enterprise Operations Analytics</h3>
-                <p className="text-xs text-slate-500 font-medium">Real-time governance metrics, submission trends, and sector resource allocation</p>
+                <h3 className="text-lg font-black text-slate-900 uppercase">Operational Analytics</h3>
+                <p className="text-xs text-slate-500 font-medium">Performance trends across Fishery, Poultry, Cattle, and Pigs</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Time Range Filter */}
-                <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
-                  <button
-                    onClick={() => setAnalyticsTimeFilter('ALL')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${analyticsTimeFilter === 'ALL' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    All Time
-                  </button>
-                  <button
-                    onClick={() => setAnalyticsTimeFilter('30DAYS')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${analyticsTimeFilter === '30DAYS' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    Last 30 Days
-                  </button>
-                  <button
-                    onClick={() => setAnalyticsTimeFilter('7DAYS')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${analyticsTimeFilter === '7DAYS' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    Last 7 Days
-                  </button>
-                </div>
-
-                {/* Sector Filter */}
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={analyticsDeptFilter}
                   onChange={(e) => setAnalyticsDeptFilter(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                 >
-                  <option value="ALL">All Sectors</option>
+                  <option value="ALL">All Departments</option>
                   <option value={Department.FISHERY}>Fishery</option>
                   <option value={Department.POULTRY}>Poultry</option>
                   <option value={Department.CATTLE}>Cattle</option>
                   <option value={Department.PIGS}>Pigs</option>
                 </select>
 
-                {/* Export Analytics Summary */}
-                <button
-                  onClick={handleExportAnalyticsSummary}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                <select
+                  value={analyticsTimeFilter}
+                  onChange={(e) => setAnalyticsTimeFilter(e.target.value as any)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Export Report</span>
-                </button>
+                  <option value="ALL">All Time</option>
+                  <option value="30DAYS">Last 30 Days</option>
+                  <option value="7DAYS">Last 7 Days</option>
+                </select>
               </div>
             </div>
 
-            {/* Analytics KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-black uppercase text-slate-400">Total Filtered Logs</span>
-                <div className="text-2xl font-black text-slate-900">{analytics.filteredReports.length}</div>
-                <div className="text-[10px] text-purple-600 font-bold flex items-center space-x-1">
-                  <Activity className="w-3 h-3" />
-                  <span>Matching filter criteria</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-black uppercase text-slate-400">ED Approval Efficiency</span>
-                <div className="text-2xl font-black text-emerald-600">{analytics.approvalRate}%</div>
-                <div className="text-[10px] text-emerald-700 font-bold flex items-center space-x-1">
-                  <Award className="w-3 h-3 text-emerald-600" />
-                  <span>{analytics.approvedCount} fully authorized</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-black uppercase text-slate-400">Total Feeds Logged (Kg)</span>
-                <div className="text-2xl font-black text-blue-600">{analytics.totalFeedsKg.toLocaleString()} Kg</div>
-                <div className="text-[10px] text-blue-700 font-bold flex items-center space-x-1">
-                  <Zap className="w-3 h-3 text-blue-600" />
-                  <span>Store & usage inventory</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-black uppercase text-slate-400">Hatchery Fingerlings</span>
-                <div className="text-2xl font-black text-emerald-700">{analytics.totalHatcheryFingerlings.toLocaleString()}</div>
-                <div className="text-[10px] text-emerald-800 font-bold flex items-center space-x-1">
-                  <TrendingUp className="w-3 h-3 text-emerald-600" />
-                  <span>{analytics.totalHatcheryBatches} batches tracked</span>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <span className="text-[10px] font-black uppercase text-slate-400">Active Operational Users</span>
-                <div className="text-2xl font-black text-purple-900">{usersList.filter(u => u.status === 'active').length}</div>
-                <div className="text-[10px] text-slate-500 font-bold flex items-center space-x-1">
-                  <Users className="w-3 h-3 text-slate-500" />
-                  <span>Registered account nodes</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Submission Volume Trend Area Chart */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-base font-extrabold text-slate-900">Submission Velocity & Trend</h3>
-                </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={analytics.trendChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
-                      <Tooltip cursor={{ stroke: '#059669' }} contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-                      <Area type="monotone" dataKey="submissions" stroke="#059669" fill="#d1fae5" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Department Breakdown Bar Chart */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                  <h3 className="text-base font-extrabold text-slate-900">Farm Logs by Sector</h3>
-                </div>
-                <div className="h-64 w-full">
+              {/* Sector Distribution */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4">
+                <h4 className="text-sm font-black text-slate-900 uppercase">Logs by Farm Sector</h4>
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={analytics.sectorChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-                      <Bar dataKey="count" fill="#9333ea" radius={[8, 8, 0, 0]} barSize={36} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                      <YAxis stroke="#64748b" fontSize={11} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#7c3aed" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Approval Status Distribution Pie Chart */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Activity className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-base font-extrabold text-slate-900">Approval Status Ratios</h3>
-                </div>
-                <div className="h-64 w-full flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={analytics.statusPieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {analytics.statusPieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-extrabold pt-1">
-                  {analytics.statusPieData.map((st) => (
-                    <div key={st.name} className="flex items-center space-x-1.5">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: st.color }} />
-                      <span className="text-slate-600">{st.name}:</span>
-                      <span className="text-slate-900">{st.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Resource & Feed Category Allocation */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5 text-amber-600" />
-                  <h3 className="text-base font-extrabold text-slate-900">Feed Stock Volume by Category (Kg)</h3>
-                </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analytics.resourceBreakdownData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="category" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-                      <Bar dataKey="quantityKg" fill="#d97706" radius={[8, 8, 0, 0]} barSize={40} />
-                    </BarChart>
-                  </ResponsiveContainer>
+              {/* Status Breakdown */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4">
+                <h4 className="text-sm font-black text-slate-900 uppercase">Approval Status Breakdown</h4>
+                <div className="h-64 flex items-center justify-center">
+                  {analytics.statusPieData.length === 0 ? (
+                    <p className="text-xs text-slate-400">No data available</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={analytics.statusPieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                        >
+                          {analytics.statusPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -1300,45 +1480,41 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         );
       })()}
 
-      {/* TAB 7: SYSTEM AUDIT TRAIL */}
+      {/* ===== TAB 7: AUDIT TRAIL ===== */}
       {activeTab === 'audit' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-          <h3 className="text-lg font-black text-slate-900">System Audit Trail</h3>
-          <p className="text-xs text-slate-500 font-medium">Full record of user registrations, role changes, and log approvals</p>
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 uppercase">System Audit Trail</h3>
+              <p className="text-xs text-slate-500 font-medium">Immutable log of all user actions, logins, unlocks, and authorizations</p>
+            </div>
+            <span className="text-xs font-black text-purple-900 bg-purple-100 px-3 py-1 rounded-full">
+              {auditLogsList.length} Total Events
+            </span>
+          </div>
 
-          <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Timestamp</th>
-                  <th className="py-3.5 px-4">Actor</th>
-                  <th className="py-3.5 px-4">Action</th>
-                  <th className="py-3.5 px-4">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                {auditLogsList.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-400 font-bold">No audit records logged yet</td>
-                  </tr>
-                ) : (
-                  auditLogsList.map((a) => (
-                    <tr key={a.id} className="hover:bg-slate-50">
-                      <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">
-                        {new Date(a.timestamp).toLocaleString()}
-                      </td>
-                      <td className="py-3 px-4 font-bold">{a.actorName} ({a.actorEmail})</td>
-                      <td className="py-3 px-4">
-                        <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-mono text-[10px] font-bold border border-purple-200">
-                          {a.action}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">{a.details}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="space-y-3">
+            {auditLogsList.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">No audit events recorded yet.</div>
+            ) : (
+              auditLogsList.slice(0, 50).map((log) => (
+                <div key={log.id} className="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-black text-[10px] uppercase">
+                        {log.action}
+                      </span>
+                      <span className="font-bold text-slate-900">{log.userName}</span>
+                      <span className="text-slate-400">({log.userEmail})</span>
+                    </div>
+                    <p className="text-slate-600 font-medium">{log.details}</p>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                    {new Date(log.timestamp).toLocaleString()}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1347,96 +1523,76 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       <UserRegistrationModal
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
-        onUserRegistered={() => {
-          loadData();
-        }}
-        edUser={user}
+        onUserCreated={loadData}
+        creator={user}
       />
 
-      {/* Report Detail Modal */}
+      {/* Report Details Modal */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 relative">
             <button
               onClick={() => setSelectedReport(null)}
-              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 font-bold"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
-            <ReportDetails report={selectedReport} />
 
-            {(selectedReport.status === ReportStatus.PENDING_ED || selectedReport.status === ReportStatus.PENDING_MANAGER) && (
-              <div className="mt-6 pt-4 border-t border-slate-200 flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setRejectionReport(selectedReport);
-                    setSelectedReport(null);
-                  }}
-                  className="px-5 py-2.5 rounded-xl border border-rose-200 text-rose-700 font-bold text-xs hover:bg-rose-50 active:scale-95 transition-all"
-                >
-                  Reject Log
-                </button>
-                <button
-                  onClick={() => handleEDApprove(selectedReport)}
-                  disabled={isActionProcessing}
-                  className="px-6 py-2.5 rounded-xl bg-purple-900 text-white font-bold text-xs hover:bg-purple-950 shadow-sm active:scale-95 transition-all flex items-center space-x-1.5 disabled:opacity-50"
-                >
-                  {isActionProcessing ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Check className="w-3.5 h-3.5" />
-                  )}
-                  <span>Approve Log</span>
-                </button>
-              </div>
-            )}
+            <ReportDetails report={selectedReport} />
           </div>
         </div>
       )}
 
-      {/* ED Rejection Modal */}
+      {/* Rejection Modal */}
       {rejectionReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center space-x-2 text-rose-700 font-extrabold uppercase text-sm">
-              <AlertTriangle className="w-5 h-5" />
-              <span>ED Rejection Decision</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-5 relative">
+            <button
+              onClick={() => setRejectionReport(null)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 uppercase">Reject Farm Log</h3>
+                <p className="text-xs text-slate-500 font-medium">State the reason for rejecting {formatLogName(rejectionReport)}</p>
+              </div>
             </div>
-            
-            <p className="text-xs text-slate-600 font-medium">
-              Provide mandatory reason for rejecting log <strong>"{formatLogName(rejectionReport)}"</strong>.
-            </p>
 
-            <textarea
-              rows={4}
-              required
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="State ED rejection reason..."
-              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 rounded-xl p-3 text-xs font-medium outline-none transition-all"
-            />
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase text-slate-700">Reason for Rejection *</label>
+              <textarea
+                rows={4}
+                required
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Specify corrections needed before resubmission..."
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 rounded-2xl p-3.5 text-xs font-medium text-slate-900 outline-none transition-all"
+              />
+            </div>
 
-            <div className="flex justify-end space-x-3 pt-2">
+            <div className="flex items-center justify-end space-x-3 pt-2">
               <button
-                onClick={() => {
-                  setRejectionReport(null);
-                  setRejectionReason('');
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 active:scale-95"
+                type="button"
+                onClick={() => setRejectionReport(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-2xl text-xs uppercase tracking-wider cursor-pointer"
               >
                 Cancel
               </button>
+
               <button
+                type="button"
+                disabled={isActionProcessing || !rejectionReason.trim()}
                 onClick={handleEDConfirmReject}
-                disabled={isActionProcessing}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm active:scale-95 transition-all flex items-center space-x-1.5 disabled:opacity-50"
+                className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-rose-200 cursor-pointer flex items-center space-x-2 disabled:opacity-50"
               >
-                {isActionProcessing ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <X className="w-3.5 h-3.5" />
-                )}
-                <span>Confirm ED Rejection</span>
+                {isActionProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                <span>Confirm Rejection</span>
               </button>
             </div>
           </div>
