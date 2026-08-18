@@ -843,7 +843,16 @@ export async function reviewHatcheryChangeRequest(
 
     // Update target batch/pond in report
     const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
-    const targetReport = localReports.find(r => r.id === changeReq.reportId);
+    let targetReport = localReports.find(r => r.id === changeReq.reportId);
+    
+    // Fallback: if not found by reportId, find by matching batch or pond in any report
+    if (!targetReport) {
+      targetReport = localReports.find(r => 
+        (r.formData?.batches && r.formData.batches[changeReq.batchIndex]) ||
+        (r.formData?.ponds && r.formData.ponds[changeReq.batchIndex])
+      );
+    }
+
     if (targetReport?.formData) {
       if (targetReport.formData.batches?.[changeReq.batchIndex]) {
         const batch = targetReport.formData.batches[changeReq.batchIndex];
@@ -851,6 +860,9 @@ export async function reviewHatcheryChangeRequest(
         batch.changeRequestReviewedBy = reviewerName;
         batch.changeRequestReviewedAt = changeReq.reviewedAt;
         batch.isLocked = !approve;
+        if (approve) {
+          batch.lockedRows = {}; // Reset per-row locks so staff can edit freely
+        }
         await updateReport(targetReport.id, targetReport);
       } else if (targetReport.formData.ponds?.[changeReq.batchIndex]) {
         const pond = targetReport.formData.ponds[changeReq.batchIndex];
