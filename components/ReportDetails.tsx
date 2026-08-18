@@ -584,25 +584,33 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-bold">
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-black uppercase">Source of Broodstock</span>
-                    <p className="text-slate-900 font-black text-sm">{batch.sourceOfBroodstock || 'N/A'}</p>
-                  </div>
+                  {batch.sourceOfBroodstock && (
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-black uppercase">Source of Broodstock</span>
+                      <p className="text-slate-900 font-black text-sm">{batch.sourceOfBroodstock}</p>
+                    </div>
+                  )}
 
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-black uppercase">Hatchery Date</span>
-                    <p className="text-slate-900 font-black text-sm">{batch.hatcheryDate || 'N/A'}</p>
-                  </div>
+                  {batch.hatcheryDate && batch.hatcheryDate.trim() !== '' && (
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-black uppercase">Hatchery Date</span>
+                      <p className="text-slate-900 font-black text-sm">{batch.hatcheryDate}</p>
+                    </div>
+                  )}
 
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-black uppercase">First Date of Feeding</span>
-                    <p className="text-slate-900 font-black text-sm">{batch.firstDateOfFeeding || 'N/A'}</p>
-                  </div>
+                  {batch.firstDateOfFeeding && batch.firstDateOfFeeding.trim() !== '' && (
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-black uppercase">First Date of Feeding</span>
+                      <p className="text-slate-900 font-black text-sm">{batch.firstDateOfFeeding}</p>
+                    </div>
+                  )}
 
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-black uppercase">Date of Transfer to Grow-Out</span>
-                    <p className="text-slate-900 font-black text-sm">{batch.dateOfTransferToGrowOut || 'N/A'}</p>
-                  </div>
+                  {batch.dateOfTransferToGrowOut && batch.dateOfTransferToGrowOut.trim() !== '' && (
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-black uppercase">Date of Transfer to Grow-Out</span>
+                      <p className="text-slate-900 font-black text-sm">{batch.dateOfTransferToGrowOut}</p>
+                    </div>
+                  )}
 
                   <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200">
                     <span className="text-[10px] text-emerald-800 font-black uppercase">Total Transferred Fingerlings</span>

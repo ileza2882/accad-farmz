@@ -453,18 +453,36 @@ export function exportLogToPDF(report: Report): void {
         hatcheryData.batches.forEach((batch, idx) => {
           if (currentY > 230) { doc.addPage(); currentY = 20; }
 
-          const batchRows = [
-            ['Source of Broodstock', batch.sourceOfBroodstock || 'N/A'],
-            ['Batch Number', batch.batchNumber || 'N/A'],
-            ['Hatchery Date', batch.hatcheryDate || 'N/A'],
-            ['First Date of Feeding', batch.firstDateOfFeeding || 'N/A'],
-            ['Date of Transfer to Grow-Out', batch.dateOfTransferToGrowOut || 'N/A'],
-            ['Total Transferred Fingerlings', `${Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish`],
-            ['Average Weight of Fingerlings', `${batch.averageWeightTransferred || 0} g`],
-            ['Age of Fingerlings', String(batch.ageOfFingerlingsTransferred || 'N/A')],
-            ['Health Status of Fingerlings', batch.healthStatusTransferred || 'Good'],
-            ['Destinated Pond of Fingerlings', batch.destinatedPondTransferred || 'N/A']
-          ];
+          const batchRows: [string, string][] = [];
+          if (batch.sourceOfBroodstock) batchRows.push(['Source of Broodstock', batch.sourceOfBroodstock]);
+          if (batch.batchNumber) batchRows.push(['Batch Number', batch.batchNumber]);
+          
+          // Only dates that have been explicitly selected and saved are captured in reports
+          if (batch.hatcheryDate && batch.hatcheryDate.trim() !== '') {
+            batchRows.push(['Hatchery Date', batch.hatcheryDate]);
+          }
+          if (batch.firstDateOfFeeding && batch.firstDateOfFeeding.trim() !== '') {
+            batchRows.push(['First Date of Feeding', batch.firstDateOfFeeding]);
+          }
+          if (batch.dateOfTransferToGrowOut && batch.dateOfTransferToGrowOut.trim() !== '') {
+            batchRows.push(['Date of Transfer to Grow-Out', batch.dateOfTransferToGrowOut]);
+          }
+
+          if (batch.totalTransferredFingerlings && Number(batch.totalTransferredFingerlings) > 0) {
+            batchRows.push(['Total Transferred Fingerlings', `${Number(batch.totalTransferredFingerlings).toLocaleString()} Fish`]);
+          }
+          if (batch.averageWeightTransferred) {
+            batchRows.push(['Average Weight of Fingerlings', `${batch.averageWeightTransferred} g`]);
+          }
+          if (batch.ageOfFingerlingsTransferred) {
+            batchRows.push(['Age of Fingerlings', String(batch.ageOfFingerlingsTransferred)]);
+          }
+          if (batch.healthStatusTransferred) {
+            batchRows.push(['Health Status of Fingerlings', batch.healthStatusTransferred]);
+          }
+          if (batch.destinatedPondTransferred) {
+            batchRows.push(['Destinated Pond of Fingerlings', batch.destinatedPondTransferred]);
+          }
 
           if (batch.remarks) {
             batchRows.push(['Batch Remarks / Notes', batch.remarks]);
@@ -786,9 +804,9 @@ export function exportLogToWord(report: Report): void {
               <tbody>
                 <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Source of Broodstock</td><td class="col-value"><strong>${batch.sourceOfBroodstock || 'N/A'}</strong></td></tr>
                 <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Batch Number</td><td class="col-value">${batch.batchNumber || 'N/A'}</td></tr>
-                <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Hatchery Date</td><td class="col-value">${batch.hatcheryDate || 'N/A'}</td></tr>
-                <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">First Date of Feeding</td><td class="col-value">${batch.firstDateOfFeeding || 'N/A'}</td></tr>
-                <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Date of Transfer to Grow-Out</td><td class="col-value">${batch.dateOfTransferToGrowOut || 'N/A'}</td></tr>
+                ${batch.hatcheryDate && batch.hatcheryDate.trim() !== '' ? `<tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Hatchery Date</td><td class="col-value">${batch.hatcheryDate}</td></tr>` : ''}
+                ${batch.firstDateOfFeeding && batch.firstDateOfFeeding.trim() !== '' ? `<tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">First Date of Feeding</td><td class="col-value">${batch.firstDateOfFeeding}</td></tr>` : ''}
+                ${batch.dateOfTransferToGrowOut && batch.dateOfTransferToGrowOut.trim() !== '' ? `<tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Date of Transfer to Grow-Out</td><td class="col-value">${batch.dateOfTransferToGrowOut}</td></tr>` : ''}
                 <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Total Transferred Fingerlings</td><td class="col-value" style="font-weight: bold; color: #581c87;">${Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish</td></tr>
                 <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Average Weight of Fingerlings</td><td class="col-value">${batch.averageWeightTransferred || 0} g</td></tr>
                 <tr><td class="col-label" style="background-color: #faf5ff; color: #581c87;">Age of Fingerlings</td><td class="col-value">${batch.ageOfFingerlingsTransferred || 'N/A'}</td></tr>
@@ -861,9 +879,9 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
         rowData.push({
           batchNo: 'General Entry',
           broodstock: 'N/A',
-          hatcheryDate: dateLogged,
-          firstFeedDate: 'N/A',
-          transferDate: 'N/A',
+          hatcheryDate: '',
+          firstFeedDate: '',
+          transferDate: '',
           qty: 0,
           avgWeight: 0,
           age: 'N/A',
@@ -883,9 +901,9 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
           rowData.push({
             batchNo: batch.batchNumber || `Batch #${bIdx + 1}`,
             broodstock: batch.sourceOfBroodstock || 'N/A',
-            hatcheryDate: batch.hatcheryDate || 'N/A',
-            firstFeedDate: batch.firstDateOfFeeding || 'N/A',
-            transferDate: batch.dateOfTransferToGrowOut || 'N/A',
+            hatcheryDate: batch.hatcheryDate && batch.hatcheryDate.trim() !== '' ? batch.hatcheryDate : '',
+            firstFeedDate: batch.firstDateOfFeeding && batch.firstDateOfFeeding.trim() !== '' ? batch.firstDateOfFeeding : '',
+            transferDate: batch.dateOfTransferToGrowOut && batch.dateOfTransferToGrowOut.trim() !== '' ? batch.dateOfTransferToGrowOut : '',
             qty: Number(batch.totalTransferredFingerlings) || 0,
             avgWeight: Number(batch.averageWeightTransferred) || 0,
             age: batch.ageOfFingerlingsTransferred || 'N/A',

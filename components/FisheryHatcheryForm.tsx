@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FisheryHatcheryFormData, 
   FisheryHatcheryBatchData, 
@@ -57,9 +57,88 @@ const HEALTH_STATUS_OPTIONS = [
   'Poor'
 ];
 
+interface HatcheryDateInputProps {
+  value?: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+}
+
+const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
+  value,
+  onChange,
+  disabled = false,
+  className = '',
+  placeholder = 'Select Date'
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const hasValue = Boolean(value && value.trim() !== '');
+
+  return (
+    <div className="relative flex items-center w-full">
+      <span className="absolute left-3.5 text-slate-400 pointer-events-none z-10">
+        <Calendar className="w-4 h-4" />
+      </span>
+      <input
+        ref={inputRef}
+        type={hasValue || isFocused ? 'date' : 'text'}
+        disabled={disabled}
+        placeholder={placeholder}
+        value={value || ''}
+        onFocus={() => {
+          if (!disabled) {
+            setIsFocused(true);
+            setTimeout(() => {
+              try {
+                if (inputRef.current && 'showPicker' in inputRef.current) {
+                  (inputRef.current as any).showPicker();
+                }
+              } catch (_) {}
+            }, 50);
+          }
+        }}
+        onBlur={() => {
+          setIsFocused(false);
+        }}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
+        className={`${className} ${!hasValue ? 'placeholder-slate-400 font-normal text-slate-400' : ''}`}
+      />
+      {!hasValue && !disabled && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(e) => {
+            e.preventDefault();
+            if (!disabled) {
+              setIsFocused(true);
+              setTimeout(() => {
+                try {
+                  if (inputRef.current && 'showPicker' in inputRef.current) {
+                    (inputRef.current as any).showPicker();
+                  } else if (inputRef.current) {
+                    inputRef.current.focus();
+                  }
+                } catch (_) {}
+              }, 50);
+            }
+          }}
+          className="absolute right-3.5 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+          title="Click to select date"
+        >
+          <Calendar className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({ 
   initialData, 
-  reportId, 
+  reportId,
   currentUser,
   onCancel, 
   onSubmit, 
@@ -71,12 +150,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     if (initialData?.batches && initialData.batches.length > 0) {
       return initialData.batches;
     }
-    const todayStr = new Date().toISOString().split('T')[0];
     return [
       {
         sourceOfBroodstock: 'Outside the Farm',
         batchNumber: '1st',
-        hatcheryDate: todayStr,
+        hatcheryDate: '',
         firstDateOfFeeding: '',
         dateOfTransferToGrowOut: '',
         totalTransferredFingerlings: '',
@@ -153,11 +231,10 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   const addBatch = () => {
     const nextIdx = batches.length;
     const defaultBatchOption = BATCH_NUMBER_OPTIONS[nextIdx] || `${nextIdx + 1}th`;
-    const todayStr = new Date().toISOString().split('T')[0];
     const newBatch: FisheryHatcheryBatchData = {
       sourceOfBroodstock: batches[batches.length - 1]?.sourceOfBroodstock || 'Outside the Farm',
       batchNumber: defaultBatchOption,
-      hatcheryDate: todayStr,
+      hatcheryDate: '',
       firstDateOfFeeding: '',
       dateOfTransferToGrowOut: '',
       totalTransferredFingerlings: '',
@@ -734,22 +811,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                           </label>
                           {renderRowActionButton(originalIndex, 'Hatchery Date', 'hatcheryDate')}
                         </div>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3.5 text-slate-400">
-                            <Calendar className="w-4 h-4" />
-                          </span>
-                          <input
-                            type="date"
-                            disabled={Boolean(batch.lockedRows?.hatcheryDate)}
-                            value={batch.hatcheryDate}
-                            onChange={(e) => handleFieldChange(originalIndex, 'hatcheryDate', e.target.value)}
-                            className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
-                              batch.lockedRows?.hatcheryDate
-                                ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
-                                : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
-                            }`}
-                          />
-                        </div>
+                        <HatcheryDateInput
+                          disabled={Boolean(batch.lockedRows?.hatcheryDate)}
+                          value={batch.hatcheryDate}
+                          placeholder="Select Date"
+                          onChange={(val) => handleFieldChange(originalIndex, 'hatcheryDate', val)}
+                          className={`w-full border rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none transition-all ${
+                            batch.lockedRows?.hatcheryDate
+                              ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
+                              : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
+                          }`}
+                        />
                       </div>
 
                       {/* 4. First Date of Feeding */}
@@ -761,22 +833,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                           </label>
                           {renderRowActionButton(originalIndex, 'First Date of Feeding', 'firstDateOfFeeding')}
                         </div>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3.5 text-slate-400">
-                            <Calendar className="w-4 h-4" />
-                          </span>
-                          <input
-                            type="date"
-                            disabled={Boolean(batch.lockedRows?.firstDateOfFeeding)}
-                            value={batch.firstDateOfFeeding}
-                            onChange={(e) => handleFieldChange(originalIndex, 'firstDateOfFeeding', e.target.value)}
-                            className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
-                              batch.lockedRows?.firstDateOfFeeding
-                                ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
-                                : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
-                            }`}
-                          />
-                        </div>
+                        <HatcheryDateInput
+                          disabled={Boolean(batch.lockedRows?.firstDateOfFeeding)}
+                          value={batch.firstDateOfFeeding}
+                          placeholder="Select Date"
+                          onChange={(val) => handleFieldChange(originalIndex, 'firstDateOfFeeding', val)}
+                          className={`w-full border rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none transition-all ${
+                            batch.lockedRows?.firstDateOfFeeding
+                              ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
+                              : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
+                          }`}
+                        />
                       </div>
 
                       {/* 5. Date of Transfer to Grow-Out */}
@@ -788,22 +855,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                           </label>
                           {renderRowActionButton(originalIndex, 'Date of Transfer to Grow-Out', 'dateOfTransferToGrowOut')}
                         </div>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3.5 text-slate-400">
-                            <Calendar className="w-4 h-4" />
-                          </span>
-                          <input
-                            type="date"
-                            disabled={Boolean(batch.lockedRows?.dateOfTransferToGrowOut)}
-                            value={batch.dateOfTransferToGrowOut}
-                            onChange={(e) => handleFieldChange(originalIndex, 'dateOfTransferToGrowOut', e.target.value)}
-                            className={`w-full border rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-bold outline-none transition-all ${
-                              batch.lockedRows?.dateOfTransferToGrowOut
-                                ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
-                                : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
-                            }`}
-                          />
-                        </div>
+                        <HatcheryDateInput
+                          disabled={Boolean(batch.lockedRows?.dateOfTransferToGrowOut)}
+                          value={batch.dateOfTransferToGrowOut}
+                          placeholder="Select Date"
+                          onChange={(val) => handleFieldChange(originalIndex, 'dateOfTransferToGrowOut', val)}
+                          className={`w-full border rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none transition-all ${
+                            batch.lockedRows?.dateOfTransferToGrowOut
+                              ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
+                              : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-800'
+                          }`}
+                        />
                       </div>
 
                       {/* 6. Total Number of Transferred Fingerlings */}
@@ -1105,18 +1167,24 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                           <span className="text-[10px] font-black uppercase text-slate-400 block">Broodstock Source</span>
                           <span className="font-bold text-slate-800">{batch.sourceOfBroodstock || 'N/A'}</span>
                         </div>
-                        <div>
-                          <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Date</span>
-                          <span className="font-bold text-slate-800">{batch.hatcheryDate || 'N/A'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-black uppercase text-slate-400 block">First Feeding Date</span>
-                          <span className="font-bold text-slate-800">{batch.firstDateOfFeeding || 'N/A'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-black uppercase text-slate-400 block">Transfer Date</span>
-                          <span className="font-bold text-slate-800">{batch.dateOfTransferToGrowOut || 'N/A'}</span>
-                        </div>
+                        {batch.hatcheryDate && (
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Date</span>
+                            <span className="font-bold text-slate-800">{batch.hatcheryDate}</span>
+                          </div>
+                        )}
+                        {batch.firstDateOfFeeding && (
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-slate-400 block">First Feeding Date</span>
+                            <span className="font-bold text-slate-800">{batch.firstDateOfFeeding}</span>
+                          </div>
+                        )}
+                        {batch.dateOfTransferToGrowOut && (
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-slate-400 block">Transfer Date</span>
+                            <span className="font-bold text-slate-800">{batch.dateOfTransferToGrowOut}</span>
+                          </div>
+                        )}
                         <div>
                           <span className="text-[10px] font-black uppercase text-slate-400 block">Transferred Count</span>
                           <span className="font-black text-emerald-800">{Number(batch.totalTransferredFingerlings || 0).toLocaleString()} Fish</span>
