@@ -613,7 +613,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                             title="Export Hatchery Batch Ledger to Excel (.xlsx)"
                           >
                             {exportingId === report.id + '_excel' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3 text-purple-700" />}
-                            <span>XLS</span>
+                            <span>XLSX</span>
                           </button>
                         )}
 

@@ -926,167 +926,94 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
       return;
     }
 
-    // Build Rich Styled HTML / XML Spreadsheet Blob with embedded color codes
-    const xmlSpreadsheet = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:html="http://www.w3.org/TR/REC-html40">
- <Styles>
-  <Style ss:ID="Default" ss:Name="Normal">
-   <Alignment ss:Vertical="Center"/>
-   <Borders/>
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#000000"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="BrandTitle">
-   <Font ss:FontName="Times New Roman" ss:Size="16" ss:Bold="1" ss:Color="#006400"/>
-  </Style>
-  <Style ss:ID="BrandSub">
-   <Font ss:FontName="Calibri" ss:Size="9" ss:Bold="1" ss:Color="#334155"/>
-  </Style>
-  <Style ss:ID="HeaderCol">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#047857"/>
-    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#047857"/>
-    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#047857"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#047857"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
-   <Interior ss:Color="#065F46" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="ColMint">
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="9.5" ss:Bold="1" ss:Color="#064E3B"/>
-   <Interior ss:Color="#ECFDF5" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="ColSky">
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="9.5" ss:Color="#0369A1"/>
-   <Interior ss:Color="#F0F9FF" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="ColAmber">
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="9.5" ss:Bold="1" ss:Color="#92400E"/>
-   <Interior ss:Color="#FEF3C7" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="ColLavender">
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="9.5" ss:Bold="1" ss:Color="#6B21A8"/>
-   <Interior ss:Color="#FAF5FF" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="ColSlate">
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
-   </Borders>
-   <Font ss:FontName="Calibri" ss:Size="9.5" ss:Color="#1E293B"/>
-   <Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/>
-  </Style>
- </Styles>
- <Worksheet ss:Name="Hatchery Batch Ledger">
-  <Table>
-   <Column ss:Width="100"/>
-   <Column ss:Width="140"/>
-   <Column ss:Width="110"/>
-   <Column ss:Width="110"/>
-   <Column ss:Width="120"/>
-   <Column ss:Width="130"/>
-   <Column ss:Width="100"/>
-   <Column ss:Width="120"/>
-   <Column ss:Width="100"/>
-   <Column ss:Width="110"/>
-   <Column ss:Width="130"/>
-   <Column ss:Width="130"/>
-   <Column ss:Width="160"/>
-   <Column ss:Width="140"/>
-   <Column ss:Width="120"/>
-   <Column ss:Width="100"/>
-   <Column ss:Width="120"/>
+    // Build structured data array for native Excel XLSX generation
+    const wsData: any[][] = [
+      ['ACCAD FARMS LIMITED - HATCHERY OPERATIONS & BATCH LEDGER'],
+      ['Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria | info@accadfarms.com'],
+      [`Export Timestamp: ${new Date().toLocaleString()} | Total Recorded Batches: ${rowData.length}`],
+      [], // blank spacer row
+      [
+        'Batch #',
+        'Source of Broodstock',
+        'Hatchery Date',
+        'First Date of Feeding',
+        'Date of Transfer',
+        'Total Transferred (Qty)',
+        'Average Weight (g)',
+        'Age (Weeks/Days)',
+        'Health Status',
+        'Destination Pond',
+        'Current Hatchery Stage',
+        'Lock / Save Status',
+        'Remarks / Notes',
+        'Log Report Title',
+        'Submitting Staff',
+        'Date Submitted',
+        'Approval Status'
+      ],
+      ...rowData.map(r => [
+        r.batchNo,
+        r.broodstock,
+        r.hatcheryDate,
+        r.firstFeedDate,
+        r.transferDate,
+        r.qty,
+        r.avgWeight,
+        r.age,
+        r.health,
+        r.destPond,
+        r.stage,
+        r.lockStatus,
+        r.remarks,
+        r.reportTitle,
+        r.staff,
+        r.dateLogged,
+        r.status
+      ])
+    ];
 
-   <Row ss:Height="22">
-    <Cell ss:StyleID="BrandTitle"><Data ss:Type="String">ACCAD FARMS LIMITED - HATCHERY OPERATIONS &amp; BATCH LEDGER</Data></Cell>
-   </Row>
-   <Row ss:Height="16">
-    <Cell ss:StyleID="BrandSub"><Data ss:Type="String">Agboopa Village, Awowo, Ewekoro LGA, Abeokuta, Ogun State, Nigeria | info@accadfarms.com</Data></Cell>
-   </Row>
-   <Row ss:Height="16">
-    <Cell ss:StyleID="BrandSub"><Data ss:Type="String">Export Timestamp: ${new Date().toLocaleString()} | Total Recorded Batches: ${rowData.length}</Data></Cell>
-   </Row>
-   <Row ss:Height="8"/>
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-   <!-- Header Row with Thicker, Darker Emerald Green Styling -->
-   <Row ss:Height="26">
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Batch #</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Source of Broodstock</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Hatchery Date</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">First Date of Feeding</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Date of Transfer</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Total Transferred (Qty)</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Average Weight (g)</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Age (Weeks/Days)</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Health Status</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Destination Pond</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Current Hatchery Stage</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Lock / Save Status</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Remarks / Notes</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Log Report Title</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Submitting Staff</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Date Submitted</Data></Cell>
-    <Cell ss:StyleID="HeaderCol"><Data ss:Type="String">Approval Status</Data></Cell>
-   </Row>
+    // Generous column widths for clear readability in Excel
+    ws['!cols'] = [
+      { wch: 16 }, // Batch #
+      { wch: 26 }, // Source of Broodstock
+      { wch: 16 }, // Hatchery Date
+      { wch: 22 }, // First Date of Feeding
+      { wch: 18 }, // Date of Transfer
+      { wch: 24 }, // Total Transferred (Qty)
+      { wch: 20 }, // Average Weight (g)
+      { wch: 20 }, // Age (Weeks/Days)
+      { wch: 16 }, // Health Status
+      { wch: 20 }, // Destination Pond
+      { wch: 24 }, // Current Hatchery Stage
+      { wch: 24 }, // Lock / Save Status
+      { wch: 32 }, // Remarks / Notes
+      { wch: 36 }, // Log Report Title
+      { wch: 24 }, // Submitting Staff
+      { wch: 16 }, // Date Submitted
+      { wch: 22 }  // Approval Status
+    ];
 
-   <!-- Data Rows Color-Coded by Functional Groups with Light Pastel Shades -->
-   ${rowData.map(r => `
-   <Row ss:Height="20">
-    <Cell ss:StyleID="ColMint"><Data ss:Type="String">${escapeXml(r.batchNo)}</Data></Cell>
-    <Cell ss:StyleID="ColMint"><Data ss:Type="String">${escapeXml(r.broodstock)}</Data></Cell>
-    <Cell ss:StyleID="ColSky"><Data ss:Type="String">${escapeXml(r.hatcheryDate)}</Data></Cell>
-    <Cell ss:StyleID="ColSky"><Data ss:Type="String">${escapeXml(r.firstFeedDate)}</Data></Cell>
-    <Cell ss:StyleID="ColSky"><Data ss:Type="String">${escapeXml(r.transferDate)}</Data></Cell>
-    <Cell ss:StyleID="ColAmber"><Data ss:Type="Number">${r.qty}</Data></Cell>
-    <Cell ss:StyleID="ColAmber"><Data ss:Type="Number">${r.avgWeight}</Data></Cell>
-    <Cell ss:StyleID="ColAmber"><Data ss:Type="String">${escapeXml(r.age)}</Data></Cell>
-    <Cell ss:StyleID="ColLavender"><Data ss:Type="String">${escapeXml(r.health)}</Data></Cell>
-    <Cell ss:StyleID="ColLavender"><Data ss:Type="String">${escapeXml(r.destPond)}</Data></Cell>
-    <Cell ss:StyleID="ColLavender"><Data ss:Type="String">${escapeXml(r.stage)}</Data></Cell>
-    <Cell ss:StyleID="ColSlate"><Data ss:Type="String">${escapeXml(r.lockStatus)}</Data></Cell>
-    <Cell ss:StyleID="ColSlate"><Data ss:Type="String">${escapeXml(r.remarks)}</Data></Cell>
-    <Cell ss:StyleID="ColSlate"><Data ss:Type="String">${escapeXml(r.reportTitle)}</Data></Cell>
-    <Cell ss:StyleID="ColMint"><Data ss:Type="String">${escapeXml(r.staff)}</Data></Cell>
-    <Cell ss:StyleID="ColSlate"><Data ss:Type="String">${escapeXml(r.dateLogged)}</Data></Cell>
-    <Cell ss:StyleID="ColMint"><Data ss:Type="String">${escapeXml(r.status)}</Data></Cell>
-   </Row>
-   `).join('')}
+    // Merge title header cells across the columns (0 to 16)
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 16 } }
+    ];
 
-  </Table>
- </Worksheet>
-</Workbook>`;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Hatchery Batch Ledger');
 
     const dateStr = new Date().toISOString().split('T')[0];
     const filename = Array.isArray(input) 
-      ? `ACCAD_FARMS_Hatchery_Ledger_${dateStr}.xls`
-      : `Hatchery_Ledger_${formatLogName(input).replace(/[/\\?%*:|"<>]/g, '_')}.xls`;
+      ? `ACCAD_FARMS_Hatchery_Ledger_${dateStr}.xlsx`
+      : `Hatchery_Ledger_${formatLogName(input).replace(/[/\\?%*:|"<>]/g, '_')}.xlsx`;
 
-    const blob = new Blob(['\ufeff', xmlSpreadsheet], {
-      type: 'application/vnd.ms-excel;charset=utf-8'
+    // Export true binary XLSX format
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
 
     const url = URL.createObjectURL(blob);
@@ -1102,14 +1029,4 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
     console.error('Error exporting hatchery to Excel:', err);
     alert('Failed to export Excel file: ' + err.message);
   }
-}
-
-function escapeXml(unsafe: any): string {
-  if (unsafe === null || unsafe === undefined) return '';
-  return String(unsafe)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }

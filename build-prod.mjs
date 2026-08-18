@@ -16,9 +16,12 @@ if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 if (!fs.existsSync(distAssetsDir)) fs.mkdirSync(distAssetsDir, { recursive: true });
 
 // 2. Locate esbuild binary
-const esbuildPath = path.join(root, 'node_modules', '@esbuild', 'win32-x64', 'esbuild.exe');
+const gesbuildPath = path.join(root, 'node_modules', '@esbuild', 'win32-x64', 'gesbuild.exe');
+const esbuildPath = fs.existsSync(gesbuildPath)
+  ? gesbuildPath
+  : path.join(root, 'node_modules', '@esbuild', 'win32-x64', 'esbuild.exe');
 if (!fs.existsSync(esbuildPath)) {
-  console.error('❌ esbuild.exe not found at:', esbuildPath);
+  console.error('❌ esbuild binary not found at:', esbuildPath);
   process.exit(1);
 }
 
@@ -47,10 +50,9 @@ const esbuildArgs = [
 ];
 
 console.log('📦 Bundling index.tsx with direct esbuild binary...');
-const result = spawnSync(`"${esbuildPath}"`, esbuildArgs, {
+const result = spawnSync(esbuildPath, esbuildArgs, {
   cwd: root,
-  stdio: 'inherit',
-  shell: true
+  stdio: 'inherit'
 });
 
 if (result.status !== 0) {
