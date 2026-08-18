@@ -174,7 +174,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
           {/* Action Buttons */}
           <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             
-            {user ? (
+            {user && (
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   onClick={() => {
@@ -197,18 +197,6 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                     <span>View Fishery Reports</span>
                   </button>
                 )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center w-full sm:w-auto">
-                {/* Executive Director Direct Entrance */}
-                <button
-                  type="button"
-                  onClick={() => setIsEDModalOpen(true)}
-                  className="w-full sm:w-auto bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-black px-8 sm:px-10 py-4 sm:py-4.5 rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-xl shadow-purple-300 transition-all active:scale-95 flex items-center justify-center space-x-2.5 cursor-pointer border border-purple-700 ring-2 ring-purple-300/60"
-                >
-                  <Crown className="w-4 h-4 text-amber-400" />
-                  <span>Executive Director Login</span>
-                </button>
               </div>
             )}
 

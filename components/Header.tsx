@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                 title="Executive Director Governance Portal"
               >
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>ED Portal</span>
+                <span>Executive Director Login</span>
               </Link>
             </div>
           )}
