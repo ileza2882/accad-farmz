@@ -331,7 +331,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
             </h1>
             
             <p className="text-xs sm:text-sm text-emerald-100/90 font-medium max-w-2xl leading-relaxed">
-              Precision aquaculture system unifying the commercial <strong>Growth-Out Section</strong> and the progressive <strong>Hatchery Section</strong>.
+              Precision aquaculture system unifying the commercial <strong>Grow-Out Section</strong> and the progressive <strong>Hatchery Section</strong>.
             </p>
           </div>
         </div>
@@ -357,7 +357,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               
-              {/* CONTAINER 1: Growth-Out Section (Preset) */}
+              {/* CONTAINER 1: Grow-Out Section (Preset) */}
               <div className="bg-white border border-slate-200 hover:border-emerald-500 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
                 <div className="space-y-5">
                   
@@ -372,7 +372,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase tracking-tight">
-                      1. Growth-Out Section
+                      1. Grow-Out Section
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 font-medium mt-2 leading-relaxed">
                       The core commercial grow-out operations of the Fishery Department. Manages mature fish ponds, feeding schedules, water quality parameters, and physical assets.
@@ -394,7 +394,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     </div>
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
                       <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Growth Monitoring</span>
+                      <span>Fish Weight Logs</span>
                     </div>
                   </div>
 
@@ -408,7 +408,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
                   >
-                    <span>Enter Growth-Out Section</span>
+                    <span>Enter Grow-Out Section</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -428,7 +428,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     </div>
                     <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black uppercase px-3 py-1 rounded-full flex items-center space-x-1">
                       <Sparkles className="w-3 h-3 text-purple-600" />
-                      <span>Vertical Batch Rows</span>
+                      <span>Batch Records</span>
                     </span>
                   </div>
 
@@ -437,7 +437,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                       2. Hatchery Section
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 font-medium mt-2 leading-relaxed">
-                      Artificial breeding, incubation, feeding timeline, and fingerling transfers. Arranged vertically row-by-row with individual row saving.
+                      Artificial breeding, incubation, feeding timeline, and fingerling transfers with individual entry saving.
                     </p>
                   </div>
 
@@ -467,7 +467,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                     onClick={() => setSelectedSection(FisherySection.HATCHERY)}
                     className="w-full bg-slate-900 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
                   >
-                    <span>Open Hatchery Vertical Ledger</span>
+                    <span>Open Hatchery Section Logs</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>

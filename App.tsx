@@ -63,7 +63,7 @@ const App: React.FC = () => {
             {/* Public Homepage */}
             <Route path="/" element={<Homepage user={currentUser} />} />
 
-            {/* Dedicated Fishery Department Hub (Growth-Out & Hatchery Sections) */}
+            {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Sections) */}
             <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} />} />
 
             {/* Public Login Page */}

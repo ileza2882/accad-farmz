@@ -18,7 +18,7 @@ export enum InventoryType {
 }
 
 export enum FisherySection {
-  GROW_OUT = 'Growth-Out Section',
+  GROW_OUT = 'Grow-Out Section',
   HATCHERY = 'Hatchery Section'
 }
 

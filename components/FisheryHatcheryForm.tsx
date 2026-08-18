@@ -96,6 +96,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     isOpen: boolean;
     batchIndex: number;
     actionType: 'save' | 'update';
+    fieldName?: string;
   } | null>(null);
 
   // Change Request modal state
@@ -151,11 +152,12 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   };
 
   // Open confirmation prompt
-  const triggerConfirmation = (index: number, actionType: 'save' | 'update') => {
+  const triggerConfirmation = (index: number, actionType: 'save' | 'update', fieldName?: string) => {
     setConfirmModal({
       isOpen: true,
       batchIndex: index,
-      actionType
+      actionType,
+      fieldName
     });
   };
 
@@ -251,6 +253,48 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
   const totalFingerlings = batches.reduce((acc, b) => acc + (Number(b.totalTransferredFingerlings) || 0), 0);
 
+  // Helper to render per-row Save and Update buttons
+  const renderRowActionButtons = (batchIdx: number, fieldTitle: string, isRowLocked?: boolean) => {
+    if (isRowLocked) {
+      return (
+        <span className="text-[10px] font-bold text-slate-400 flex items-center space-x-1 shrink-0">
+          <Lock className="w-3 h-3 text-slate-400" />
+          <span>Locked</span>
+        </span>
+      );
+    }
+
+    return (
+      <div className="flex items-center space-x-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={() => triggerConfirmation(batchIdx, 'update', fieldTitle)}
+          disabled={savingBatchIdx === batchIdx || isSubmitting}
+          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs active:scale-95"
+          title={`Update ${fieldTitle}`}
+        >
+          <RefreshCw className="w-3 h-3" />
+          <span>Update</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => triggerConfirmation(batchIdx, 'save', fieldTitle)}
+          disabled={savingBatchIdx === batchIdx || isSubmitting}
+          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs shadow-emerald-200 active:scale-95"
+          title={`Save ${fieldTitle}`}
+        >
+          {savingBatchIdx === batchIdx ? (
+            <RefreshCw className="w-3 h-3 animate-spin" />
+          ) : (
+            <Save className="w-3 h-3" />
+          )}
+          <span>Save</span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900">
       
@@ -269,10 +313,10 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
           </div>
 
           <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight mt-2">
-            Vertical Hatchery Section Logs
+            Hatchery Section Logs
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Select the Batch Number dropdown (1st, 2nd, 3rd...). Input data per line and confirm to permanently lock. Locked logs require ED approval for modifications.
+            Input data per log entry and click Save or Update to confirm permanent lock. Locked entries require Executive Director authorization for corrections.
           </p>
         </div>
 
@@ -299,7 +343,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         </div>
       </div>
 
-      {/* ===== VERTICAL BATCH CARDS (Stacked Vertically) ===== */}
+      {/* ===== BATCH RECORDS (Stacked Cards with Per-Row Update & Save Buttons) ===== */}
       <div className="space-y-6">
         {batches.map((batch, index) => {
           const stageInfo = getHatcheryBatchStage(batch);
@@ -401,7 +445,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                     <div className="flex items-center space-x-2">
                       <button
                         type="button"
-                        onClick={() => triggerConfirmation(index, 'update')}
+                        onClick={() => triggerConfirmation(index, 'update', 'Batch Header')}
                         disabled={isSavingThis || isSubmitting}
                         className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-sm active:scale-95"
                         title="Update and confirm lock"
@@ -412,7 +456,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => triggerConfirmation(index, 'save')}
+                        onClick={() => triggerConfirmation(index, 'save', 'Batch Header')}
                         disabled={isSavingThis || isSubmitting}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95"
                         title="Save and confirm permanent lock"
@@ -448,15 +492,18 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
               )}
 
-              {/* VERTICAL FORM FIELDS (1 to 10 stacked in a clean, vertical sequence) */}
+              {/* FORM FIELDS (Each row with dedicated Update and Save buttons) */}
               <div className="space-y-4">
                 
-                {/* 1. Source of Broodstock (DROPDOWN: Outside the Farm / Farm Produced) */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">1</span>
-                    <span>Source of Broodstock (Dropdown)</span>
-                  </label>
+                {/* 1. Source of Broodstock */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">1</span>
+                      <span>Source of Broodstock</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Source of Broodstock', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -480,12 +527,15 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Batch Number (DROPDOWN MENU: 1st, 2nd, 3rd, 4th, 5th...) */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">2</span>
-                    <span>Batch Number (Dropdown)</span>
-                  </label>
+                {/* 2. Batch Number */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">2</span>
+                      <span>Batch Number</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Batch Number', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Hash className="w-4 h-4" />
@@ -510,11 +560,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 3. Hatchery Date */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
-                    <span>Hatchery Date</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
+                      <span>Hatchery Date</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Hatchery Date', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Calendar className="w-4 h-4" />
@@ -534,11 +587,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 4. First Date of Feeding */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">4</span>
-                    <span>First Date of Feeding</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">4</span>
+                      <span>First Date of Feeding</span>
+                    </label>
+                    {renderRowActionButtons(index, 'First Date of Feeding', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Calendar className="w-4 h-4" />
@@ -558,11 +614,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 5. Date of Transfer to Grow-Out */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">5</span>
-                    <span>Date of Transfer to Grow-Out</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">5</span>
+                      <span>Date of Transfer to Grow-Out</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Date of Transfer to Grow-Out', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Calendar className="w-4 h-4" />
@@ -582,11 +641,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 6. Total Number of Transferred Fingerlings */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">6</span>
-                    <span>Total Number of Transferred Fingerlings</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">6</span>
+                      <span>Total Number of Transferred Fingerlings</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Total Number of Transferred Fingerlings', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <input
                       type="number"
@@ -608,11 +670,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 7. Average Weight of Fingerlings Transferred */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">7</span>
-                    <span>Average Weight of Fingerlings Transferred</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">7</span>
+                      <span>Average Weight of Fingerlings Transferred</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Average Weight of Fingerlings Transferred', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Scale className="w-4 h-4" />
@@ -638,11 +703,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 8. Age of Fingerlings Transferred */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">8</span>
-                    <span>Age of Fingerlings Transferred</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">8</span>
+                      <span>Age of Fingerlings Transferred</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Age of Fingerlings Transferred', isLocked)}
+                  </div>
                   <input
                     type="text"
                     disabled={isLocked}
@@ -658,11 +726,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 9. Health Status of Fingerlings Transferred */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">9</span>
-                    <span>Health Status of Fingerlings Transferred</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">9</span>
+                      <span>Health Status of Fingerlings Transferred</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Health Status of Fingerlings Transferred', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <Activity className="w-4 h-4" />
@@ -685,11 +756,14 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
 
                 {/* 10. Destinated Pond of Fingerlings Transferred */}
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5 focus-within:border-emerald-500 transition-colors">
-                  <label className="block text-[11px] font-black uppercase text-slate-600 flex items-center space-x-1.5">
-                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">10</span>
-                    <span>Destinated Pond of Fingerlings Transferred</span>
-                  </label>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
+                      <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">10</span>
+                      <span>Destinated Pond of Fingerlings Transferred</span>
+                    </label>
+                    {renderRowActionButtons(index, 'Destinated Pond of Fingerlings Transferred', isLocked)}
+                  </div>
                   <div className="relative flex items-center">
                     <span className="absolute left-3.5 text-slate-400">
                       <MapPin className="w-4 h-4 text-emerald-600" />
@@ -712,7 +786,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
               </div>
 
               {/* Bottom Card Action Footer */}
-              <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="text-xs text-slate-500 font-medium">
                   {isLocked ? (
                     <span className="text-amber-800 font-bold flex items-center space-x-1">
@@ -728,17 +802,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                   <div className="flex items-center space-x-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={() => triggerConfirmation(index, 'update')}
+                      onClick={() => triggerConfirmation(index, 'update', 'Batch Record')}
                       disabled={isSavingThis || isSubmitting}
                       className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm active:scale-95"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Update</span>
+                      <span>Update Batch</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => triggerConfirmation(index, 'save')}
+                      onClick={() => triggerConfirmation(index, 'save', 'Batch Record')}
                       disabled={isSavingThis || isSubmitting}
                       className="flex-1 sm:flex-initial px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md shadow-emerald-200 active:scale-95"
                     >
@@ -747,7 +821,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       ) : (
                         <Save className="w-3.5 h-3.5 text-white" />
                       )}
-                      <span>Save</span>
+                      <span>Save Batch</span>
                     </button>
                   </div>
                 )}
@@ -766,11 +840,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
           className="inline-flex items-center space-x-2 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-5 py-3 rounded-2xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-sm active:scale-95 w-fit"
         >
           <Plus className="w-4 h-4 text-emerald-700" />
-          <span>Add Next Vertical Batch Record</span>
+          <span>Add Next Batch Record</span>
         </button>
 
         <div className="text-xs text-slate-500 font-bold">
-          Total Vertical Batches: <span className="text-slate-900 font-black">{batches.length}</span>
+          Total Batches: <span className="text-slate-900 font-black">{batches.length}</span>
         </div>
       </div>
 

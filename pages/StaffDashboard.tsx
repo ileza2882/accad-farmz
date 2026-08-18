@@ -186,7 +186,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
               onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
             >
-              <optgroup label="Growth-Out Section">
+              <optgroup label="Grow-Out Section">
                 <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
                 <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
               </optgroup>
