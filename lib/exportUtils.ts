@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { 
   Report, 
   ReportStatus, 
@@ -992,7 +992,7 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
       { wch: 36 }, // Log Report Title
       { wch: 24 }, // Submitting Staff
       { wch: 16 }, // Date Submitted
-      { wch: 22 }  // Approval Status
+      { wch: 24 }  // Approval Status
     ];
 
     // Merge title header cells across the columns (0 to 16)
@@ -1002,6 +1002,122 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
       { s: { r: 2, c: 0 }, e: { r: 2, c: 16 } }
     ];
 
+    // Set custom row heights for professional letterhead layout
+    const rowHeights = [
+      { hpt: 26 }, // Title row
+      { hpt: 18 }, // Subtitle row
+      { hpt: 18 }, // Timestamp row
+      { hpt: 10 }, // Spacer row
+      { hpt: 30 }  // Header columns row
+    ];
+    for (let i = 0; i < rowData.length; i++) {
+      rowHeights.push({ hpt: 22 });
+    }
+    ws['!rows'] = rowHeights;
+
+    // Define elegant border styles
+    const thinBorder = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
+
+    const headerBorder = {
+      top: { style: 'medium', color: { rgb: '047857' } },
+      bottom: { style: 'medium', color: { rgb: '047857' } },
+      left: { style: 'thin', color: { rgb: '047857' } },
+      right: { style: 'thin', color: { rgb: '047857' } }
+    };
+
+    // Header Column Style (Thicker, Dark Forest Green)
+    const headerStyle = {
+      font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '065F46' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: headerBorder
+    };
+
+    // Data Row Column-specific Color Styles (Functional pastel groups)
+    const colStyles = [
+      // 0: Batch # (Mint)
+      { font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '064E3B' } }, fill: { fgColor: { rgb: 'ECFDF5' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 1: Broodstock (Mint)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '064E3B' } }, fill: { fgColor: { rgb: 'ECFDF5' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: thinBorder },
+      // 2: Hatchery Date (Sky)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '0369A1' } }, fill: { fgColor: { rgb: 'F0F9FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 3: First Date of Feeding (Sky)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '0369A1' } }, fill: { fgColor: { rgb: 'F0F9FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 4: Date of Transfer (Sky)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '0369A1' } }, fill: { fgColor: { rgb: 'F0F9FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 5: Total Transferred (Qty) (Amber)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '92400E' } }, fill: { fgColor: { rgb: 'FEF3C7' } }, alignment: { vertical: 'center', horizontal: 'right' }, border: thinBorder },
+      // 6: Average Weight (g) (Amber)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '92400E' } }, fill: { fgColor: { rgb: 'FEF3C7' } }, alignment: { vertical: 'center', horizontal: 'right' }, border: thinBorder },
+      // 7: Age (Weeks/Days) (Amber)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '92400E' } }, fill: { fgColor: { rgb: 'FEF3C7' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 8: Health Status (Lavender)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '6B21A8' } }, fill: { fgColor: { rgb: 'FAF5FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 9: Destination Pond (Lavender)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '6B21A8' } }, fill: { fgColor: { rgb: 'FAF5FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 10: Current Hatchery Stage (Lavender)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '6B21A8' } }, fill: { fgColor: { rgb: 'FAF5FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 11: Lock / Save Status (Slate)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '1E293B' } }, fill: { fgColor: { rgb: 'F8FAFC' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: thinBorder },
+      // 12: Remarks / Notes (Slate)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '1E293B' } }, fill: { fgColor: { rgb: 'F8FAFC' } }, alignment: { vertical: 'center', horizontal: 'left', wrapText: true }, border: thinBorder },
+      // 13: Log Report Title (Slate)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '1E293B' } }, fill: { fgColor: { rgb: 'F8FAFC' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: thinBorder },
+      // 14: Submitting Staff (Mint)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '064E3B' } }, fill: { fgColor: { rgb: 'ECFDF5' } }, alignment: { vertical: 'center', horizontal: 'left' }, border: thinBorder },
+      // 15: Date Submitted (Sky)
+      { font: { name: 'Calibri', sz: 9.5, color: { rgb: '0369A1' } }, fill: { fgColor: { rgb: 'F0F9FF' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder },
+      // 16: Approval Status (Mint)
+      { font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '064E3B' } }, fill: { fgColor: { rgb: 'ECFDF5' } }, alignment: { vertical: 'center', horizontal: 'center' }, border: thinBorder }
+    ];
+
+    // Apply styles to Title / Banner Header rows (Rows 0, 1, 2)
+    for (let c = 0; c <= 16; c++) {
+      const cellRef0 = XLSX.utils.encode_cell({ r: 0, c });
+      const cellRef1 = XLSX.utils.encode_cell({ r: 1, c });
+      const cellRef2 = XLSX.utils.encode_cell({ r: 2, c });
+      if (ws[cellRef0]) {
+        ws[cellRef0].s = {
+          font: { name: 'Times New Roman', sz: 16, bold: true, color: { rgb: '006400' } },
+          fill: { fgColor: { rgb: 'ECFDF5' } },
+          alignment: { vertical: 'center', horizontal: 'left' }
+        };
+      }
+      if (ws[cellRef1]) {
+        ws[cellRef1].s = {
+          font: { name: 'Calibri', sz: 9.5, bold: true, color: { rgb: '334155' } },
+          fill: { fgColor: { rgb: 'ECFDF5' } },
+          alignment: { vertical: 'center', horizontal: 'left' }
+        };
+      }
+      if (ws[cellRef2]) {
+        ws[cellRef2].s = {
+          font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: '475569' } },
+          fill: { fgColor: { rgb: 'ECFDF5' } },
+          alignment: { vertical: 'center', horizontal: 'left' }
+        };
+      }
+    }
+
+    // Apply styles to Column Headers (Row 4)
+    for (let c = 0; c <= 16; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r: 4, c });
+      if (ws[cellRef]) ws[cellRef].s = headerStyle;
+    }
+
+    // Apply styles to Data Cells (Row 5 onwards)
+    for (let r = 5; r < wsData.length; r++) {
+      for (let c = 0; c <= 16; c++) {
+        const cellRef = XLSX.utils.encode_cell({ r, c });
+        if (ws[cellRef]) ws[cellRef].s = colStyles[c];
+      }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Hatchery Batch Ledger');
 
@@ -1010,7 +1126,7 @@ export function exportHatcheryToExcel(input: Report | Report[]): void {
       ? `ACCAD_FARMS_Hatchery_Ledger_${dateStr}.xlsx`
       : `Hatchery_Ledger_${formatLogName(input).replace(/[/\\?%*:|"<>]/g, '_')}.xlsx`;
 
-    // Export true binary XLSX format
+    // Export true binary XLSX format with full cell styling
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
