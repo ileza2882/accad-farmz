@@ -287,13 +287,8 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    triggerConfirmation('Fishery Asset Log');
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
+    <div className="space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
       
       {/* Header with status pill */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -642,7 +637,12 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
       {!isLocked && (
         <div className="pt-4 border-t border-slate-200 flex justify-end">
           <button
-            type="submit"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              triggerConfirmation('Fishery Asset Log');
+            }}
             disabled={isSubmitting}
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -774,6 +774,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         </div>
       )}
 
-    </form>
+    </div>
   );
 };

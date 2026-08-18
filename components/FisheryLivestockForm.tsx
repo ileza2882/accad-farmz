@@ -277,13 +277,8 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
     }
   };
 
-  const handleSubmitAll = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({ ponds });
-  };
-
   return (
-    <form onSubmit={handleSubmitAll} className="space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
+    <div className="space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
@@ -392,7 +387,11 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => triggerConfirmation(pIdx, pond.pondNo)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        triggerConfirmation(pIdx, pond.pondNo);
+                      }}
                       disabled={isSavingThis || isSubmitting}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95 disabled:opacity-50"
                       title="Save and confirm permanent lock"
@@ -811,6 +810,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
         </div>
       )}
 
-    </form>
+    </div>
   );
 };

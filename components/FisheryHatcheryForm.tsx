@@ -262,7 +262,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       <div className="flex items-center space-x-1.5 shrink-0">
         <button
           type="button"
-          onClick={() => triggerConfirmation(batchIdx, fieldTitle)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            triggerConfirmation(batchIdx, fieldTitle);
+          }}
           disabled={savingBatchIdx === batchIdx || isSubmitting}
           className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs shadow-emerald-200 active:scale-95 disabled:opacity-50"
           title={`Save ${fieldTitle}`}
@@ -427,7 +431,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                     /* If Log is UNLOCKED -> Render SINGLE "Save" Button */
                     <button
                       type="button"
-                      onClick={() => triggerConfirmation(index, 'Batch Record')}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        triggerConfirmation(index, 'Batch Record');
+                      }}
                       disabled={isSavingThis || isSubmitting}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-200 active:scale-95 disabled:opacity-50"
                       title="Save and confirm permanent lock"
