@@ -91,7 +91,7 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
   };
 
   return (
-    <div className="relative flex items-center w-full">
+    <div className="relative flex items-center w-full group">
       <span 
         onClick={openPicker}
         className={`absolute left-3.5 text-slate-400 z-10 ${!disabled ? 'cursor-pointer hover:text-emerald-600 transition-colors' : 'pointer-events-none'}`}
@@ -114,7 +114,22 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
         }}
         className={`${className} ${!hasValue ? 'placeholder-slate-400 font-normal text-slate-400 cursor-pointer' : ''}`}
       />
-      {!hasValue && !disabled && (
+      {hasValue && !disabled ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onChange('');
+            setIsFocused(false);
+          }}
+          className="absolute right-3.5 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+          title="Clear date (Reset to Select Date)"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      ) : !hasValue && !disabled ? (
         <button
           type="button"
           tabIndex={-1}
@@ -127,7 +142,7 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
         >
           <Calendar className="w-4 h-4" />
         </button>
-      )}
+      ) : null}
     </div>
   );
 };
