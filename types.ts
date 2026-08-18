@@ -126,6 +126,7 @@ export interface FisheryAssetFormData {
     totalDieselAvailable: number | string;
     generatorMeterPhoto?: string;
   };
+  lockedSections?: Record<string, boolean>;
 }
 
 export const MACHINE_LABELS: Record<string, string> = {
@@ -178,6 +179,7 @@ export interface FisheryLivestockPondData {
   isLocked?: boolean;
   lockedAt?: number;
   lockedBy?: string;
+  lockedRows?: Record<string, boolean>;
   changeRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   changeRequestReason?: string;
   changeRequestedBy?: string;
@@ -188,6 +190,9 @@ export interface FisheryLivestockPondData {
 
 export interface FisheryLivestockFormData {
   ponds: FisheryLivestockPondData[];
+  generalNotes?: string;
+  isDraft?: boolean;
+  isArchived?: boolean;
 }
 
 export const BROODSTOCK_SOURCE_OPTIONS = [
@@ -220,6 +225,7 @@ export interface FisheryHatcheryBatchData {
   isLocked?: boolean;
   lockedAt?: number;
   lockedBy?: string;
+  lockedRows?: Record<string, boolean>;
   changeRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   changeRequestReason?: string;
   changeRequestedBy?: string;
@@ -330,6 +336,9 @@ export interface Report {
   edApprovedBy?: string;
   computerName?: string;
   updatedAt?: number;
+  isArchived?: boolean;
+  archivedAt?: number;
+  archivedBy?: string;
 }
 
 export interface NotificationItem {
