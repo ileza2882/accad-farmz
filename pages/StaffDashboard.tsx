@@ -216,7 +216,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
-            <FisheryHatcheryForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+            <FisheryHatcheryForm 
+              currentUser={{ fullName: user.fullName, email: user.email }}
+              onSubmit={handleFormSubmit} 
+              isSubmitting={isSubmitting} 
+            />
           ) : (
             <div className="space-y-4">
               <div>
