@@ -168,13 +168,25 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-200 transition-all active:scale-95"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/login"
+                className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 border border-slate-300"
+                title="Staff & Manager Portal Login"
+              >
+                <LogIn className="w-3.5 h-3.5 text-slate-600" />
+                <span>Portal Login</span>
+              </Link>
+
+              <Link
+                to="/?ed_login=true"
+                className="flex items-center space-x-1.5 bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-purple-200 transition-all active:scale-95 border border-purple-700"
+                title="Executive Director Governance Portal"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>ED Portal</span>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -267,13 +279,23 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                className="w-full flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Login</span>
-              </Link>
+              <div className="space-y-2 pt-2">
+                <Link
+                  to="/login"
+                  className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
+                >
+                  <LogIn className="w-4 h-4 text-slate-600" />
+                  <span>Portal Login (Staff / Manager)</span>
+                </Link>
+
+                <Link
+                  to="/?ed_login=true"
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-800 to-indigo-900 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-purple-200 transition-all active:scale-95 border border-purple-700"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>Executive Director Portal</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>

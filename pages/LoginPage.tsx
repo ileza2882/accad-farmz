@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getUserByEmail } from '../lib/insforge';
-import { LogIn, Mail, Lock, AlertCircle, Shield, ArrowLeft } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (user: User) => void;
@@ -30,32 +30,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const user = await getUserByEmail(email.trim());
 
       if (!user) {
-        setError('Invalid credentials');
+        setError('Invalid credentials. Please check your email and password.');
         setIsSubmitting(false);
         return;
       }
 
-      // Check password match (in development/fallback default '123456' or matched password)
+      // Check if trying to log in as Executive Director via regular staff portal
+      if (user.role === Role.EXECUTIVE_DIRECTOR) {
+        setError('Executive Director login is exclusively accessed via the Executive Portal on the Homepage.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check password match (default '123456' or matched password)
       if (user.password && user.password !== password) {
-        setError('Invalid credentials');
+        setError('Invalid credentials.');
         setIsSubmitting(false);
         return;
       }
 
       // Check user active status
       if (user.status === 'inactive') {
-        setError('Account not active. Contact ED.');
+        setError('Account not active. Please contact the Executive Director.');
         setIsSubmitting(false);
         return;
       }
 
-      // Login success
+      // Login success for Manager or Staff
       onLoginSuccess(user);
       
-      // Redirect based on role
-      if (user.role === Role.EXECUTIVE_DIRECTOR) navigate('/admin');
-      else if (user.role === Role.MANAGER) navigate('/manager');
-      else navigate('/staff');
+      if (user.role === Role.MANAGER) {
+        navigate('/manager');
+      } else {
+        navigate('/staff');
+      }
 
     } catch (err: any) {
       setError('Login failed: ' + (err.message || 'Server error'));
@@ -70,7 +78,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         
         {/* Logo Banner */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-28 h-28 bg-emerald-50 rounded-3xl p-3 border-2 border-emerald-200 flex items-center justify-center mb-3 shadow-md">
+          <div className="w-24 h-24 bg-emerald-50 rounded-3xl p-3 border-2 border-emerald-200 flex items-center justify-center mb-3 shadow-md">
             <img 
               src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
               alt="ACCAD Logo" 
@@ -82,7 +90,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             Portal <span className="text-emerald-600">Login</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Access your ACCAD FARMS role-based dashboard
+            Sign in to your Staff or Manager operational workspace
           </p>
         </div>
 
@@ -90,35 +98,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {error && (
           <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-3 text-rose-700 text-xs font-bold animate-shake">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <div className="flex-1">
+              <span>{error}</span>
+              {error.includes('Homepage') && (
+                <div className="mt-2">
+                  <Link 
+                    to="/" 
+                    className="inline-flex items-center space-x-1 text-purple-900 bg-purple-100 hover:bg-purple-200 px-3 py-1.5 rounded-xl font-black uppercase text-[10px] tracking-wider transition-colors"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Go to Homepage ED Portal</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
           
-          {/* Quick Role Login Options Selector */}
+          {/* Quick Role Login Options Selector (Managers & Staff only) */}
           <div className="mb-6 space-y-2">
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 text-center">
               Quick Role Login Options
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('info@accadfarms.com');
-                  setPassword('123456');
-                  setError(null);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
-                  email === 'info@accadfarms.com'
-                    ? 'bg-purple-50 border-purple-400 text-purple-900 shadow-sm font-extrabold'
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
-                }`}
-              >
-                <Shield className="w-4 h-4 text-purple-600" />
-                <span className="text-[11px] uppercase tracking-tight leading-tight">Executive Director</span>
-              </button>
-
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -126,14 +130,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 cursor-pointer active:scale-95 ${
                   email === 'manager@accadfarms.com'
-                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm font-extrabold'
+                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm font-extrabold ring-2 ring-blue-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
-                <LogIn className="w-4 h-4 text-blue-600" />
-                <span className="text-[11px] uppercase tracking-tight leading-tight">Sector Manager</span>
+                <Briefcase className="w-5 h-5 text-blue-600" />
+                <span className="text-xs uppercase tracking-tight font-black">Sector Manager</span>
+                <span className="text-[10px] text-slate-400 font-medium">Vetting & Review</span>
               </button>
 
               <button
@@ -143,14 +148,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center space-y-1 ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 cursor-pointer active:scale-95 ${
                   email === 'staff@accadfarms.com'
-                    ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-sm font-extrabold'
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-sm font-extrabold ring-2 ring-emerald-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
-                <LogIn className="w-4 h-4 text-emerald-600" />
-                <span className="text-[11px] uppercase tracking-tight leading-tight">Staff Member</span>
+                <Users className="w-5 h-5 text-emerald-600" />
+                <span className="text-xs uppercase tracking-tight font-black">Staff Member</span>
+                <span className="text-[10px] text-slate-400 font-medium">Daily Farm Logs</span>
               </button>
             </div>
           </div>
@@ -194,7 +200,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center space-x-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
           >
             {isSubmitting ? (
               <span>Authenticating...</span>
@@ -208,11 +214,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         </form>
 
-        <div className="mt-6 text-center">
-          <Link to="/" className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Return to Homepage</span>
-          </Link>
+        {/* Executive Director Notice */}
+        <div className="mt-6 pt-5 border-t border-slate-100 text-center space-y-2">
+          <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl text-left space-y-1.5">
+            <div className="flex items-center space-x-2 text-purple-900 font-extrabold text-xs">
+              <ShieldCheck className="w-4 h-4 text-purple-700 shrink-0" />
+              <span>Executive Director Access</span>
+            </div>
+            <p className="text-[11px] text-purple-800 font-medium leading-relaxed">
+              The Executive Director portal is located directly on the central Homepage.
+            </p>
+            <Link
+              to="/"
+              className="inline-flex items-center space-x-1 text-[11px] font-black text-purple-700 hover:text-purple-900 underline pt-0.5"
+            >
+              <span>Go to Executive Director Homepage Entrance →</span>
+            </Link>
+          </div>
+
+          <div>
+            <Link to="/" className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 pt-2">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Homepage</span>
+            </Link>
+          </div>
         </div>
 
       </div>

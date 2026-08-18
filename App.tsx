@@ -69,8 +69,8 @@ const App: React.FC = () => {
 
         <main className="flex-grow">
           <Routes>
-            {/* Public Homepage */}
-            <Route path="/" element={<Homepage user={currentUser} />} />
+            {/* Public Homepage with Direct Executive Director Login & Section Navigation */}
+            <Route path="/" element={<Homepage user={currentUser} onLoginSuccess={setCurrentUser} />} />
 
             {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Sections) */}
             <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} />} />
