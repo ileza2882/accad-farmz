@@ -72,19 +72,22 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
     loadHatcheryLogs();
   }, []);
 
+  const effectiveUser = user || {
+    id: 'staff_guest',
+    fullName: 'Fishery Staff Officer',
+    email: 'staff@accadfarms.com',
+    role: Role.STAFF,
+    department: Department.FISHERY
+  };
+
   const handleSaveSingleRow = async (
     rowIndex: number, 
     batch: FisheryHatcheryBatchData, 
     allBatches: FisheryHatcheryBatchData[]
   ) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
     const firstBatch = allBatches[0]?.batchNumber || 'Batch';
     const effectiveTitle = `Hatchery Log - ${firstBatch}`;
-    const status = user.role === Role.EXECUTIVE_DIRECTOR 
+    const status = effectiveUser.role === Role.EXECUTIVE_DIRECTOR 
       ? ReportStatus.APPROVED 
       : ReportStatus.PENDING_MANAGER;
 
@@ -105,18 +108,18 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       }
 
       await createAuditLog(
-        user.fullName,
-        user.email,
+        effectiveUser.fullName,
+        effectiveUser.email,
         'HATCHERY_ROW_UPDATED',
-        `Hatchery row #${rowIndex + 1} (${batch.batchNumber || `Row ${rowIndex + 1}`}) updated by ${user.fullName}`
+        `Hatchery row #${rowIndex + 1} (${batch.batchNumber || `Row ${rowIndex + 1}`}) updated by ${effectiveUser.fullName}`
       );
     } else {
       const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const newReport: Report = {
         id: newReportId,
-        userId: user.id,
-        email: user.email,
-        fullName: user.fullName,
+        userId: effectiveUser.id,
+        email: effectiveUser.email,
+        fullName: effectiveUser.fullName,
         department: Department.FISHERY,
         inventoryType: InventoryType.HATCHERY,
         section: FisherySection.HATCHERY,
@@ -124,7 +127,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
         content: `Hatchery Section vertical batch record (${allBatches.length} batch rows).`,
         timestamp: Date.now(),
         status,
-        edApprovedBy: user.role === Role.EXECUTIVE_DIRECTOR ? user.fullName : undefined,
+        edApprovedBy: effectiveUser.role === Role.EXECUTIVE_DIRECTOR ? effectiveUser.fullName : undefined,
         computerName: getComputerName(),
         formData: {
           batches: allBatches
@@ -135,10 +138,10 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       setEditingReport(newReport);
 
       await createAuditLog(
-        user.fullName,
-        user.email,
+        effectiveUser.fullName,
+        effectiveUser.email,
         'HATCHERY_ROW_CREATED',
-        `New hatchery batch row #${rowIndex + 1} (${batch.batchNumber || 'New'}) created by ${user.fullName}`
+        `New hatchery batch row #${rowIndex + 1} (${batch.batchNumber || 'New'}) created by ${effectiveUser.fullName}`
       );
     }
 
@@ -146,31 +149,25 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
   };
 
   const handleRequestChange = async (batchIndex: number, batch: FisheryHatcheryBatchData, reason: string) => {
-    if (!user) return;
     const repId = editingReport?.id || hatcheryReports[0]?.id || `rep_hatchery`;
     await createHatcheryChangeRequest({
       reportId: repId,
       batchIndex,
       batchNumber: `${batch.batchNumber} Batch`,
-      requestedBy: user.fullName,
-      requestedByEmail: user.email,
+      requestedBy: effectiveUser.fullName,
+      requestedByEmail: effectiveUser.email,
       reason
     });
     await loadHatcheryLogs();
   };
 
   const handleHatcherySubmit = async (formData: FisheryHatcheryFormData, isDraft: boolean = false) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const computerName = getComputerName();
       const firstBatch = formData.batches?.[0]?.batchNumber || 'Batch';
       const effectiveTitle = `Hatchery Log - ${firstBatch}`;
-      const status = user.role === Role.EXECUTIVE_DIRECTOR 
+      const status = effectiveUser.role === Role.EXECUTIVE_DIRECTOR 
         ? ReportStatus.APPROVED 
         : isDraft 
           ? ReportStatus.PENDING_MANAGER 
@@ -186,10 +183,10 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
         });
 
         await createAuditLog(
-          user.fullName,
-          user.email,
+          effectiveUser.fullName,
+          effectiveUser.email,
           'HATCHERY_LOG_PROGRESS_UPDATED',
-          `Hatchery log "${editingReport.title}" updated by ${user.fullName}`
+          `Hatchery log "${editingReport.title}" updated by ${effectiveUser.fullName}`
         );
 
         setSubmitSuccess(isDraft ? 'Hatchery records saved! Synced in real-time to ED Dashboard.' : 'Hatchery log submitted for review!');
@@ -197,9 +194,9 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
         const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
         const newReport: Report = {
           id: newReportId,
-          userId: user.id,
-          email: user.email,
-          fullName: user.fullName,
+          userId: effectiveUser.id,
+          email: effectiveUser.email,
+          fullName: effectiveUser.fullName,
           department: Department.FISHERY,
           inventoryType: InventoryType.HATCHERY,
           section: FisherySection.HATCHERY,
@@ -207,7 +204,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
           content: `Hatchery Section entry (${formData.batches?.length || 1} batches recorded).`,
           timestamp: Date.now(),
           status,
-          edApprovedBy: user.role === Role.EXECUTIVE_DIRECTOR ? user.fullName : undefined,
+          edApprovedBy: effectiveUser.role === Role.EXECUTIVE_DIRECTOR ? effectiveUser.fullName : undefined,
           computerName,
           formData
         };
@@ -216,18 +213,18 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
         setEditingReport(newReport);
 
         await createAuditLog(
-          user.fullName,
-          user.email,
+          effectiveUser.fullName,
+          effectiveUser.email,
           'HATCHERY_LOG_CREATED',
-          `New hatchery log "${effectiveTitle}" created by ${user.fullName}`
+          `New hatchery log "${effectiveTitle}" created by ${effectiveUser.fullName}`
         );
 
-        if (user.role !== Role.EXECUTIVE_DIRECTOR) {
+        if (effectiveUser.role !== Role.EXECUTIVE_DIRECTOR) {
           await createNotification({
             userId: 'manager_group',
             userEmail: 'manager@accadfarms.com',
             title: 'Hatchery Log Registered',
-            message: `Hatchery log "${formatLogName(newReport)}" updated by ${user.fullName}`,
+            message: `Hatchery log "${formatLogName(newReport)}" updated by ${effectiveUser.fullName}`,
             type: 'info'
           });
         }
