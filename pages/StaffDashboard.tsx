@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData } from '../types';
+import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData, FisheryLivestockPondData } from '../types';
 import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
@@ -27,6 +27,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [activeHatcheryReport, setActiveHatcheryReport] = useState<Report | null>(null);
+  const [activeLivestockReport, setActiveLivestockReport] = useState<Report | null>(null);
 
   const fetchUserReports = async () => {
     setLoading(true);
@@ -41,6 +42,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
       );
       if (hatcheryLog && !activeHatcheryReport) {
         setActiveHatcheryReport(hatcheryLog);
+      }
+
+      const livestockLog = userLogs.find(r => 
+        r.department === Department.FISHERY && 
+        (r.inventoryType === InventoryType.LIVESTOCK || r.formData?.ponds)
+      );
+      if (livestockLog && !activeLivestockReport) {
+        setActiveLivestockReport(livestockLog);
       }
     } catch (e) {
       console.error(e);
@@ -136,6 +145,75 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     fetchUserReports();
   };
 
+  // Handle single row save for Livestock Pond — saves data & keeps user on same page
+  const handleSaveLivestockPond = async (
+    pondIndex: number,
+    pond: FisheryLivestockPondData,
+    allPonds: FisheryLivestockPondData[]
+  ) => {
+    const effectiveTitle = `${selectedDept} Livestock Inventory`;
+    const computerName = getComputerName();
+
+    if (activeLivestockReport) {
+      const updated = await updateReport(activeLivestockReport.id, {
+        title: effectiveTitle,
+        content: `Livestock inventory updated with ${allPonds.length} pond rows (${pond.pondNo} locked).`,
+        formData: { ponds: allPonds },
+        status: ReportStatus.PENDING_MANAGER,
+        updatedAt: Date.now()
+      });
+      if (updated) setActiveLivestockReport(updated);
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'LIVESTOCK_POND_LOCKED_SAVED',
+        `Pond ${pond.pondNo} locked and saved by ${user.fullName}`
+      );
+    } else {
+      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newReport: Report = {
+        id: newReportId,
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        department: selectedDept,
+        inventoryType: InventoryType.LIVESTOCK,
+        section: FisherySection.GROW_OUT,
+        title: effectiveTitle,
+        content: `Livestock inventory record (${allPonds.length} ponds).`,
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName,
+        formData: { ponds: allPonds }
+      };
+      await createReport(newReport);
+      setActiveLivestockReport(newReport);
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'LIVESTOCK_POND_CREATED_LOCKED',
+        `New livestock pond ${pond.pondNo} created and locked by ${user.fullName}`
+      );
+    }
+    const all = await getReports();
+    const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
+    setReports(userLogs);
+  };
+
+  // Handle request change for locked pond
+  const handleRequestLivestockChange = async (pondIndex: number, pond: FisheryLivestockPondData, reason: string) => {
+    const repId = activeLivestockReport?.id || `rep_livestock_${user.id}`;
+    await createHatcheryChangeRequest({
+      reportId: repId,
+      batchIndex: pondIndex,
+      batchNumber: pond.pondNo,
+      requestedBy: user.fullName,
+      requestedByEmail: user.email,
+      reason
+    });
+    fetchUserReports();
+  };
+
   const handleFormSubmit = async (formData?: any) => {
     let effectiveTitle = logTitle.trim();
     if (selectedInvType === InventoryType.ASSET) {
@@ -143,9 +221,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     } else if (selectedInvType === InventoryType.HATCHERY) {
       const firstBatch = formData?.batches?.[0]?.batchNumber || 'Batch';
       effectiveTitle = logTitle.trim() || `${selectedDept} Hatchery Transfer - ${firstBatch}`;
+    } else if (selectedInvType === InventoryType.LIVESTOCK) {
+      effectiveTitle = logTitle.trim() || `${selectedDept} Livestock Inventory`;
     }
 
-    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && !effectiveTitle) {
+    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && selectedInvType !== InventoryType.LIVESTOCK && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -288,7 +368,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
             </select>
           </div>
 
-          {selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && (
+          {selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && selectedInvType !== InventoryType.LIVESTOCK && (
             <div>
               <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Log Title *</label>
               <input
@@ -306,7 +386,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
             <FisheryAssetForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
-            <FisheryLivestockForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+            <FisheryLivestockForm 
+              initialData={activeLivestockReport?.formData}
+              reportId={activeLivestockReport?.id}
+              currentUser={{ fullName: user.fullName, email: user.email }}
+              onSubmit={handleFormSubmit} 
+              onSaveSingleRow={handleSaveLivestockPond}
+              onRequestChange={handleRequestLivestockChange}
+              isSubmitting={isSubmitting} 
+            />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
             <FisheryHatcheryForm 
               initialData={activeHatcheryReport?.formData}

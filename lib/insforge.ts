@@ -780,22 +780,30 @@ export async function createHatcheryChangeRequest(
     all.unshift(changeReq);
     localStorage.setItem('accad_hatchery_change_requests', JSON.stringify(all));
 
-    // Update target report batch state to PENDING
+    // Update target report batch or pond state to PENDING
     const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
     const targetReport = localReports.find(r => r.id === reqData.reportId);
-    if (targetReport && targetReport.formData?.batches?.[reqData.batchIndex]) {
-      targetReport.formData.batches[reqData.batchIndex].changeRequestStatus = 'PENDING';
-      targetReport.formData.batches[reqData.batchIndex].changeRequestReason = reqData.reason;
-      targetReport.formData.batches[reqData.batchIndex].changeRequestedBy = reqData.requestedBy;
-      targetReport.formData.batches[reqData.batchIndex].changeRequestedAt = changeReq.requestedAt;
-      await updateReport(targetReport.id, targetReport);
+    if (targetReport?.formData) {
+      if (targetReport.formData.batches?.[reqData.batchIndex]) {
+        targetReport.formData.batches[reqData.batchIndex].changeRequestStatus = 'PENDING';
+        targetReport.formData.batches[reqData.batchIndex].changeRequestReason = reqData.reason;
+        targetReport.formData.batches[reqData.batchIndex].changeRequestedBy = reqData.requestedBy;
+        targetReport.formData.batches[reqData.batchIndex].changeRequestedAt = changeReq.requestedAt;
+        await updateReport(targetReport.id, targetReport);
+      } else if (targetReport.formData.ponds?.[reqData.batchIndex]) {
+        targetReport.formData.ponds[reqData.batchIndex].changeRequestStatus = 'PENDING';
+        targetReport.formData.ponds[reqData.batchIndex].changeRequestReason = reqData.reason;
+        targetReport.formData.ponds[reqData.batchIndex].changeRequestedBy = reqData.requestedBy;
+        targetReport.formData.ponds[reqData.batchIndex].changeRequestedAt = changeReq.requestedAt;
+        await updateReport(targetReport.id, targetReport);
+      }
     }
 
     // Create Notification for Executive Director
     await createNotification({
       userId: 'ed_group',
       userEmail: 'ed@accadfarms.com',
-      title: 'Hatchery Log Change Request',
+      title: 'Farm Log Change Request',
       message: `${reqData.requestedBy} requested to modify locked ${reqData.batchNumber}: "${reqData.reason}"`,
       type: 'warning'
     });
@@ -803,11 +811,11 @@ export async function createHatcheryChangeRequest(
     await createAuditLog(
       reqData.requestedBy,
       reqData.requestedByEmail,
-      'HATCHERY_CHANGE_REQUESTED',
+      'FARM_LOG_CHANGE_REQUESTED',
       `Requested unlock for ${reqData.batchNumber} (Report: ${reqData.reportId}): ${reqData.reason}`
     );
   } catch (e) {
-    console.error('Error creating hatchery change request:', e);
+    console.error('Error creating change request:', e);
   }
 
   return changeReq;
@@ -833,22 +841,25 @@ export async function reviewHatcheryChangeRequest(
 
     localStorage.setItem('accad_hatchery_change_requests', JSON.stringify(all));
 
-    // Update target batch in report
+    // Update target batch/pond in report
     const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
     const targetReport = localReports.find(r => r.id === changeReq.reportId);
-    if (targetReport && targetReport.formData?.batches?.[changeReq.batchIndex]) {
-      const batch = targetReport.formData.batches[changeReq.batchIndex];
-      batch.changeRequestStatus = approve ? 'APPROVED' : 'REJECTED';
-      batch.changeRequestReviewedBy = reviewerName;
-      batch.changeRequestReviewedAt = changeReq.reviewedAt;
-      
-      if (approve) {
-        batch.isLocked = false; // UNLOCKED for correction!
-      } else {
-        batch.isLocked = true; // Stays locked
+    if (targetReport?.formData) {
+      if (targetReport.formData.batches?.[changeReq.batchIndex]) {
+        const batch = targetReport.formData.batches[changeReq.batchIndex];
+        batch.changeRequestStatus = approve ? 'APPROVED' : 'REJECTED';
+        batch.changeRequestReviewedBy = reviewerName;
+        batch.changeRequestReviewedAt = changeReq.reviewedAt;
+        batch.isLocked = !approve;
+        await updateReport(targetReport.id, targetReport);
+      } else if (targetReport.formData.ponds?.[changeReq.batchIndex]) {
+        const pond = targetReport.formData.ponds[changeReq.batchIndex];
+        pond.changeRequestStatus = approve ? 'APPROVED' : 'REJECTED';
+        pond.changeRequestReviewedBy = reviewerName;
+        pond.changeRequestReviewedAt = changeReq.reviewedAt;
+        pond.isLocked = !approve;
+        await updateReport(targetReport.id, targetReport);
       }
-
-      await updateReport(targetReport.id, targetReport);
     }
 
     // Notify requester

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest, FisheryHatcheryBatchData } from '../types';
+import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest, FisheryHatcheryBatchData, FisheryLivestockPondData } from '../types';
 import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
@@ -456,6 +456,42 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       user.email,
       'ED_HATCHERY_ROW_SAVED',
       `ED confirmed and locked hatchery batch #${rowIndex + 1} (${batch.batchNumber || 'New'})`
+    );
+    await loadData();
+  };
+
+  const handleEDSaveLivestockPond = async (
+    pondIndex: number,
+    pond: FisheryLivestockPondData,
+    allPonds: FisheryLivestockPondData[]
+  ) => {
+    const effectiveTitle = `${selectedDept} Livestock Inventory`;
+    const computerName = getComputerName();
+    const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    const newReport: Report = {
+      id: newReportId,
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      department: selectedDept,
+      inventoryType: InventoryType.LIVESTOCK,
+      section: FisherySection.GROW_OUT,
+      title: effectiveTitle,
+      content: `Livestock Section ED entry (${allPonds.length} ponds).`,
+      timestamp: Date.now(),
+      status: ReportStatus.APPROVED,
+      edApprovedBy: user.fullName,
+      computerName,
+      formData: { ponds: allPonds }
+    };
+
+    await createReport(newReport);
+    await createAuditLog(
+      user.fullName,
+      user.email,
+      'ED_LIVESTOCK_ROW_SAVED',
+      `ED confirmed and locked livestock pond #${pondIndex + 1} (${pond.pondNo})`
     );
     await loadData();
   };
@@ -959,7 +995,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
             <FisheryAssetForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
-            <FisheryLivestockForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
+            <FisheryLivestockForm 
+              currentUser={{ fullName: user.fullName, email: user.email }}
+              onSubmit={handleEDFormSubmit} 
+              onSaveSingleRow={handleEDSaveLivestockPond}
+              isSubmitting={isActionProcessing} 
+            />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
             <FisheryHatcheryForm 
               currentUser={{ fullName: user.fullName, email: user.email }}

@@ -174,6 +174,16 @@ export interface FisheryLivestockPondData {
   feedingResponse: 'Active' | 'Slow' | 'Poor';
   mortality: number | string;
   pondPhoto?: string;
+  // Immutability & Change Request Workflow
+  isLocked?: boolean;
+  lockedAt?: number;
+  lockedBy?: string;
+  changeRequestStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  changeRequestReason?: string;
+  changeRequestedBy?: string;
+  changeRequestedAt?: number;
+  changeRequestReviewedBy?: string;
+  changeRequestReviewedAt?: number;
 }
 
 export interface FisheryLivestockFormData {
