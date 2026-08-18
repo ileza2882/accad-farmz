@@ -8,7 +8,7 @@ import { FarmLogsTable } from '../components/FarmLogsTable';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
-import { formatLogName, getComputerName } from '../lib/exportUtils';
+import { formatLogName, getComputerName, exportHatcheryToExcel } from '../lib/exportUtils';
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -964,22 +964,39 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 </div>
               </div>
             ) : selectedDashboardDept === Department.FISHERY && selectedFisherySection === 'HATCHERY' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-purple-50/40 p-4 rounded-2xl border border-purple-200 text-xs">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Batches</span>
-                  <span className="text-base font-black text-purple-900">{totalHatcheryBatches} Batches</span>
+              <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-200 text-xs space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Batches</span>
+                    <span className="text-base font-black text-purple-900">{totalHatcheryBatches} Batches</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Transferred Fingerlings</span>
+                    <span className="text-base font-black text-purple-900">{totalHatcheryFingerlings.toLocaleString()} Fish</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Pending Unlock Requests</span>
+                    <span className="text-base font-black text-amber-700">{pendingChangeRequests.length} Requests</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Logs</span>
+                    <span className="text-base font-black text-slate-800">{hatcheryReports.length} Submitted</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 block">Transferred Fingerlings</span>
-                  <span className="text-base font-black text-purple-900">{totalHatcheryFingerlings.toLocaleString()} Fish</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 block">Pending Unlock Requests</span>
-                  <span className="text-base font-black text-amber-700">{pendingChangeRequests.length} Requests</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Logs</span>
-                  <span className="text-base font-black text-slate-800">{hatcheryReports.length} Submitted</span>
+
+                <div className="pt-2 border-t border-purple-200/70 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-purple-950 font-medium">
+                    Download complete progressive batch tracking ledger with columns for each parameter and rows for each batch update:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => exportHatcheryToExcel(hatcheryReports.length > 0 ? hatcheryReports : reportsList)}
+                    className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                    title="Export Complete Hatchery Progressive Batch Ledger to Excel (.xlsx)"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Export Hatchery Excel Ledger (.xlsx)</span>
+                  </button>
                 </div>
               </div>
             ) : selectedDashboardDept !== 'ALL' && selectedDashboardDept !== Department.FISHERY ? (

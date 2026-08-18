@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Report, ReportStatus, Department, InventoryType, FisherySection, User, Role, getHatcheryBatchStage } from '../types';
-import { formatLogName, exportLogToPDF, exportLogToWord, formatStatusLabel, getComputerName } from '../lib/exportUtils';
+import { formatLogName, exportLogToPDF, exportLogToWord, exportHatcheryToExcel, formatStatusLabel, getComputerName } from '../lib/exportUtils';
 import { 
   Search, 
   Filter, 
@@ -151,6 +151,23 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
       exportLogToWord(report);
       setExportingId(null);
     }, 150);
+  };
+
+  const handleExcelExport = (report: Report) => {
+    setExportingId(report.id + '_excel');
+    setTimeout(() => {
+      exportHatcheryToExcel(report);
+      setExportingId(null);
+    }, 150);
+  };
+
+  const handleBulkHatcheryExcelExport = () => {
+    const hatcheryLogs = filteredReports.filter(isHatcheryReport);
+    if (hatcheryLogs.length === 0) {
+      alert('No hatchery logs found in the current filtered table view.');
+      return;
+    }
+    exportHatcheryToExcel(hatcheryLogs);
   };
 
   const handleApproveAction = async (report: Report) => {
@@ -335,6 +352,19 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                 <Egg className="w-3.5 h-3.5" />
                 <span>Hatchery Section</span>
               </button>
+
+              {/* Quick Hatchery Excel Export Button */}
+              {filteredReports.some(isHatcheryReport) && (
+                <button
+                  type="button"
+                  onClick={handleBulkHatcheryExcelExport}
+                  className="ml-auto px-3 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                  title="Export all filtered Hatchery batch logs to Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Export Hatchery Excel (.xlsx)</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -574,6 +604,19 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                           <span>DOC</span>
                         </button>
 
+                        {/* Export Excel (For Hatchery section alone) */}
+                        {isHatchery && (
+                          <button
+                            onClick={() => handleExcelExport(report)}
+                            disabled={exportingId === report.id + '_excel'}
+                            className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                            title="Export Hatchery Batch Ledger to Excel (.xlsx)"
+                          >
+                            {exportingId === report.id + '_excel' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3 text-purple-700" />}
+                            <span>XLS</span>
+                          </button>
+                        )}
+
                         {/* Executive Director / Manager Approve Action */}
                         {canApprove(report) && (
                           <button
@@ -635,7 +678,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center justify-end space-x-2 pt-1">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1">
                   {onViewDetails && (
                     <button
                       onClick={() => onViewDetails(report)}
@@ -650,6 +693,20 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                   >
                     PDF
                   </button>
+                  <button
+                    onClick={() => handleWordExport(report)}
+                    className="px-3 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl text-xs font-black"
+                  >
+                    DOC
+                  </button>
+                  {isHatchery && (
+                    <button
+                      onClick={() => handleExcelExport(report)}
+                      className="px-3 py-1.5 bg-purple-50 text-purple-900 border border-purple-300 rounded-xl text-xs font-black"
+                    >
+                      XLS
+                    </button>
+                  )}
                   {canApprove(report) && (
                     <button
                       onClick={() => handleApproveAction(report)}

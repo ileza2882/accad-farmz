@@ -1,6 +1,6 @@
 import React from 'react';
-import { Report, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, Department, InventoryType, ReportStatus, MACHINE_LABELS, getHatcheryBatchStage } from '../types';
-import { formatLogName, exportLogToPDF, exportLogToWord, getComputerName, formatStatusLabel } from '../lib/exportUtils';
+import { Report, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, Department, InventoryType, FisherySection, ReportStatus, MACHINE_LABELS, getHatcheryBatchStage } from '../types';
+import { formatLogName, exportLogToPDF, exportLogToWord, exportHatcheryToExcel, getComputerName, formatStatusLabel } from '../lib/exportUtils';
 import { 
   FileText, 
   Calendar, 
@@ -105,7 +105,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             {/* Quick Export Actions */}
             <button
               onClick={() => exportLogToPDF(report)}
-              className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm"
+              className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
               title="Download AccadFarms PDF Sheet"
             >
               <Download className="w-4 h-4" />
@@ -113,12 +113,24 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             </button>
             <button
               onClick={() => exportLogToWord(report)}
-              className="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm"
+              className="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
               title="Download AccadFarms Word Sheet (.doc)"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Export Word</span>
             </button>
+
+            {/* Hatchery Excel Export */}
+            {(report.department === Department.FISHERY && (report.inventoryType === InventoryType.HATCHERY || report.section === FisherySection.HATCHERY || Boolean(report.formData?.batches))) && (
+              <button
+                onClick={() => exportHatcheryToExcel(report)}
+                className="p-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                title="Download AccadFarms Hatchery Excel Sheet (.xlsx)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-purple-700" />
+                <span>Export Excel (.xlsx)</span>
+              </button>
+            )}
           </div>
         </div>
 

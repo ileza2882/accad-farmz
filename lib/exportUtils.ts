@@ -1,6 +1,19 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, InventoryType, MACHINE_LABELS } from '../types';
+import * as XLSX from 'xlsx';
+import { 
+  Report, 
+  ReportStatus, 
+  FisheryAssetFormData, 
+  FisheryLivestockFormData, 
+  FisheryHatcheryFormData, 
+  FisheryHatcheryBatchData,
+  InventoryType, 
+  Department,
+  FisherySection,
+  MACHINE_LABELS,
+  getHatcheryBatchStage
+} from '../types';
 import { ACCAD_LOGO_BASE64 } from './logoBase64';
 
 /**
@@ -779,5 +792,128 @@ export function exportLogToWord(report: Report): void {
   } catch (e: any) {
     console.error('Exhaustive Word Export Error:', e);
     alert('Word Export failed: ' + e.message);
+  }
+}
+
+/**
+ * Dedicated Excel (.xlsx) Exporter for Hatchery Section Records
+ * Each parameter forms a column, and each batch / progressive update forms a new row.
+ */
+export function exportHatcheryToExcel(input: Report | Report[]): void {
+  try {
+    const reports = Array.isArray(input) ? input : [input];
+    const hatcheryReports = reports.filter(r => 
+      r.department === Department.FISHERY && 
+      (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || Boolean(r.formData?.batches))
+    );
+
+    const targetReports = hatcheryReports.length > 0 ? hatcheryReports : reports;
+
+    // Collect all batches across reports
+    const rowData: any[] = [];
+    
+    targetReports.forEach((rep) => {
+      const batches: FisheryHatcheryBatchData[] = rep.formData?.batches || [];
+      const submitter = rep.fullName || rep.email || 'Staff';
+      const logName = formatLogName(rep);
+      const dateLogged = new Date(rep.timestamp).toLocaleDateString();
+      const status = formatStatusLabel(rep.status);
+
+      if (batches.length === 0) {
+        rowData.push({
+          'Batch #': 'General Entry',
+          'Source of Broodstock': 'N/A',
+          'Hatchery / Incubation Date': dateLogged,
+          'First Date of Feeding': 'N/A',
+          'Date of Transfer to Grow-Out': 'N/A',
+          'Total Transferred Fingerlings (Qty)': 0,
+          'Average Weight (g)': 0,
+          'Age of Fingerlings (Weeks/Days)': 'N/A',
+          'Health Status': 'N/A',
+          'Destination Pond': 'N/A',
+          'Current Hatchery Stage': 'N/A',
+          'Lock / Save Status': 'N/A',
+          'Remarks / Notes': rep.content || 'N/A',
+          'Log Report Title': logName,
+          'Submitting Staff': submitter,
+          'Date Logged': dateLogged,
+          'Approval Status': status
+        });
+      } else {
+        batches.forEach((batch, bIdx) => {
+          const stageInfo = getHatcheryBatchStage(batch);
+          rowData.push({
+            'Batch #': batch.batchNumber || `Batch #${bIdx + 1}`,
+            'Source of Broodstock': batch.sourceOfBroodstock || 'N/A',
+            'Hatchery / Incubation Date': batch.hatcheryDate || 'N/A',
+            'First Date of Feeding': batch.firstDateOfFeeding || 'N/A',
+            'Date of Transfer to Grow-Out': batch.dateOfTransferToGrowOut || 'N/A',
+            'Total Transferred Fingerlings (Qty)': Number(batch.totalTransferredFingerlings) || 0,
+            'Average Weight (g)': Number(batch.averageWeightTransferred) || 0,
+            'Age of Fingerlings (Weeks/Days)': batch.ageOfFingerlingsTransferred || 'N/A',
+            'Health Status': batch.healthStatusTransferred || 'Good',
+            'Destination Pond': batch.destinatedPondTransferred || 'N/A',
+            'Current Hatchery Stage': stageInfo.stage,
+            'Lock / Save Status': batch.isLocked ? 'Locked & Saved (Permanent)' : 'Active / Editable',
+            'Remarks / Notes': batch.remarks || rep.formData?.generalNotes || rep.content || '',
+            'Log Report Title': logName,
+            'Submitting Staff': submitter,
+            'Date Logged': dateLogged,
+            'Approval Status': status
+          });
+        });
+      }
+    });
+
+    if (rowData.length === 0) {
+      alert('No hatchery batch records found to export.');
+      return;
+    }
+
+    // Build worksheet with corporate title headers
+    const ws = XLSX.utils.json_to_sheet(rowData, { origin: 'A5' });
+
+    // Set Header metadata on rows A1:A4
+    XLSX.utils.sheet_add_aoa(ws, [
+      ['ACCAD FARMS LIMITED - HATCHERY OPERATIONS & BATCH LEDGER'],
+      ['Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria | info@accadfarms.com'],
+      [`Export Timestamp: ${new Date().toLocaleString()} | Total Recorded Batches: ${rowData.length}`],
+      []
+    ], { origin: 'A1' });
+
+    // Set column widths for clear readability
+    ws['!cols'] = [
+      { wch: 16 }, // Batch #
+      { wch: 22 }, // Broodstock
+      { wch: 18 }, // Hatchery Date
+      { wch: 18 }, // First Date Feeding
+      { wch: 22 }, // Date Transfer
+      { wch: 24 }, // Total Transferred
+      { wch: 18 }, // Avg Weight
+      { wch: 22 }, // Age
+      { wch: 16 }, // Health
+      { wch: 18 }, // Dest Pond
+      { wch: 24 }, // Current Stage
+      { wch: 24 }, // Lock / Save Status
+      { wch: 32 }, // Remarks
+      { wch: 26 }, // Log Title
+      { wch: 20 }, // Staff
+      { wch: 16 }, // Date Submitted
+      { wch: 22 }  // Status
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Hatchery Batch Ledger');
+
+    // Generate filename
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = Array.isArray(input) 
+      ? `ACCAD_FARMS_Hatchery_Ledger_${dateStr}.xlsx`
+      : `Hatchery_Ledger_${formatLogName(input).replace(/[/\\?%*:|"<>]/g, '_')}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
+  } catch (err: any) {
+    console.error('Error exporting hatchery to Excel:', err);
+    alert('Failed to export Excel file: ' + err.message);
   }
 }
