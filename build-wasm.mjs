@@ -83,8 +83,13 @@ const finalHtml = sourceHtml.replace(
 fs.writeFileSync(path.join(distDir, 'index.html'), finalHtml, 'utf-8');
 console.log('✅ Generated dist/index.html');
 
-// 4. Generate Netlify _redirects
+// 4. Generate Netlify _redirects & _headers
 fs.writeFileSync(path.join(distDir, '_redirects'), '/*  /index.html  200\n', 'utf-8');
-console.log('✅ Generated dist/_redirects');
+fs.writeFileSync(
+  path.join(distDir, '_headers'),
+  `/*\n  Cache-Control: no-cache, no-store, must-revalidate\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n`,
+  'utf-8'
+);
+console.log('✅ Generated dist/_redirects & dist/_headers');
 
 console.log('🎉 WASM Production Build Complete!');
