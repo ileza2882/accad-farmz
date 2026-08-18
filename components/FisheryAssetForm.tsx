@@ -49,7 +49,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         items: [
           { type: "Branded", size: "2mm", brand: "Blue Crown", quantityKg: "" },
         ],
-        totalBags: "",
         totalFeedsInStore: "",
       },
       ingredientsUsed: {
@@ -448,22 +447,12 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               <span>Add Another Feed Row</span>
             </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Total Bags in Store</label>
-                <input
-                  type="number"
-                  value={formData.feedsInventory.totalBags}
-                  onChange={(e) => handleFeedInventorySummaryChange('totalBags', e.target.value)}
-                  placeholder="e.g. 50"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
-                />
-              </div>
+            <div className="pt-2">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Total Feeds in Store (Calculated KG)</label>
-                <div className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs font-black text-emerald-800 flex items-center justify-between">
-                  <span>{calculatedTotalFeed} KG</span>
-                  <span className="text-[10px] font-bold text-emerald-600">Auto-calculated</span>
+                <div className="w-full bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-sm font-black text-emerald-800 flex items-center justify-between shadow-xs">
+                  <span>{calculatedTotalFeed.toLocaleString()} KG</span>
+                  <span className="text-xs font-bold text-emerald-600">Auto-calculated from inventory rows</span>
                 </div>
               </div>
             </div>

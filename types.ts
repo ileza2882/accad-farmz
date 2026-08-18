@@ -53,8 +53,8 @@ export interface FisheryAssetFormData {
       brand?: string; 
       quantityKg: number | string 
     }[];
-    totalBags: number | string;
-    totalFeedsInStore: number | string;
+    totalBags?: number | string;
+    totalFeedsInStore?: number | string;
   };
   ingredientsUsed: {
     wheatOffal: number | string;

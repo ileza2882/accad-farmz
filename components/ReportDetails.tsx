@@ -197,14 +197,10 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-2 text-xs font-bold">
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-black uppercase">Total Bags in Store</span>
-                    <p className="text-base font-black text-slate-900">{assetData.feedsInventory.totalBags || 0} Bags</p>
-                  </div>
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                    <span className="text-[10px] text-emerald-700 font-black uppercase">Total Calculated Feeds</span>
-                    <p className="text-base font-black text-emerald-900">{assetData.feedsInventory.totalFeedsInStore || 0} KG</p>
+                <div className="pt-2 text-xs font-bold">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                    <span className="text-xs text-emerald-800 font-black uppercase">Total Calculated Feeds in Store</span>
+                    <p className="text-lg font-black text-emerald-900">{assetData.feedsInventory.totalFeedsInStore || 0} KG</p>
                   </div>
                 </div>
               </div>
