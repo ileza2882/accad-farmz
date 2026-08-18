@@ -531,7 +531,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                             </div>
                             <div>
                               <span className="text-[10px] text-slate-400 uppercase font-black block">First Hatch Date</span>
-                              <span className="font-bold text-slate-800">{primaryBatch.hatcheryDate || 'Pending'}</span>
+                              <span className="font-bold text-slate-800">{primaryBatch.hatcheryDate && primaryBatch.hatcheryDate.trim() !== '' ? primaryBatch.hatcheryDate : 'Not Set'}</span>
                             </div>
                             <div>
                               <span className="text-[10px] text-slate-400 uppercase font-black block">Transferred Total</span>

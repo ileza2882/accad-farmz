@@ -76,9 +76,26 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasValue = Boolean(value && value.trim() !== '');
 
+  const openPicker = () => {
+    if (disabled) return;
+    setIsFocused(true);
+    setTimeout(() => {
+      try {
+        if (inputRef.current && 'showPicker' in inputRef.current) {
+          (inputRef.current as any).showPicker();
+        } else if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      } catch (_) {}
+    }, 40);
+  };
+
   return (
     <div className="relative flex items-center w-full">
-      <span className="absolute left-3.5 text-slate-400 pointer-events-none z-10">
+      <span 
+        onClick={openPicker}
+        className={`absolute left-3.5 text-slate-400 z-10 ${!disabled ? 'cursor-pointer hover:text-emerald-600 transition-colors' : 'pointer-events-none'}`}
+      >
         <Calendar className="w-4 h-4" />
       </span>
       <input
@@ -87,25 +104,15 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         value={value || ''}
-        onFocus={() => {
-          if (!disabled) {
-            setIsFocused(true);
-            setTimeout(() => {
-              try {
-                if (inputRef.current && 'showPicker' in inputRef.current) {
-                  (inputRef.current as any).showPicker();
-                }
-              } catch (_) {}
-            }, 50);
-          }
-        }}
+        onClick={openPicker}
+        onFocus={openPicker}
         onBlur={() => {
           setIsFocused(false);
         }}
         onChange={(e) => {
           onChange(e.target.value);
         }}
-        className={`${className} ${!hasValue ? 'placeholder-slate-400 font-normal text-slate-400' : ''}`}
+        className={`${className} ${!hasValue ? 'placeholder-slate-400 font-normal text-slate-400 cursor-pointer' : ''}`}
       />
       {!hasValue && !disabled && (
         <button
@@ -113,18 +120,7 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
           tabIndex={-1}
           onClick={(e) => {
             e.preventDefault();
-            if (!disabled) {
-              setIsFocused(true);
-              setTimeout(() => {
-                try {
-                  if (inputRef.current && 'showPicker' in inputRef.current) {
-                    (inputRef.current as any).showPicker();
-                  } else if (inputRef.current) {
-                    inputRef.current.focus();
-                  }
-                } catch (_) {}
-              }, 50);
-            }
+            openPicker();
           }}
           className="absolute right-3.5 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
           title="Click to select date"
