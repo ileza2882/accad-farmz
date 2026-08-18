@@ -496,6 +496,41 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     await loadData();
   };
 
+  const handleEDSaveAssetSection = async (
+    sectionName: string,
+    data: any
+  ) => {
+    const effectiveTitle = `${selectedDept} Asset Inventory`;
+    const computerName = getComputerName();
+    const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    const newReport: Report = {
+      id: newReportId,
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      department: selectedDept,
+      inventoryType: InventoryType.ASSET,
+      section: FisherySection.GROW_OUT,
+      title: effectiveTitle,
+      content: `Asset Section ED entry.`,
+      timestamp: Date.now(),
+      status: ReportStatus.APPROVED,
+      edApprovedBy: user.fullName,
+      computerName,
+      formData: data
+    };
+
+    await createReport(newReport);
+    await createAuditLog(
+      user.fullName,
+      user.email,
+      'ED_ASSET_SAVED',
+      `ED confirmed and locked asset inventory`
+    );
+    await loadData();
+  };
+
   const pendingEDReports = reportsList.filter(r => r.status === ReportStatus.PENDING_ED);
   const pendingManagerReports = reportsList.filter(r => r.status === ReportStatus.PENDING_MANAGER);
   const approvedReports = reportsList.filter(r => r.status === ReportStatus.APPROVED);
@@ -993,7 +1028,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           )}
 
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
-            <FisheryAssetForm onSubmit={handleEDFormSubmit} isSubmitting={isActionProcessing} />
+            <FisheryAssetForm 
+              currentUser={{ fullName: user.fullName, email: user.email }}
+              onSubmit={handleEDFormSubmit} 
+              onSaveSingleRow={handleEDSaveAssetSection}
+              isSubmitting={isActionProcessing} 
+            />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm 
               currentUser={{ fullName: user.fullName, email: user.email }}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData, FisheryLivestockPondData } from '../types';
+import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData, FisheryLivestockPondData, FisheryAssetFormData } from '../types';
 import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
@@ -16,7 +16,7 @@ interface StaffDashboardProps {
 export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'my_logs' | 'submit_log'>('my_logs');
+  const [activeTab, setActiveTab] = useState<'my_logs' | 'submit_log'>('submit_log');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Submit Log State
@@ -26,8 +26,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [logContent, setLogContent] = useState('');
   const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  
   const [activeHatcheryReport, setActiveHatcheryReport] = useState<Report | null>(null);
   const [activeLivestockReport, setActiveLivestockReport] = useState<Report | null>(null);
+  const [activeAssetReport, setActiveAssetReport] = useState<Report | null>(null);
 
   const fetchUserReports = async () => {
     setLoading(true);
@@ -51,6 +53,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
       if (livestockLog && !activeLivestockReport) {
         setActiveLivestockReport(livestockLog);
       }
+
+      const assetLog = userLogs.find(r => 
+        r.department === Department.FISHERY && 
+        (r.inventoryType === InventoryType.ASSET || r.formData?.feedsInventory)
+      );
+      if (assetLog && !activeAssetReport) {
+        setActiveAssetReport(assetLog);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -62,7 +72,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     fetchUserReports();
   }, [user]);
 
-  // Handle single row save for Hatchery — saves data & keeps user on the same page with locked view
+  // Handle single row save for Hatchery — saves data & keeps user on the same page with locked view (NO REDIRECT)
   const handleSaveSingleRow = async (
     rowIndex: number, 
     batch: FisheryHatcheryBatchData, 
@@ -125,6 +135,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
       );
     }
 
+    setSubmitSuccess(`Hatchery log saved & locked in place. You remain on this page.`);
+    setTimeout(() => setSubmitSuccess(null), 4000);
+
     // Refresh background list without redirecting
     const all = await getReports();
     const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
@@ -145,7 +158,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     fetchUserReports();
   };
 
-  // Handle single row save for Livestock Pond — saves data & keeps user on same page
+  // Handle single row save for Livestock Pond — saves data & keeps user on same page (NO REDIRECT)
   const handleSaveLivestockPond = async (
     pondIndex: number,
     pond: FisheryLivestockPondData,
@@ -195,6 +208,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         `New livestock pond ${pond.pondNo} created and locked by ${user.fullName}`
       );
     }
+
+    setSubmitSuccess(`Pond log saved & locked in place. You remain on this page.`);
+    setTimeout(() => setSubmitSuccess(null), 4000);
+
     const all = await getReports();
     const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
     setReports(userLogs);
@@ -214,6 +231,76 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     fetchUserReports();
   };
 
+  // Handle save for Asset Inventory — saves data & keeps user on same page (NO REDIRECT)
+  const handleSaveAssetSection = async (sectionName: string, data: FisheryAssetFormData) => {
+    const effectiveTitle = `${selectedDept} Asset Inventory`;
+    const computerName = getComputerName();
+
+    if (activeAssetReport) {
+      const updated = await updateReport(activeAssetReport.id, {
+        title: effectiveTitle,
+        content: `Asset inventory updated and locked.`,
+        formData: data,
+        status: ReportStatus.PENDING_MANAGER,
+        updatedAt: Date.now()
+      });
+      if (updated) setActiveAssetReport(updated);
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'ASSET_INVENTORY_LOCKED_SAVED',
+        `Asset inventory locked and saved by ${user.fullName}`
+      );
+    } else {
+      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newReport: Report = {
+        id: newReportId,
+        userId: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        department: selectedDept,
+        inventoryType: InventoryType.ASSET,
+        section: FisherySection.GROW_OUT,
+        title: effectiveTitle,
+        content: `Asset inventory record.`,
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName,
+        formData: data
+      };
+      await createReport(newReport);
+      setActiveAssetReport(newReport);
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'ASSET_INVENTORY_CREATED_LOCKED',
+        `New asset inventory created and locked by ${user.fullName}`
+      );
+    }
+
+    setSubmitSuccess(`Asset log saved & locked in place. You remain on this page.`);
+    setTimeout(() => setSubmitSuccess(null), 4000);
+
+    const all = await getReports();
+    const userLogs = all.filter(r => r.userId === user.id || r.email.toLowerCase() === user.email.toLowerCase());
+    setReports(userLogs);
+  };
+
+  // Handle request change for locked asset
+  const handleRequestAssetChange = async (sectionName: string, reason: string) => {
+    const repId = activeAssetReport?.id || `rep_asset_${user.id}`;
+    await createHatcheryChangeRequest({
+      reportId: repId,
+      batchIndex: 0,
+      batchNumber: sectionName || 'Asset Inventory',
+      requestedBy: user.fullName,
+      requestedByEmail: user.email,
+      reason
+    });
+    fetchUserReports();
+  };
+
+  // Form submit that DOES NOT redirect to another page
   const handleFormSubmit = async (formData?: any) => {
     let effectiveTitle = logTitle.trim();
     if (selectedInvType === InventoryType.ASSET) {
@@ -265,15 +352,16 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         type: 'info'
       });
 
-      setSubmitSuccess('Farm log successfully saved and submitted to Manager for review!');
+      // Show success feedback on SAME page WITHOUT redirecting
+      setSubmitSuccess('Farm log successfully saved! You remain on this page.');
       setLogTitle('');
       setLogContent('');
 
       setTimeout(() => {
         setSubmitSuccess(null);
-        setActiveTab('my_logs');
-        fetchUserReports();
-      }, 1500);
+      }, 4000);
+
+      fetchUserReports();
 
     } catch (e: any) {
       alert('Submission failed: ' + e.message);
@@ -301,6 +389,17 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
 
         <div className="flex items-center space-x-2 sm:space-x-3 relative z-10 overflow-x-auto">
           <button
+            onClick={() => setActiveTab('submit_log')}
+            className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
+              activeTab === 'submit_log'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
+                : 'bg-white/10 text-slate-200 hover:bg-white/20'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Submit / Edit Farm Log</span>
+          </button>
+          <button
             onClick={() => setActiveTab('my_logs')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer whitespace-nowrap ${
               activeTab === 'my_logs'
@@ -310,23 +409,12 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           >
             My Logs ({reports.length})
           </button>
-          <button
-            onClick={() => setActiveTab('submit_log')}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
-              activeTab === 'submit_log'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
-                : 'bg-white/10 text-slate-200 hover:bg-white/20'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Submit New Log</span>
-          </button>
         </div>
 
       </div>
 
       {submitSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center space-x-2 animate-fadeIn shadow-sm">
+        <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold flex items-center space-x-2 animate-fadeIn shadow-sm">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span>{submitSuccess}</span>
         </div>
@@ -341,14 +429,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           onViewDetails={(report) => setSelectedReportForModal(report)}
         />
       ) : (
-        /* Submit Farm Log Form View */
+        /* Submit / Edit Farm Log Form View (User stays on this page) */
         <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
           <div className="border-b border-slate-200 pb-4">
             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
               Standard Form
             </span>
-            <h2 className="text-xl font-extrabold text-slate-900 mt-2">Submit Daily Farm Log Entry</h2>
-            <p className="text-xs text-slate-500 font-medium">Complete inventory audit entry for Manager review</p>
+            <h2 className="text-xl font-extrabold text-slate-900 mt-2">Submit & Record Daily Farm Log</h2>
+            <p className="text-xs text-slate-500 font-medium">Save each row or section to lock entry permanently in-place</p>
           </div>
 
           <div>
@@ -384,7 +472,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
 
           {/* Form component depending on department & type */}
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
-            <FisheryAssetForm onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+            <FisheryAssetForm 
+              initialData={activeAssetReport?.formData}
+              reportId={activeAssetReport?.id}
+              currentUser={{ fullName: user.fullName, email: user.email }}
+              onSubmit={handleFormSubmit} 
+              onSaveSingleRow={handleSaveAssetSection}
+              onRequestChange={handleRequestAssetChange}
+              isSubmitting={isSubmitting} 
+            />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm 
               initialData={activeLivestockReport?.formData}
@@ -429,7 +525,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
                 ) : (
                   <Plus className="w-4 h-4" />
                 )}
-                <span>Submit Farm Log</span>
+                <span>Save Farm Log</span>
               </button>
             </div>
           )}
