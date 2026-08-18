@@ -147,20 +147,8 @@ const HatcheryDateInput: React.FC<HatcheryDateInputProps> = ({
   );
 };
 
-export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({ 
-  initialData, 
-  reportId,
-  currentUser,
-  onCancel, 
-  onSubmit, 
-  onSaveSingleRow,
-  onRequestChange,
-  isSubmitting 
-}) => {
-  const [batches, setBatches] = useState<FisheryHatcheryBatchData[]>(() => {
-    if (initialData?.batches && initialData.batches.length > 0) {
-      return initialData.batches;
-    }
+const cleanInitialBatches = (rawBatches?: FisheryHatcheryBatchData[]): FisheryHatcheryBatchData[] => {
+  if (!rawBatches || rawBatches.length === 0) {
     return [
       {
         sourceOfBroodstock: 'Outside the Farm',
@@ -178,6 +166,34 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         lockedRows: {}
       }
     ];
+  }
+
+  return rawBatches.map(batch => {
+    const isBatchLocked = Boolean(batch.isLocked);
+    const lockedRows = batch.lockedRows || {};
+    
+    return {
+      ...batch,
+      // Date fields MUST default to empty '' ("Select Date") unless locked & confirmed
+      hatcheryDate: isBatchLocked || lockedRows.hatcheryDate ? (batch.hatcheryDate || '') : '',
+      firstDateOfFeeding: isBatchLocked || lockedRows.firstDateOfFeeding ? (batch.firstDateOfFeeding || '') : '',
+      dateOfTransferToGrowOut: isBatchLocked || lockedRows.dateOfTransferToGrowOut ? (batch.dateOfTransferToGrowOut || '') : ''
+    };
+  });
+};
+
+export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({ 
+  initialData, 
+  reportId,
+  currentUser,
+  onCancel, 
+  onSubmit, 
+  onSaveSingleRow,
+  onRequestChange,
+  isSubmitting 
+}) => {
+  const [batches, setBatches] = useState<FisheryHatcheryBatchData[]>(() => {
+    return cleanInitialBatches(initialData?.batches);
   });
 
   const [generalNotes, setGeneralNotes] = useState(initialData?.generalNotes || '');
@@ -213,7 +229,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
 
   useEffect(() => {
     if (initialData?.batches && initialData.batches.length > 0) {
-      setBatches(initialData.batches);
+      setBatches(cleanInitialBatches(initialData.batches));
       setGeneralNotes(initialData.generalNotes || '');
     }
   }, [initialData]);
