@@ -10,21 +10,18 @@ import {
   Droplet, 
   AlertTriangle, 
   RefreshCw, 
-  Save, 
-  Lock, 
-  Unlock, 
-  Edit3, 
-  Check, 
-  Clock, 
   Send,
   ChevronDown,
   ChevronUp,
   ChevronsUpDown,
-  Archive,
-  FileCheck,
   Building,
   Activity,
-  Droplets
+  Droplets,
+  Sun,
+  Cog,
+  Waves,
+  Sparkles,
+  FileCheck
 } from 'lucide-react';
 
 interface FisheryAssetFormProps {
@@ -32,8 +29,6 @@ interface FisheryAssetFormProps {
   reportId?: string;
   currentUser?: { fullName: string; email: string };
   onSubmit: (data: FisheryAssetFormData) => void;
-  onSaveSingleRow?: (sectionName: string, data: any) => Promise<void>;
-  onRequestChange?: (sectionName: string, reason: string) => Promise<void>;
   isSubmitting?: boolean;
   color?: string;
 }
@@ -45,8 +40,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
   initialData, 
   currentUser,
   onSubmit, 
-  onSaveSingleRow, 
-  onRequestChange, 
   isSubmitting 
 }) => {
   const [formData, setFormData] = useState<FisheryAssetFormData>(() => {
@@ -93,25 +86,30 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         salt: "",
       },
       machineCheck: {
-        localWetMixer: 'Good',
-        grinder: 'Good',
-        dryerUnit: 'Good',
-        extrudingPelletingMachine: 'Good',
-        shapeQuality: 'Good',
-        pumpingMachineA: 'Good',
-        pumpingMachineB: 'Good',
-        pumpingMachineC: 'Good',
-        pumpingMachineD: 'Good',
-        pumpingMachineE: 'Good',
-        chineseMixer: 'Good',
-        locallyFabricatedMixer: 'Good',
-        chineseGrindingMachine: 'Good',
-        locallyFabricatedGrindingMachine: 'Good',
+        // Solar systems
         solarSystemA: 'Good',
         solarSystemB: 'Good',
         solarSystemC: 'Good',
         solarSystemD: 'Good',
         solarSystemE: 'Good',
+        // Grinding machines
+        chineseGrindingMachine: 'Good',
+        locallyFabricatedGrindingMachine: 'Good',
+        grinder: 'Good',
+        // Mixers
+        chineseMixer: 'Good',
+        locallyFabricatedMixer: 'Good',
+        localWetMixer: 'Good',
+        // Pumping machines
+        pumpingMachineA: 'Good',
+        pumpingMachineB: 'Good',
+        pumpingMachineC: 'Good',
+        pumpingMachineD: 'Good',
+        pumpingMachineE: 'Good',
+        // Extrusion & Pelleting
+        extrudingPelletingMachine: 'Good',
+        dryerUnit: 'Good',
+        shapeQuality: 'Good',
       },
       feedStorage: {
         totalFeedInStoreKg: "",
@@ -123,436 +121,273 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         dieselKegsLitres: "",
         totalDieselAvailable: 0,
         generatorMeterPhoto: "",
-      },
-      lockedSections: {}
+      }
     };
   });
 
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockedSections, setLockedSections] = useState<Record<string, boolean>>(formData.lockedSections || {});
   const [calculatedTotalFeed, setCalculatedTotalFeed] = useState(0);
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-
-  // Expand & Collapse State
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [allExpanded, setAllExpanded] = useState<boolean>(true);
-
-  // Confirmation modal state
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    sectionKey?: string;
-    sectionName: string;
-  } | null>(null);
-
-  // Archive modal state
-  const [archiveModal, setArchiveModal] = useState<boolean>(false);
-
-  // Change Request modal state
-  const [changeRequestModal, setChangeRequestModal] = useState<{
-    isOpen: boolean;
-    sectionKey: string;
-    sectionName: string;
-    reason: string;
-    isSubmitting: boolean;
-  } | null>(null);
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
-      if (initialData.lockedSections) {
-        setLockedSections(initialData.lockedSections);
-      }
     }
   }, [initialData]);
 
+  // Calculate Feed inventory sum
   useEffect(() => {
-    const total = formData.feedsInventory.items.reduce((acc, curr) => acc + (Number(curr.quantityKg) || 0), 0);
-    setCalculatedTotalFeed(total);
-  }, [formData.feedsInventory.items]);
+    let sum = 0;
+    if (formData.feedsInventory?.items) {
+      formData.feedsInventory.items.forEach(item => {
+        sum += Number(item.quantityKg) || 0;
+      });
+    }
+    setCalculatedTotalFeed(sum);
+  }, [formData.feedsInventory]);
 
+  // Calculate Diesel Available sum
   useEffect(() => {
-    const total = (Number(formData.technicalReport.dieselGeneratorLitres) || 0) + (Number(formData.technicalReport.dieselKegsLitres) || 0);
+    const gen = Number(formData.technicalReport.dieselGeneratorLitres) || 0;
+    const kegs = Number(formData.technicalReport.dieselKegsLitres) || 0;
     setFormData(prev => ({
       ...prev,
-      technicalReport: { ...prev.technicalReport, totalDieselAvailable: total }
+      technicalReport: {
+        ...prev.technicalReport,
+        totalDieselAvailable: gen + kegs
+      }
     }));
   }, [formData.technicalReport.dieselGeneratorLitres, formData.technicalReport.dieselKegsLitres]);
 
-  const toggleSectionCollapse = (sectionKey: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [sectionKey]: !prev[sectionKey]
-    }));
+  const toggleSectionCollapse = (key: string) => {
+    setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const toggleExpandAll = () => {
-    if (allExpanded) {
-      setCollapsedSections({
-        feedsInventory: true,
-        feedStorage: true,
-        ingredientsUsed: true,
-        drugsUsed: true,
-        machineCheck: true,
-        technicalReport: true
-      });
-      setAllExpanded(false);
-    } else {
-      setCollapsedSections({});
-      setAllExpanded(true);
-    }
-  };
-
-  const handleFeedItemChange = (index: number, field: string, value: string) => {
-    if (isLocked || lockedSections.feedsInventory) return;
-    const newItems = [...formData.feedsInventory.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setFormData({ 
-      ...formData, 
-      feedsInventory: { ...formData.feedsInventory, items: newItems } 
+  const handleToggleAll = () => {
+    const nextState = !allExpanded;
+    setAllExpanded(nextState);
+    setCollapsedSections({
+      feedsInventory: !nextState,
+      feedStorage: !nextState,
+      ingredientsUsed: !nextState,
+      drugsUsed: !nextState,
+      machineCheck: !nextState,
+      technicalReport: !nextState
     });
   };
 
-  const handleFeedInventorySummaryChange = (field: 'totalBags' | 'totalFeedsInStore', value: string) => {
-    if (isLocked || lockedSections.feedsInventory) return;
-    setFormData({
-      ...formData,
-      feedsInventory: { ...formData.feedsInventory, [field]: value }
+  // Field updates
+  const handleFeedItemChange = (index: number, field: string, value: any) => {
+    setFormData(prev => {
+      const items = [...prev.feedsInventory.items];
+      items[index] = { ...items[index], [field]: value };
+      return {
+        ...prev,
+        feedsInventory: { ...prev.feedsInventory, items }
+      };
     });
   };
 
   const addFeedRow = () => {
-    if (isLocked || lockedSections.feedsInventory) return;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       feedsInventory: {
-        ...formData.feedsInventory,
-        items: [...formData.feedsInventory.items, { type: "Branded", size: "2mm", brand: "Blue Crown", quantityKg: "" }]
+        ...prev.feedsInventory,
+        items: [
+          ...prev.feedsInventory.items,
+          { type: 'Branded', size: '2mm', brand: 'Blue Crown', quantityKg: '' }
+        ]
       }
-    });
+    }));
   };
 
   const removeFeedRow = (index: number) => {
-    if (isLocked || lockedSections.feedsInventory) return;
-    const newItems = formData.feedsInventory.items.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      feedsInventory: { ...formData.feedsInventory, items: newItems }
-    });
+    setFormData(prev => ({
+      ...prev,
+      feedsInventory: {
+        ...prev.feedsInventory,
+        items: prev.feedsInventory.items.filter((_, idx) => idx !== index)
+      }
+    }));
   };
 
-  const handleIngredientChange = (field: keyof FisheryAssetFormData['ingredientsUsed'], value: string) => {
-    if (isLocked || lockedSections.ingredientsUsed) return;
-    setFormData({
-      ...formData,
-      ingredientsUsed: { ...formData.ingredientsUsed, [field]: value }
-    });
+  const handleFeedInventorySummaryChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      feedsInventory: {
+        ...prev.feedsInventory,
+        [field]: value
+      }
+    }));
   };
 
-  const handleDrugChange = (field: keyof FisheryAssetFormData['drugsUsed'], value: string) => {
-    if (isLocked || lockedSections.drugsUsed) return;
-    setFormData({
-      ...formData,
-      drugsUsed: { ...formData.drugsUsed, [field]: value }
-    });
+  const handleIngredientChange = (ingredient: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      ingredientsUsed: {
+        ...prev.ingredientsUsed,
+        [ingredient]: value
+      }
+    }));
   };
 
-  const handleMachineChange = (field: keyof FisheryAssetFormData['machineCheck'], value: 'Good' | 'Faulty' | 'Needs Maintenance') => {
-    if (isLocked || lockedSections.machineCheck) return;
-    setFormData({
-      ...formData,
-      machineCheck: { ...formData.machineCheck, [field]: value }
-    });
+  const handleDrugChange = (drug: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      drugsUsed: {
+        ...prev.drugsUsed,
+        [drug]: value
+      }
+    }));
   };
 
-  const handleStorageChange = (field: 'totalFeedInStoreKg', value: string) => {
-    if (isLocked || lockedSections.feedStorage) return;
-    setFormData({
-      ...formData,
-      feedStorage: { ...formData.feedStorage, [field]: value }
-    });
+  const handleMachineChange = (key: string, value: 'Good' | 'Faulty' | 'Needs Maintenance') => {
+    setFormData(prev => ({
+      ...prev,
+      machineCheck: {
+        ...prev.machineCheck,
+        [key]: value
+      }
+    }));
   };
 
-  const handleStorageWastageChange = (hasWastage: boolean, comment: string) => {
-    if (isLocked || lockedSections.feedStorage) return;
-    setFormData({
-      ...formData,
+  const handleStorageWastageChange = (hasWastage: boolean, comment: string = '') => {
+    setFormData(prev => ({
+      ...prev,
       feedStorage: {
-        ...formData.feedStorage,
+        ...prev.feedStorage,
         wastageNoticed: { hasWastage, comment }
       }
-    });
+    }));
   };
 
-  const handleStorageIssueChange = (hasIssue: boolean, comment: string) => {
-    if (isLocked || lockedSections.feedStorage) return;
-    setFormData({
-      ...formData,
+  const handleStorageIssueChange = (hasIssue: boolean, comment: string = '') => {
+    setFormData(prev => ({
+      ...prev,
       feedStorage: {
-        ...formData.feedStorage,
+        ...prev.feedStorage,
         machineIssues: { hasIssue, comment }
       }
-    });
+    }));
   };
 
-  const handleTechnicalChange = (field: 'dieselGeneratorLitres' | 'dieselKegsLitres' | 'generatorMeterPhoto', value: string) => {
-    if (isLocked || lockedSections.technicalReport) return;
-    setFormData({
-      ...formData,
-      technicalReport: { ...formData.technicalReport, [field]: value }
-    });
+  const handleTechnicalChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      technicalReport: {
+        ...prev.technicalReport,
+        [field]: value
+      }
+    }));
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isLocked || lockedSections.technicalReport) return;
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleTechnicalChange('generatorMeterPhoto', reader.result as string);
+        setFormData(prev => ({
+          ...prev,
+          technicalReport: {
+            ...prev.technicalReport,
+            generatorMeterPhoto: reader.result as string
+          }
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Open confirmation prompt
-  const triggerConfirmation = (sectionName: string, sectionKey?: string) => {
-    setConfirmModal({
-      isOpen: true,
-      sectionName,
-      sectionKey
-    });
+  const handleSubmitAll = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
   };
 
-  // Confirm Save & Lock permanently (stays on same page)
-  const handleConfirmLockAndSave = async () => {
-    if (!confirmModal) return;
-    const { sectionKey, sectionName } = confirmModal;
-    setConfirmModal(null);
-
-    try {
-      let updatedLockedSections = { ...lockedSections };
-      if (sectionKey) {
-        updatedLockedSections[sectionKey] = true;
-      } else {
-        // Full lock
-        updatedLockedSections = {
-          feedsInventory: true,
-          feedStorage: true,
-          ingredientsUsed: true,
-          drugsUsed: true,
-          machineCheck: true,
-          technicalReport: true
-        };
-        setIsLocked(true);
-      }
-
-      setLockedSections(updatedLockedSections);
-      const updatedFormData = {
-        ...formData,
-        lockedSections: updatedLockedSections
-      };
-      setFormData(updatedFormData);
-
-      if (onSaveSingleRow) {
-        await onSaveSingleRow(sectionName, updatedFormData);
-      } else {
-        onSubmit(updatedFormData);
-      }
-
-      setFeedbackMsg(`✅ ${sectionName} successfully saved & locked! Other sections remain active and editable.`);
-      setTimeout(() => setFeedbackMsg(null), 4500);
-    } catch (e: any) {
-      alert('Error saving asset log: ' + e.message);
-    }
-  };
-
-  // Archive and Submit Completed Form
-  const handleArchiveAndSubmit = async () => {
-    setArchiveModal(false);
-    try {
-      const allLockedSections = {
-        feedsInventory: true,
-        feedStorage: true,
-        ingredientsUsed: true,
-        drugsUsed: true,
-        machineCheck: true,
-        technicalReport: true
-      };
-      setIsLocked(true);
-      setLockedSections(allLockedSections);
-
-      const finalData = {
-        ...formData,
-        lockedSections: allLockedSections
-      };
-
-      onSubmit(finalData);
-      setFeedbackMsg('🎉 Complete Fishery Asset Inventory successfully submitted to permanent records archive!');
-      setTimeout(() => setFeedbackMsg(null), 5000);
-    } catch (e: any) {
-      alert('Archive error: ' + e.message);
-    }
-  };
-
-  // Submit Change Request to Executive Director
-  const handleSubmitChangeRequest = async () => {
-    if (!changeRequestModal || !changeRequestModal.reason.trim()) {
-      alert('Please state a reason for requesting this correction.');
-      return;
-    }
-
-    const { sectionName, reason } = changeRequestModal;
-    setChangeRequestModal({ ...changeRequestModal, isSubmitting: true });
-
-    try {
-      if (onRequestChange) {
-        await onRequestChange(sectionName, reason.trim());
-      }
-
-      setChangeRequestModal(null);
-      setFeedbackMsg(`Change request for ${sectionName} submitted to Executive Director for review.`);
-      setTimeout(() => setFeedbackMsg(null), 4500);
-    } catch (e: any) {
-      alert('Error submitting change request: ' + e.message);
-    }
-  };
-
-  // Render Action Button per section
-  const renderSectionHeaderActions = (sectionKey: string, sectionTitle: string) => {
-    const isSectionLocked = isLocked || Boolean(lockedSections[sectionKey]);
-    const isCollapsed = Boolean(collapsedSections[sectionKey]);
-
+  // Helper machine status selector pill
+  const renderMachineStatusPicker = (key: string, label: string) => {
+    const val = formData.machineCheck[key] || 'Good';
     return (
-      <div className="flex items-center space-x-2">
-        {isSectionLocked ? (
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center space-x-1">
-              <Lock className="w-3 h-3 text-slate-500" />
-              <span>Locked</span>
-            </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setChangeRequestModal({
-                  isOpen: true,
-                  sectionKey,
-                  sectionName: sectionTitle,
-                  reason: '',
-                  isSubmitting: false
-                });
-              }}
-              className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md flex items-center space-x-1 transition-all cursor-pointer"
-            >
-              <Edit3 className="w-2.5 h-2.5 text-purple-600" />
-              <span>Request Change</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              triggerConfirmation(sectionTitle, sectionKey);
-            }}
-            disabled={isSubmitting}
-            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer shadow-xs shadow-emerald-200 active:scale-95 disabled:opacity-50"
-            title={`Save ${sectionTitle}`}
-          >
-            <Save className="w-3 h-3" />
-            <span>Save Section</span>
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => toggleSectionCollapse(sectionKey)}
-          className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
-          title={isCollapsed ? 'Expand Section' : 'Collapse Section'}
+      <div key={key} className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-slate-800 tracking-tight">{label}</label>
+          <span className={`w-2.5 h-2.5 rounded-full ${
+            val === 'Good' ? 'bg-emerald-500' : val === 'Needs Maintenance' ? 'bg-amber-500' : 'bg-rose-500'
+          }`}></span>
+        </div>
+        <select
+          value={val}
+          onChange={(e) => handleMachineChange(key, e.target.value as any)}
+          className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer outline-none ${
+            val === 'Faulty' ? 'text-rose-800 border-rose-300 bg-rose-50/80 font-black' :
+            val === 'Needs Maintenance' ? 'text-amber-800 border-amber-300 bg-amber-50/80 font-black' :
+            'text-emerald-800 border-emerald-300 bg-emerald-50/80'
+          }`}
         >
-          {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-        </button>
+          <option value="Good">Good Condition</option>
+          <option value="Needs Maintenance">Needs Maintenance</option>
+          <option value="Faulty">Faulty / Out of Service</option>
+        </select>
       </div>
     );
   };
 
   return (
-    <div className="space-y-8 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
+    <form onSubmit={handleSubmitAll} className="space-y-6">
       
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center space-x-1 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full text-[10px] font-black uppercase text-emerald-800 tracking-wider">
-              <Package className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Asset & Feed Inventory</span>
-            </span>
-            <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-              <Lock className="w-3 h-3 text-purple-600" />
-              <span>Per-Section Immutable Locking</span>
-            </span>
+      {/* Grow-Out Asset Preset Header Banner */}
+      <div className="bg-slate-900 text-white p-5 sm:p-7 rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="space-y-1 relative z-10">
+          <div className="inline-flex items-center space-x-2 bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
+            <Factory className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Grow-Out Asset Inventory & Machine Checks</span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight mt-1.5">Asset Inventory & Audit</h3>
-          <p className="text-xs text-slate-500 font-medium">Save individual sections independently (other sections stay active & editable). Expand and collapse sections as needed.</p>
+          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight">
+            Asset Inventory, Feed Stocks & Machine Health
+          </h3>
+          <p className="text-xs text-slate-300 font-medium max-w-2xl">
+            Complete Grow-Out asset overview. Solar Systems, Grinding Machines, and Mixers are categorized into separate subsections for clarity.
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-2xl flex items-center space-x-2">
-            <Package className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-black text-emerald-800">{calculatedTotalFeed} KG Feeds</span>
-          </div>
-
-          {/* Expand / Collapse All */}
+        <div className="flex items-center space-x-2 relative z-10">
           <button
             type="button"
-            onClick={toggleExpandAll}
-            className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs"
+            onClick={handleToggleAll}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer border border-slate-700 active:scale-95"
           >
-            <ChevronsUpDown className="w-4 h-4 text-slate-600" />
+            <ChevronsUpDown className="w-4 h-4" />
             <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
           </button>
         </div>
       </div>
 
-      {feedbackMsg && (
-        <div className="p-3.5 bg-emerald-100 border border-emerald-300 rounded-2xl text-emerald-900 text-xs font-bold flex items-center space-x-2 animate-fadeIn">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{feedbackMsg}</span>
-        </div>
-      )}
-
-      {/* ===== 1. FEEDS INVENTORY ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.feedsInventory ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('feedsInventory')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
+      {/* ===== SECTION 1: FEEDS INVENTORY ===== */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div 
+          onClick={() => toggleSectionCollapse('feedsInventory')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
             <Package className="w-5 h-5 text-emerald-600" />
             <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
-              1. Feeds Inventory Breakdown
+              1. Feeds Inventory in Store
             </h4>
           </div>
-          {renderSectionHeaderActions('feedsInventory', 'Feeds Inventory')}
+          <div className="text-slate-400">
+            {collapsedSections.feedsInventory ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.feedsInventory && (
-          <div className="space-y-4 pt-4 animate-fadeIn">
+          <div className="space-y-4 pt-1 animate-fadeIn">
             {formData.feedsInventory.items.map((item, index) => (
-              <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 items-end">
+              <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div>
                   <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Feed Type</label>
                   <select
-                    disabled={isLocked || lockedSections.feedsInventory}
                     value={item.type}
                     onChange={(e) => handleFeedItemChange(index, 'type', e.target.value)}
-                    className={`w-full border rounded-xl px-2 py-1.5 text-xs font-bold ${
-                      isLocked || lockedSections.feedsInventory ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-200'
-                    }`}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
                   >
                     <option value="Branded">Branded</option>
                     <option value="Farm-produced">Farm-produced</option>
@@ -561,12 +396,9 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 <div>
                   <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Size</label>
                   <select
-                    disabled={isLocked || lockedSections.feedsInventory}
                     value={item.size}
                     onChange={(e) => handleFeedItemChange(index, 'size', e.target.value)}
-                    className={`w-full border rounded-xl px-2 py-1.5 text-xs font-bold ${
-                      isLocked || lockedSections.feedsInventory ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-200'
-                    }`}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
                   >
                     {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -575,12 +407,9 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                   <div>
                     <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Brand</label>
                     <select
-                      disabled={isLocked || lockedSections.feedsInventory}
-                      value={item.brand || ''}
+                      value={item.brand || 'Blue Crown'}
                       onChange={(e) => handleFeedItemChange(index, 'brand', e.target.value)}
-                      className={`w-full border rounded-xl px-2 py-1.5 text-xs font-bold ${
-                        isLocked || lockedSections.feedsInventory ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-200'
-                      }`}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
                     >
                       {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
@@ -591,16 +420,13 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                     <label className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Quantity (KG)</label>
                     <input
                       type="number"
-                      disabled={isLocked || lockedSections.feedsInventory}
                       value={item.quantityKg}
                       onChange={(e) => handleFeedItemChange(index, 'quantityKg', e.target.value)}
                       placeholder="KG"
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold ${
-                        isLocked || lockedSections.feedsInventory ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-white border-slate-200'
-                      }`}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
                     />
                   </div>
-                  {formData.feedsInventory.items.length > 1 && !(isLocked || lockedSections.feedsInventory) && (
+                  {formData.feedsInventory.items.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeFeedRow(index)}
@@ -613,29 +439,24 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               </div>
             ))}
 
-            {!(isLocked || lockedSections.feedsInventory) && (
-              <button
-                type="button"
-                onClick={addFeedRow}
-                className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl text-xs font-black cursor-pointer inline-flex items-center space-x-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Another Feed Row</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={addFeedRow}
+              className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl text-xs font-black cursor-pointer inline-flex items-center space-x-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Another Feed Row</span>
+            </button>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Total Bags in Store</label>
                 <input
                   type="number"
-                  disabled={isLocked || lockedSections.feedsInventory}
                   value={formData.feedsInventory.totalBags}
                   onChange={(e) => handleFeedInventorySummaryChange('totalBags', e.target.value)}
                   placeholder="e.g. 50"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                    isLocked || lockedSections.feedsInventory ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
-                  }`}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                 />
               </div>
               <div>
@@ -650,32 +471,31 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         )}
       </div>
 
-      {/* ===== 2. FEED STORAGE & OBSERVATIONS ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.feedStorage ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('feedStorage')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
+      {/* ===== SECTION 2: FEED STORAGE & WASTAGE ===== */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div 
+          onClick={() => toggleSectionCollapse('feedStorage')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
             <Building className="w-5 h-5 text-emerald-600" />
             <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
               2. Feed Storage & Wastage Observations
             </h4>
           </div>
-          {renderSectionHeaderActions('feedStorage', 'Feed Storage Notes')}
+          <div className="text-slate-400">
+            {collapsedSections.feedStorage ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.feedStorage && (
-          <div className="space-y-4 pt-4 animate-fadeIn">
+          <div className="space-y-4 pt-1 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feed Wastage Noticed?</label>
                 <div className="flex space-x-3 mb-2">
                   <button
                     type="button"
-                    disabled={isLocked || lockedSections.feedStorage}
                     onClick={() => handleStorageWastageChange(true, formData.feedStorage.wastageNoticed.comment)}
                     className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
                       formData.feedStorage.wastageNoticed.hasWastage ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-50 border-slate-200'
@@ -685,7 +505,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                   </button>
                   <button
                     type="button"
-                    disabled={isLocked || lockedSections.feedStorage}
                     onClick={() => handleStorageWastageChange(false, '')}
                     className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
                       !formData.feedStorage.wastageNoticed.hasWastage ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
@@ -697,7 +516,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 {formData.feedStorage.wastageNoticed.hasWastage && (
                   <input
                     type="text"
-                    disabled={isLocked || lockedSections.feedStorage}
                     value={formData.feedStorage.wastageNoticed.comment}
                     onChange={(e) => handleStorageWastageChange(true, e.target.value)}
                     placeholder="Describe feed wastage details..."
@@ -711,7 +529,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 <div className="flex space-x-3 mb-2">
                   <button
                     type="button"
-                    disabled={isLocked || lockedSections.feedStorage}
                     onClick={() => handleStorageIssueChange(true, formData.feedStorage.machineIssues.comment)}
                     className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
                       formData.feedStorage.machineIssues.hasIssue ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-slate-50 border-slate-200'
@@ -721,7 +538,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                   </button>
                   <button
                     type="button"
-                    disabled={isLocked || lockedSections.feedStorage}
                     onClick={() => handleStorageIssueChange(false, '')}
                     className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
                       !formData.feedStorage.machineIssues.hasIssue ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
@@ -733,7 +549,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 {formData.feedStorage.machineIssues.hasIssue && (
                   <input
                     type="text"
-                    disabled={isLocked || lockedSections.feedStorage}
                     value={formData.feedStorage.machineIssues.comment}
                     onChange={(e) => handleStorageIssueChange(true, e.target.value)}
                     placeholder="Describe machine issue details..."
@@ -746,42 +561,37 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         )}
       </div>
 
-      {/* ===== 3. RAW INGREDIENTS USAGE ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.ingredientsUsed ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('ingredientsUsed')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
-            <Factory className="w-5 h-5 text-emerald-600" />
+      {/* ===== SECTION 3: RAW INGREDIENTS USAGE ===== */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div 
+          onClick={() => toggleSectionCollapse('ingredientsUsed')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
+            <Droplet className="w-5 h-5 text-emerald-600" />
             <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
-              3. Raw Ingredients Usage Audit (KG)
+              3. Raw Ingredients Usage (KG)
             </h4>
           </div>
-          {renderSectionHeaderActions('ingredientsUsed', 'Raw Ingredients Audit')}
+          <div className="text-slate-400">
+            {collapsedSections.ingredientsUsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.ingredientsUsed && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-4 animate-fadeIn">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 pt-1 animate-fadeIn">
             {Object.keys(formData.ingredientsUsed).map((key) => {
-              const label = key === 'gnc' ? 'GNC' :
-                key === 'dcp' ? 'DCP' :
-                key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
+              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
               return (
-                <div key={key}>
-                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-0.5 truncate" title={label}>{label}</label>
+                <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
                   <input
                     type="number"
-                    disabled={isLocked || lockedSections.ingredientsUsed}
+                    step="any"
                     value={formData.ingredientsUsed[key] || ''}
-                    onChange={(e) => handleIngredientChange(key as any, e.target.value)}
-                    placeholder="0"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                      isLocked || lockedSections.ingredientsUsed ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
-                    }`}
+                    onChange={(e) => handleIngredientChange(key, e.target.value)}
+                    placeholder="KG"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
                   />
                 </div>
               );
@@ -790,39 +600,37 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         )}
       </div>
 
-      {/* ===== 4. DRUGS & ADDITIVES ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.drugsUsed ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('drugsUsed')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
-            <Droplet className="w-5 h-5 text-emerald-600" />
+      {/* ===== SECTION 4: DRUGS & ADDITIVES ===== */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div 
+          onClick={() => toggleSectionCollapse('drugsUsed')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
+            <Activity className="w-5 h-5 text-emerald-600" />
             <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
-              4. Drugs & Additives Audit
+              4. Drugs, Additives & Supplements (KG)
             </h4>
           </div>
-          {renderSectionHeaderActions('drugsUsed', 'Drugs & Additives')}
+          <div className="text-slate-400">
+            {collapsedSections.drugsUsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.drugsUsed && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-4 animate-fadeIn">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1 animate-fadeIn">
             {Object.keys(formData.drugsUsed).map((key) => {
               const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
               return (
-                <div key={key}>
-                  <label className="block text-[10px] font-black uppercase text-slate-500 mb-0.5 truncate" title={label}>{label}</label>
+                <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
                   <input
                     type="number"
-                    disabled={isLocked || lockedSections.drugsUsed}
-                    value={formData.drugsUsed[key as keyof FisheryAssetFormData['drugsUsed']] || ''}
-                    onChange={(e) => handleDrugChange(key as any, e.target.value)}
-                    placeholder="0"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                      isLocked || lockedSections.drugsUsed ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
-                    }`}
+                    step="any"
+                    value={formData.drugsUsed[key] || ''}
+                    onChange={(e) => handleDrugChange(key, e.target.value)}
+                    placeholder="KG"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
                   />
                 </div>
               );
@@ -831,82 +639,157 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         )}
       </div>
 
-      {/* ===== 5. MACHINERY HEALTH CHECK ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.machineCheck ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('machineCheck')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
-            <Wrench className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
-              5. Machinery Health & Maintenance Status
-            </h4>
+      {/* ===== SECTION 5: MACHINE HEALTH CHECKS (SUBSECTION SEPARATED) ===== */}
+      <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+        <div 
+          onClick={() => toggleSectionCollapse('machineCheck')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
+            <Wrench className="w-5 h-5 text-purple-700" />
+            <div>
+              <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase group-hover:text-purple-700 transition-colors">
+                5. Machine Health Checks & Operational Status
+              </h4>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Organized into distinct subsections: Solar Systems, Grinding Machines, Mixers, and Pumping Stations
+              </p>
+            </div>
           </div>
-          {renderSectionHeaderActions('machineCheck', 'Machinery Status')}
+          <div className="text-slate-400">
+            {collapsedSections.machineCheck ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.machineCheck && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-4 animate-fadeIn">
-            {Object.keys(formData.machineCheck).map((key) => {
-              const label = MACHINE_LABELS[key] || key.replace(/([A-Z])/g, ' $1');
-              return (
-                <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">{label}</label>
-                  <select
-                    disabled={isLocked || lockedSections.machineCheck}
-                    value={formData.machineCheck[key] || 'Good'}
-                    onChange={(e) => handleMachineChange(key as any, e.target.value as any)}
-                    className={`w-full border rounded-xl px-2 py-1.5 text-xs font-bold ${
-                      formData.machineCheck[key] === 'Faulty' ? 'text-rose-700 border-rose-300 bg-rose-50' :
-                      formData.machineCheck[key] === 'Needs Maintenance' ? 'text-amber-700 border-amber-300 bg-amber-50' :
-                      'text-emerald-800 border-emerald-300 bg-emerald-50'
-                    }`}
-                  >
-                    <option value="Good">Good</option>
-                    <option value="Faulty">Faulty</option>
-                    <option value="Needs Maintenance">Needs Maintenance</option>
-                  </select>
-                </div>
-              );
-            })}
+          <div className="space-y-6 pt-1 animate-fadeIn">
+            
+            {/* SUBSECTION A: SOLAR POWER SYSTEMS */}
+            <div className="p-4 sm:p-5 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
+              <div className="flex items-center space-x-2 border-b border-amber-200/80 pb-2">
+                <Sun className="w-4 h-4 text-amber-600" />
+                <h5 className="text-xs font-black uppercase tracking-wider text-amber-950">
+                  A. Solar Power Systems
+                </h5>
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
+                  5 Units
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {renderMachineStatusPicker('solarSystemA', 'Solar System A')}
+                {renderMachineStatusPicker('solarSystemB', 'Solar System B')}
+                {renderMachineStatusPicker('solarSystemC', 'Solar System C')}
+                {renderMachineStatusPicker('solarSystemD', 'Solar System D')}
+                {renderMachineStatusPicker('solarSystemE', 'Solar System E')}
+              </div>
+            </div>
+
+            {/* SUBSECTION B: GRINDING MACHINERY */}
+            <div className="p-4 sm:p-5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+              <div className="flex items-center space-x-2 border-b border-blue-200/80 pb-2">
+                <Cog className="w-4 h-4 text-blue-600" />
+                <h5 className="text-xs font-black uppercase tracking-wider text-blue-950">
+                  B. Grinding Machinery
+                </h5>
+                <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full ml-auto">
+                  3 Units
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {renderMachineStatusPicker('chineseGrindingMachine', 'Chinese Grinding Machine')}
+                {renderMachineStatusPicker('locallyFabricatedGrindingMachine', 'Locally Fabricated Grinding Machine')}
+                {renderMachineStatusPicker('grinder', 'Primary Grinder Unit')}
+              </div>
+            </div>
+
+            {/* SUBSECTION C: MIXERS & BLENDERS */}
+            <div className="p-4 sm:p-5 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-3">
+              <div className="flex items-center space-x-2 border-b border-purple-200/80 pb-2">
+                <RefreshCw className="w-4 h-4 text-purple-600" />
+                <h5 className="text-xs font-black uppercase tracking-wider text-purple-950">
+                  C. Feed Mixers & Wet Blenders
+                </h5>
+                <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full ml-auto">
+                  3 Units
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {renderMachineStatusPicker('chineseMixer', 'Chinese Mixer')}
+                {renderMachineStatusPicker('locallyFabricatedMixer', 'Locally Fabricated Mixer')}
+                {renderMachineStatusPicker('localWetMixer', 'Local Wet Mixer')}
+              </div>
+            </div>
+
+            {/* SUBSECTION D: WATER PUMPING STATIONS */}
+            <div className="p-4 sm:p-5 bg-cyan-50/60 rounded-2xl border border-cyan-200 space-y-3">
+              <div className="flex items-center space-x-2 border-b border-cyan-200/80 pb-2">
+                <Waves className="w-4 h-4 text-cyan-600" />
+                <h5 className="text-xs font-black uppercase tracking-wider text-cyan-950">
+                  D. Water Pumping Stations
+                </h5>
+                <span className="text-[10px] font-bold text-cyan-800 bg-cyan-100 px-2 py-0.5 rounded-full ml-auto">
+                  5 Pumping Units
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {renderMachineStatusPicker('pumpingMachineA', '1.5 HP Pump – A')}
+                {renderMachineStatusPicker('pumpingMachineB', '1.5 HP Pump – B')}
+                {renderMachineStatusPicker('pumpingMachineC', '1.5 HP Pump – C')}
+                {renderMachineStatusPicker('pumpingMachineD', '1.0 HP Pump – D')}
+                {renderMachineStatusPicker('pumpingMachineE', '5.5 HP Pump – E')}
+              </div>
+            </div>
+
+            {/* SUBSECTION E: EXTRUSION & PELLETING UNITS */}
+            <div className="p-4 sm:p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
+              <div className="flex items-center space-x-2 border-b border-emerald-200/80 pb-2">
+                <Factory className="w-4 h-4 text-emerald-600" />
+                <h5 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                  E. Pelleting, Extrusion & Quality Control
+                </h5>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full ml-auto">
+                  3 Parameters
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {renderMachineStatusPicker('extrudingPelletingMachine', 'Extruding / Pelleting Machine')}
+                {renderMachineStatusPicker('dryerUnit', 'Dryer Unit')}
+                {renderMachineStatusPicker('shapeQuality', 'Pellet Shape Quality')}
+              </div>
+            </div>
+
           </div>
         )}
       </div>
 
-      {/* ===== 6. TECHNICAL REPORT (FUEL & METER) ===== */}
-      <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
-        lockedSections.technicalReport ? 'bg-slate-50/90 border-slate-300' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div 
-            onClick={() => toggleSectionCollapse('technicalReport')}
-            className="flex items-center space-x-2 cursor-pointer group select-none flex-1"
-          >
+      {/* ===== SECTION 6: TECHNICAL FUEL AUDIT ===== */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <div 
+          onClick={() => toggleSectionCollapse('technicalReport')}
+          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
+        >
+          <div className="flex items-center space-x-2.5">
             <Droplets className="w-5 h-5 text-emerald-600" />
             <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
               6. Technical Fuel & Meter Audit
             </h4>
           </div>
-          {renderSectionHeaderActions('technicalReport', 'Technical Fuel Audit')}
+          <div className="text-slate-400">
+            {collapsedSections.technicalReport ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+          </div>
         </div>
 
         {!collapsedSections.technicalReport && (
-          <div className="space-y-4 pt-4 animate-fadeIn">
+          <div className="space-y-4 pt-1 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Diesel Generator (Litres)</label>
                 <input
                   type="number"
-                  disabled={isLocked || lockedSections.technicalReport}
                   value={formData.technicalReport.dieselGeneratorLitres}
                   onChange={(e) => handleTechnicalChange('dieselGeneratorLitres', e.target.value)}
                   placeholder="0"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                    isLocked || lockedSections.technicalReport ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
-                  }`}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                 />
               </div>
 
@@ -914,13 +797,10 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Diesel Kegs (Litres)</label>
                 <input
                   type="number"
-                  disabled={isLocked || lockedSections.technicalReport}
                   value={formData.technicalReport.dieselKegsLitres}
                   onChange={(e) => handleTechnicalChange('dieselKegsLitres', e.target.value)}
                   placeholder="0"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                    isLocked || lockedSections.technicalReport ? 'bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
-                  }`}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
                 />
               </div>
 
@@ -937,7 +817,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               <input
                 type="file"
                 accept="image/*"
-                disabled={isLocked || lockedSections.technicalReport}
                 onChange={handlePhotoUpload}
                 className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700"
               />
@@ -951,184 +830,29 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         )}
       </div>
 
-      {/* Final Form Action: Archive & Submit Completed Form */}
-      <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-5 rounded-3xl">
-        <div className="text-xs text-slate-600 font-medium space-y-1">
-          <div className="font-extrabold text-slate-900 flex items-center space-x-1.5">
-            <Archive className="w-4 h-4 text-emerald-600" />
-            <span>Farm Records Archiving Workflow</span>
-          </div>
-          <p>
-            When all asset inventory sections for this period are completed, submit the entire form to the permanent archive.
+      {/* Whole Form Submit Action */}
+      <div className="p-6 bg-slate-900 text-white rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-black uppercase">Submit Grow-Out Asset Inventory</h4>
+          <p className="text-xs text-slate-400">
+            Submits all feeds in store ({calculatedTotalFeed} KG), ingredients, fuel audit, and machine health checks for manager review.
           </p>
         </div>
 
         <button
-          type="button"
-          onClick={() => setArchiveModal(true)}
+          type="submit"
           disabled={isSubmitting}
-          className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50"
+          className="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-950/40 active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
         >
           {isSubmitting ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
           ) : (
-            <FileCheck className="w-4 h-4" />
+            <Send className="w-4 h-4" />
           )}
-          <span>Submit Completed Form to Archive</span>
+          <span>Submit Complete Asset Inventory</span>
         </button>
       </div>
 
-      {/* Confirmation Modal */}
-      {confirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 relative">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 mx-auto">
-              <AlertTriangle className="w-6 h-6 text-amber-600" />
-            </div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                Save Farm Log
-              </h3>
-              <p className="text-sm text-slate-800 font-extrabold leading-relaxed">
-                Are you sure you want to save this log?
-              </p>
-              <p className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2 text-left leading-relaxed">
-                🔒 Once confirmed, this log entry for <strong>{confirmModal.sectionName}</strong> will become <strong>immutable and permanent</strong>. Other sections remain active and editable. To make corrections later, use the <em>Request for Change</em> button.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmLockAndSave}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>Yes, Confirm & Lock</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Archive Modal */}
-      {archiveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 relative">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 mx-auto">
-              <Archive className="w-6 h-6 text-emerald-700" />
-            </div>
-
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                Archive & Submit Form
-              </h3>
-              <p className="text-sm text-slate-800 font-extrabold leading-relaxed">
-                Are you ready to submit this complete asset inventory to the farm archive?
-              </p>
-              <p className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2 text-left leading-relaxed">
-                📦 This will permanently archive all feeds, ingredients, machinery health, and fuel records into the central farm registry for record-keeping and forward the complete record for management review.
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setArchiveModal(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleArchiveAndSubmit}
-                className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>Confirm Archive</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Change Request Modal */}
-      {changeRequestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-5 relative">
-            <button
-              type="button"
-              onClick={() => setChangeRequestModal(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-800">
-                <Edit3 className="w-5 h-5 text-purple-700" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900 uppercase">
-                  Request for Change: {changeRequestModal.sectionName}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Submit a request to the Executive Director to unlock this section for correction
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase text-slate-700">
-                Reason for Requested Correction *
-              </label>
-              <textarea
-                rows={4}
-                required
-                value={changeRequestModal.reason}
-                onChange={(e) => setChangeRequestModal({ ...changeRequestModal, reason: e.target.value })}
-                placeholder="e.g. Need to adjust feed inventory quantity or report a faulty machine..."
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-2xl p-3.5 text-xs font-medium text-slate-900 outline-none transition-all"
-              />
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setChangeRequestModal(null)}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                disabled={changeRequestModal.isSubmitting || !changeRequestModal.reason.trim()}
-                onClick={handleSubmitChangeRequest}
-                className="px-6 py-2.5 bg-purple-900 hover:bg-purple-950 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-purple-200 transition-all cursor-pointer flex items-center space-x-2 disabled:opacity-50"
-              >
-                {changeRequestModal.isSubmitting ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Send className="w-3.5 h-3.5" />
-                )}
-                <span>Submit Request to ED</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+    </form>
   );
 };

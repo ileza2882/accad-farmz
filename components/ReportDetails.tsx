@@ -269,27 +269,120 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
               </div>
             )}
 
-            {/* Machinery Health Check */}
+            {/* Machinery Health Check (Categorized Subsections) */}
             {assetData.machineCheck && (
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-5">
                 <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
-                  <Wrench className="w-4 h-4 text-amber-600" />
-                  <span>Machinery Health & Status Audit</span>
+                  <Wrench className="w-4 h-4 text-purple-700" />
+                  <span>Machinery Health & Status Audit (By Machine Type)</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {Object.entries(assetData.machineCheck).map(([mName, mStatus]) => {
-                    const label = MACHINE_LABELS[mName] || mName.replace(/([A-Z])/g, ' $1');
-                    return (
-                      <div key={mName} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col justify-between">
-                        <span className="text-[10px] font-bold text-slate-500">{label}</span>
-                        <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-xl mt-2 w-fit ${
-                          mStatus === 'Good' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                          mStatus === 'Faulty' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                        }`}>{mStatus}</span>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-4">
+                  {/* Solar Systems */}
+                  <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block">
+                      ☀️ Solar Power Systems
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {['solarSystemA', 'solarSystemB', 'solarSystemC', 'solarSystemD', 'solarSystemE'].map((key) => {
+                        const status = assetData.machineCheck[key] || 'Good';
+                        return (
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-amber-100 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
+                              status === 'Good' ? 'bg-emerald-100 text-emerald-800' :
+                              status === 'Faulty' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>{status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Grinding Machinery */}
+                  <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-950 block">
+                      ⚙️ Grinding Machinery
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {['chineseGrindingMachine', 'locallyFabricatedGrindingMachine', 'grinder'].map((key) => {
+                        const status = assetData.machineCheck[key] || 'Good';
+                        return (
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-blue-100 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
+                              status === 'Good' ? 'bg-emerald-100 text-emerald-800' :
+                              status === 'Faulty' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>{status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Feed Mixers */}
+                  <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-950 block">
+                      🌀 Feed Mixers & Wet Blenders
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {['chineseMixer', 'locallyFabricatedMixer', 'localWetMixer'].map((key) => {
+                        const status = assetData.machineCheck[key] || 'Good';
+                        return (
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-purple-100 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
+                              status === 'Good' ? 'bg-emerald-100 text-emerald-800' :
+                              status === 'Faulty' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>{status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Water Pumping Stations */}
+                  <div className="p-4 bg-cyan-50/70 rounded-2xl border border-cyan-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-950 block">
+                      💧 Water Pumping Stations
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {['pumpingMachineA', 'pumpingMachineB', 'pumpingMachineC', 'pumpingMachineD', 'pumpingMachineE'].map((key) => {
+                        const status = assetData.machineCheck[key] || 'Good';
+                        return (
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-cyan-100 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
+                              status === 'Good' ? 'bg-emerald-100 text-emerald-800' :
+                              status === 'Faulty' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>{status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Extrusion & Pelleting Units */}
+                  <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-950 block">
+                      🏭 Extrusion, Pelleting & Shape Quality
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {['extrudingPelletingMachine', 'dryerUnit', 'shapeQuality'].map((key) => {
+                        const status = assetData.machineCheck[key] || 'Good';
+                        return (
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-emerald-100 flex flex-col justify-between">
+                            <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
+                              status === 'Good' ? 'bg-emerald-100 text-emerald-800' :
+                              status === 'Faulty' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            }`}>{status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
