@@ -328,6 +328,8 @@ export interface Report {
   formData?: FisheryAssetFormData | FisheryLivestockFormData | FisheryHatcheryFormData | any;
   isReEntry?: boolean;
   rejectionReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: number;
   managerApprovedBy?: string;
   edApprovedBy?: string;
   computerName?: string;
@@ -335,6 +337,12 @@ export interface Report {
   isArchived?: boolean;
   archivedAt?: number;
   archivedBy?: string;
+  // Resubmission & Redo tracking
+  isResubmitted?: boolean;
+  resubmittedAt?: number;
+  resubmissionCount?: number;
+  previousRejectionReason?: string;
+  redoNotes?: string;
 }
 
 export interface NotificationItem {

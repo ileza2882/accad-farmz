@@ -402,10 +402,18 @@ export async function getReports(): Promise<Report[]> {
           formData: r.formData,
           isReEntry: Boolean(r.isReEntry),
           rejectionReason: r.rejectionReason,
+          rejectedBy: r.rejectedBy,
+          rejectedAt: r.rejectedAt,
           managerApprovedBy: r.managerApprovedBy,
           edApprovedBy: r.edApprovedBy,
           computerName: r.computerName || 'ACCAD-WORKSTATION-PC',
-          updatedAt: r.updatedAt || r.timestamp
+          updatedAt: r.updatedAt || r.timestamp,
+          isArchived: Boolean(r.isArchived),
+          isResubmitted: Boolean(r.isResubmitted),
+          resubmittedAt: r.resubmittedAt,
+          resubmissionCount: r.resubmissionCount || 0,
+          previousRejectionReason: r.previousRejectionReason,
+          redoNotes: r.redoNotes
         })).sort((a: Report, b: Report) => b.timestamp - a.timestamp);
 
         try {
@@ -446,10 +454,18 @@ export async function createReport(report: Report): Promise<Report> {
     formData: report.formData || null,
     isReEntry: report.isReEntry || false,
     rejectionReason: report.rejectionReason || null,
+    rejectedBy: report.rejectedBy || null,
+    rejectedAt: report.rejectedAt || null,
     managerApprovedBy: report.managerApprovedBy || null,
     edApprovedBy: report.edApprovedBy || null,
     computerName: report.computerName || 'ACCAD-WORKSTATION-PC',
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    isArchived: report.isArchived || false,
+    isResubmitted: report.isResubmitted || false,
+    resubmittedAt: report.resubmittedAt || null,
+    resubmissionCount: report.resubmissionCount || 0,
+    previousRejectionReason: report.previousRejectionReason || null,
+    redoNotes: report.redoNotes || null
   };
 
   if (!IS_DISCONNECTED_MODE) {
@@ -485,12 +501,17 @@ export async function updateReportStatus(
   status: ReportStatus,
   rejectionReason?: string,
   managerApprovedBy?: string,
-  edApprovedBy?: string
+  edApprovedBy?: string,
+  rejectedBy?: string
 ): Promise<boolean> {
   const updates: Record<string, any> = { status, updatedAt: Date.now() };
   if (rejectionReason !== undefined) updates.rejectionReason = rejectionReason;
   if (managerApprovedBy !== undefined) updates.managerApprovedBy = managerApprovedBy;
   if (edApprovedBy !== undefined) updates.edApprovedBy = edApprovedBy;
+  if (rejectedBy !== undefined) {
+    updates.rejectedBy = rejectedBy;
+    updates.rejectedAt = Date.now();
+  }
 
   if (!IS_DISCONNECTED_MODE) {
     try {
@@ -518,6 +539,47 @@ export async function updateReportStatus(
   } catch (e) {}
 
   return true;
+}
+
+/**
+ * Redo and Resubmit a previously rejected farm log
+ */
+export async function resubmitReport(
+  reportId: string,
+  redoPayload: {
+    formData?: any;
+    title?: string;
+    content?: string;
+    redoNotes?: string;
+    resubmittedBy?: string;
+  }
+): Promise<Report | null> {
+  const existingReports = await getReports();
+  const existing = existingReports.find(r => r.id === reportId);
+  if (!existing) return null;
+
+  const resubmissionCount = (existing.resubmissionCount || 0) + 1;
+  const previousRejectionReason = existing.rejectionReason || existing.previousRejectionReason || 'Rejection feedback addressed';
+
+  const updates: Partial<Report> = {
+    status: ReportStatus.PENDING_MANAGER,
+    isResubmitted: true,
+    resubmittedAt: Date.now(),
+    resubmissionCount,
+    previousRejectionReason,
+    rejectionReason: undefined,
+    rejectedBy: undefined,
+    rejectedAt: undefined,
+    managerApprovedBy: undefined,
+    edApprovedBy: undefined,
+    updatedAt: Date.now(),
+    formData: redoPayload.formData !== undefined ? redoPayload.formData : existing.formData,
+    title: redoPayload.title || existing.title,
+    content: redoPayload.content || existing.content,
+    redoNotes: redoPayload.redoNotes || ''
+  };
+
+  return await updateReport(reportId, updates);
 }
 
 export async function updateReport(reportId: string, updates: Partial<Report>): Promise<Report | null> {

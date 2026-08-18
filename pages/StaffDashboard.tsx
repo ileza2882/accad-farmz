@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User, Department, InventoryType, Report, ReportStatus, FisherySection, FisheryHatcheryBatchData, FisheryLivestockPondData, FisheryAssetFormData } from '../types';
-import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
+import { getReports, createReport, updateReport, resubmitReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryAssetForm } from '../components/FisheryAssetForm';
 import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { ReportDetails } from '../components/ReportDetails';
 import { FarmLogsTable } from '../components/FarmLogsTable';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
-import { Plus, FileText, CheckCircle2, Clock, XCircle, Filter, Eye, AlertCircle, RefreshCw, Monitor, Sparkles } from 'lucide-react';
+import { Plus, FileText, CheckCircle2, Clock, XCircle, Filter, Eye, AlertCircle, RefreshCw, Monitor, Sparkles, RotateCcw } from 'lucide-react';
 
 interface StaffDashboardProps {
   user: User;
@@ -30,6 +30,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [activeHatcheryReport, setActiveHatcheryReport] = useState<Report | null>(null);
   const [activeLivestockReport, setActiveLivestockReport] = useState<Report | null>(null);
   const [activeAssetReport, setActiveAssetReport] = useState<Report | null>(null);
+  const [redoingReport, setRedoingReport] = useState<Report | null>(null);
   const [formResetKey, setFormResetKey] = useState(0);
 
   const fetchUserReports = async () => {
@@ -301,6 +302,36 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     fetchUserReports();
   };
 
+  // Redo / Correction handlers for Rejected Logs
+  const handleStartRedo = (report: Report) => {
+    setRedoingReport(report);
+    setSelectedDept(report.department);
+    setSelectedInvType(report.inventoryType);
+    setLogTitle(report.title || '');
+    setLogContent(report.content || '');
+    
+    if (report.inventoryType === InventoryType.ASSET) {
+      setActiveAssetReport(report);
+    } else if (report.inventoryType === InventoryType.LIVESTOCK) {
+      setActiveLivestockReport(report);
+    } else if (report.inventoryType === InventoryType.HATCHERY) {
+      setActiveHatcheryReport(report);
+    }
+    
+    setFormResetKey(prev => prev + 1);
+    setActiveTab('submit_log');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelRedo = () => {
+    setRedoingReport(null);
+    setLogTitle('');
+    setLogContent('');
+    setActiveAssetReport(null);
+    setActiveLivestockReport(null);
+    setFormResetKey(prev => prev + 1);
+  };
+
   // Form submit that DOES NOT redirect to another page
   const handleFormSubmit = async (formData?: any) => {
     let effectiveTitle = logTitle.trim();
@@ -321,40 +352,72 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
 
     try {
       const computerName = getComputerName();
-      const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const section = selectedInvType === InventoryType.HATCHERY 
-        ? FisherySection.HATCHERY 
-        : FisherySection.GROW_OUT;
 
-      const newReport: Report = {
-        id: newReportId,
-        userId: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        department: selectedDept,
-        inventoryType: selectedInvType,
-        section,
-        title: effectiveTitle,
-        content: logContent.trim() || `${selectedDept} ${selectedInvType} Submission`,
-        timestamp: Date.now(),
-        status: ReportStatus.PENDING_MANAGER,
-        computerName,
-        formData: formData || null
-      };
+      if (redoingReport) {
+        // Redoing and Resubmitting a Rejected Log
+        await resubmitReport(redoingReport.id, {
+          formData: formData !== undefined ? formData : redoingReport.formData,
+          title: effectiveTitle || redoingReport.title,
+          content: logContent.trim() || redoingReport.content || `Redone submission by ${user.fullName}`,
+          redoNotes: `Redone after rejection notes: ${redoingReport.rejectionReason || ''}`,
+          resubmittedBy: user.fullName
+        });
 
-      await createReport(newReport);
+        // Create Notification for Manager
+        await createNotification({
+          userId: 'manager_group',
+          userEmail: 'manager@accadfarms.com',
+          title: '🔄 Farm Log Redone & Resubmitted',
+          message: `${user.fullName} has redone and resubmitted "${formatLogName(redoingReport)}" for review.`,
+          type: 'warning'
+        });
 
-      // Create Notification for Manager
-      await createNotification({
-        userId: 'manager_group',
-        userEmail: 'manager@accadfarms.com',
-        title: 'New Farm Log Submitted',
-        message: `New farm log pending review: "${formatLogName(newReport)}" from ${user.fullName}`,
-        type: 'info'
-      });
+        await createAuditLog(
+          user.fullName,
+          user.email,
+          'LOG_REDONE_RESUBMITTED',
+          `Staff ${user.fullName} redone and resubmitted rejected log "${formatLogName(redoingReport)}" with corrections`
+        );
 
-      // Show success feedback on SAME page WITHOUT redirecting, reset form & collapse
-      setSubmitSuccess('Farm log successfully submitted! Forms collapsed to clean default state for new entry.');
+        setSubmitSuccess('Rejected farm log successfully redone and resubmitted! Flagged for Sector Manager & ED review.');
+        setRedoingReport(null);
+      } else {
+        // Standard New Log Submission
+        const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const section = selectedInvType === InventoryType.HATCHERY 
+          ? FisherySection.HATCHERY 
+          : FisherySection.GROW_OUT;
+
+        const newReport: Report = {
+          id: newReportId,
+          userId: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          department: selectedDept,
+          inventoryType: selectedInvType,
+          section,
+          title: effectiveTitle,
+          content: logContent.trim() || `${selectedDept} ${selectedInvType} Submission`,
+          timestamp: Date.now(),
+          status: ReportStatus.PENDING_MANAGER,
+          computerName,
+          formData: formData || null
+        };
+
+        await createReport(newReport);
+
+        // Create Notification for Manager
+        await createNotification({
+          userId: 'manager_group',
+          userEmail: 'manager@accadfarms.com',
+          title: 'New Farm Log Submitted',
+          message: `New farm log pending review: "${formatLogName(newReport)}" from ${user.fullName}`,
+          type: 'info'
+        });
+
+        setSubmitSuccess('Farm log successfully submitted! Forms collapsed to clean default state for new entry.');
+      }
+
       setLogTitle('');
       setLogContent('');
       setFormResetKey(prev => prev + 1);
@@ -424,23 +487,109 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         </div>
       )}
 
+      {/* Rejected Logs Alert Section */}
+      {reports.filter(r => r.status === ReportStatus.REJECTED_BY_MANAGER || r.status === ReportStatus.REJECTED_BY_ED).length > 0 && (
+        <div className="bg-rose-50 border-2 border-rose-300 p-5 rounded-3xl space-y-3 shadow-md animate-fadeIn">
+          <div className="flex items-center space-x-2 text-rose-900">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <h3 className="text-sm font-black uppercase tracking-tight">
+              Action Required: {reports.filter(r => r.status === ReportStatus.REJECTED_BY_MANAGER || r.status === ReportStatus.REJECTED_BY_ED).length} Rejected Log(s) Pending Correction
+            </h3>
+          </div>
+          <p className="text-xs text-rose-800 font-medium">
+            Your Sector Manager has reviewed and rejected the log(s) below. Please review the feedback, click <strong>"Redo & Resubmit"</strong>, make your adjustments, and resubmit for review.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {reports.filter(r => r.status === ReportStatus.REJECTED_BY_MANAGER || r.status === ReportStatus.REJECTED_BY_ED).map(r => (
+              <div key={r.id} className="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs space-y-2.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">
+                      {r.department} &bull; {r.inventoryType}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      {new Date(r.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 mt-1.5">{formatLogName(r)}</h4>
+                  <div className="mt-2 bg-rose-50/80 p-2.5 rounded-xl border border-rose-100 text-xs text-rose-900">
+                    <span className="text-[10px] font-black uppercase text-rose-700 block">Manager's Rejection Note:</span>
+                    <p className="italic font-medium mt-0.5">"{r.rejectionReason || 'Please review and adjust log entries.'}"</p>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                  <button
+                    onClick={() => setSelectedReportForModal(r)}
+                    className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                  >
+                    View Details
+                  </button>
+                  <button
+                    onClick={() => handleStartRedo(r)}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Redo & Resubmit</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Content View */}
       {activeTab === 'my_logs' ? (
         <FarmLogsTable
           reports={reports}
           user={user}
           onRefresh={fetchUserReports}
+          onRedo={handleStartRedo}
           onViewDetails={(report) => setSelectedReportForModal(report)}
         />
       ) : (
         /* Submit / Edit Farm Log Form View (User stays on this page) */
         <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
+          
+          {/* Active Redo / Correction Mode Notice */}
+          {redoingReport && (
+            <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-amber-950 space-y-2 shadow-xs animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <RotateCcw className="w-5 h-5 text-amber-700 shrink-0" />
+                  <h4 className="text-xs font-black uppercase tracking-tight text-amber-900">
+                    Redo & Correction Mode: {formatLogName(redoingReport)}
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelRedo}
+                  className="text-[11px] font-extrabold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                >
+                  Cancel Redo
+                </button>
+              </div>
+              <div className="bg-white/90 p-3 rounded-xl border border-amber-200 text-xs">
+                <span className="text-[10px] font-black uppercase text-rose-700 block">Manager Rejection Feedback:</span>
+                <p className="italic font-medium text-slate-800 mt-0.5">"{redoingReport.rejectionReason || 'Please review and adjust log entries.'}"</p>
+              </div>
+              <p className="text-[11px] text-amber-800 font-medium">
+                Make your corrections in the form below and click Submit to resubmit this log to the Sector Manager.
+              </p>
+            </div>
+          )}
+
           <div className="border-b border-slate-200 pb-4">
             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
-              Standard Form
+              {redoingReport ? 'Correction Entry' : 'Standard Form'}
             </span>
-            <h2 className="text-xl font-extrabold text-slate-900 mt-2">Submit & Record Daily Farm Log</h2>
-            <p className="text-xs text-slate-500 font-medium">Save each row or section to lock entry permanently in-place</p>
+            <h2 className="text-xl font-extrabold text-slate-900 mt-2">
+              {redoingReport ? 'Redo & Resubmit Farm Log' : 'Submit & Record Daily Farm Log'}
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              {redoingReport ? 'Update the values as requested by your manager and submit for re-evaluation.' : 'Save each row or section to lock entry permanently in-place'}
+            </p>
           </div>
 
           <div>

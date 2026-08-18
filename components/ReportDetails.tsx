@@ -27,7 +27,8 @@ import {
   Activity,
   Hash,
   Droplets,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 
 interface ReportDetailsProps {
@@ -143,6 +144,26 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             <p className="text-purple-700 font-bold mt-0.5">{report.edApprovedBy ? `Approved by ${report.edApprovedBy}` : 'Pending Authorization'}</p>
           </div>
         </div>
+
+        {/* Resubmission Audit Alert */}
+        {report.isResubmitted && (
+          <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs font-bold space-y-1.5 shadow-xs">
+            <div className="flex items-center space-x-2 text-amber-800 font-extrabold uppercase tracking-wide">
+              <RotateCcw className="w-4 h-4 text-amber-700" />
+              <span>Redone & Resubmitted Record (Attempt #{report.resubmissionCount || 1})</span>
+              {report.resubmittedAt && (
+                <span className="text-[10px] text-amber-600 font-normal ml-auto">
+                  Resubmitted: {new Date(report.resubmittedAt).toLocaleString()}
+                </span>
+              )}
+            </div>
+            {report.previousRejectionReason && (
+              <p className="font-medium text-amber-900 bg-white/80 p-2.5 rounded-xl border border-amber-200">
+                <strong className="text-rose-700">Previous Rejection Feedback:</strong> "{report.previousRejectionReason}"
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Rejection Reason Alert if any */}
         {report.rejectionReason && (

@@ -24,7 +24,8 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 
 interface FarmLogsTableProps {
@@ -37,6 +38,7 @@ interface FarmLogsTableProps {
   onRefresh?: () => void;
   onApprove?: (report: Report) => Promise<void>;
   onReject?: (report: Report) => void;
+  onRedo?: (report: Report) => void;
   onViewDetails?: (report: Report) => void;
 }
 
@@ -437,6 +439,12 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                             {logName}
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            {report.isResubmitted && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center space-x-1 shadow-xs">
+                                <RotateCcw className="w-2.5 h-2.5 text-amber-700" />
+                                <span>Resubmitted #{report.resubmissionCount || 1}</span>
+                              </span>
+                            )}
                             {hatcheryStage && (
                               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${hatcheryStage.badgeColor}`}>
                                 {hatcheryStage.stage}
@@ -501,14 +509,38 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusClasses(report.status)}`}>
-                        <span>{formatStatusLabel(report.status)}</span>
-                      </span>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusClasses(report.status)}`}>
+                          <span>{formatStatusLabel(report.status)}</span>
+                        </span>
+                        {report.rejectionReason && (report.status === ReportStatus.REJECTED_BY_MANAGER || report.status === ReportStatus.REJECTED_BY_ED) && (
+                          <div className="text-[10px] text-rose-700 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg max-w-[170px] truncate" title={report.rejectionReason}>
+                            Note: {report.rejectionReason}
+                          </div>
+                        )}
+                        {report.isResubmitted && (
+                          <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded block w-fit">
+                            Corrected & Resubmitted
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-4 px-6 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end space-x-1.5">
+                        {/* Redo & Resubmit Action for Rejected Log */}
+                        {(report.status === ReportStatus.REJECTED_BY_MANAGER || report.status === ReportStatus.REJECTED_BY_ED) && onRedo && (
+                          <button
+                            onClick={() => onRedo(report)}
+                            className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1 shadow-xs cursor-pointer"
+                            title="Redo and resubmit this rejected log"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Redo Log</span>
+                          </button>
+                        )}
+
                         {/* Details View */}
                         {onViewDetails && (
                           <button

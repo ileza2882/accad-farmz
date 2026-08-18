@@ -65,22 +65,30 @@ export function exportLogToPDF(report: Report): void {
     const dateSubmitted = new Date(report.timestamp).toLocaleString();
     const computerName = report.computerName || getComputerName();
 
-    // ACCAD FARMS Letterhead Header (Page 1)
-    doc.setFillColor(5, 150, 105); // Emerald Green
-    doc.rect(0, 0, 210, 28, 'F');
+    // ACCAD FARMS Official Standard Letterhead Header (Page 1)
+    doc.setTextColor(0, 100, 0); // Deep Forest Green (#006400)
+    doc.setFont('times', 'bold');
+    doc.setFontSize(22);
+    doc.text('Accad Farms Limited', 105, 14, { align: 'center' });
 
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(15, 23, 42);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('ACCAD FARMS NIGERIA LIMITED', 14, 14);
-    
-    doc.setFontSize(9.5);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Precision Agricultural Operations & Operational Inventory Sheet', 14, 21);
+    doc.setFontSize(8);
+    doc.text('Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.', 105, 20, { align: 'center' });
+
+    doc.setFontSize(7.5);
+    doc.text('+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com', 105, 25, { align: 'center' });
+
+    // Double Decorative Green Dividing Rule
+    doc.setDrawColor(0, 100, 0);
+    doc.setLineWidth(0.8);
+    doc.line(14, 28, 196, 28);
+    doc.setLineWidth(0.3);
+    doc.line(14, 29.2, 196, 29.2);
 
     // Document Title
     doc.setTextColor(30, 41, 59);
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(`OFFICIAL LOG: ${logName}`, 14, 36);
 
@@ -91,22 +99,28 @@ export function exportLogToPDF(report: Report): void {
       report.rejectionReason ? `Rejection Reason: ${report.rejectionReason}` : ''
     ].filter(Boolean).join('\n');
 
+    const metaBody = [
+      ['Standardized Log Name', logName],
+      ['Inventory Type', report.inventoryType || 'General Log'],
+      ['Department Sector', report.department || 'Fishery'],
+      ['Date Submitted', dateSubmitted],
+      ['Submitting User', `${report.fullName || 'Staff User'} (${report.email})`],
+      ['Log Status', formatStatusLabel(report.status)],
+      ['Submission Audit', report.isResubmitted ? `REDONE & RESUBMITTED (Attempt #${report.resubmissionCount || 1})` : 'Initial Log Submission'],
+      ['Approval & Vetting Audit', approvalChain],
+      ['Log Timestamps', `Created: ${dateSubmitted} | Last Updated: ${new Date(report.updatedAt || report.timestamp).toLocaleString()}`]
+    ];
+
+    if (report.isResubmitted && report.previousRejectionReason) {
+      metaBody.splice(7, 0, ['Previous Rejection Note', report.previousRejectionReason]);
+    }
+
     autoTable(doc, {
       startY: 40,
       head: [['LOG METADATA FIELD', 'EXHAUSTIVE RECORD DETAILS']],
-      body: [
-        ['Standardized Log Name', logName],
-        ['Inventory Type', report.inventoryType || 'General Log'],
-        ['Department Sector', report.department || 'Fishery'],
-        ['Date Submitted', dateSubmitted],
-        ['Submitting User', `${report.fullName || 'Staff User'} (${report.email})`],
-        ['Log Status', formatStatusLabel(report.status)],
-        ['Re-Entry Status', report.isReEntry ? 'Yes (Correction Re-Entry)' : 'Initial Log Submission'],
-        ['Approval & Vetting Audit', approvalChain],
-        ['Log Timestamps', `Created: ${dateSubmitted} | Last Updated: ${new Date(report.updatedAt || report.timestamp).toLocaleString()}`]
-      ],
+      body: metaBody,
       theme: 'grid',
-      headStyles: { fillColor: [5, 150, 105], textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [0, 100, 0], textColor: 255, fontStyle: 'bold' },
       styles: { fontSize: 8.5, cellPadding: 2.5 },
       columnStyles: {
         0: { fontStyle: 'bold', cellWidth: 52 },
@@ -525,10 +539,11 @@ export function exportLogToWord(report: Report): void {
       </head>
       <body>
 
-        <!-- Official Letterhead Header -->
-        <div class="header-banner">
-          <h1>ACCAD FARMS NIGERIA LIMITED</h1>
-          <p>Precision Agricultural Operations & Operational Inventory Sheet</p>
+        <!-- Official Standard Letterhead Header -->
+        <div style="text-align: center; border-bottom: 2.5px solid #006400; padding-bottom: 14px; margin-bottom: 22px;">
+          <h1 style="color: #006400; font-family: 'Times New Roman', Georgia, serif; font-size: 26pt; margin: 0 0 4px 0; font-weight: bold; letter-spacing: 0.5px;">Accad Farms Limited</h1>
+          <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 9.5pt; margin: 2px 0;">Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.</p>
+          <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 9pt; margin: 2px 0;">+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com</p>
         </div>
 
         <div class="doc-title">OFFICIAL LOG: ${logName}</div>
@@ -544,7 +559,8 @@ export function exportLogToWord(report: Report): void {
             <tr><td class="label">Submitting User</td><td class="value">${report.fullName || 'Staff User'} (${report.email})</td></tr>
             <tr><td class="label">User Computer Workstation</td><td class="value"><code>${computerName}</code></td></tr>
             <tr><td class="label">Log Status</td><td class="value"><strong>${statusText}</strong></td></tr>
-            <tr><td class="label">Re-Entry Status</td><td class="value">${report.isReEntry ? 'Yes (Correction Entry)' : 'Initial Log Entry'}</td></tr>
+            <tr><td class="label">Submission Audit</td><td class="value">${report.isResubmitted ? `REDONE & RESUBMITTED (Attempt #${report.resubmissionCount || 1})` : 'Initial Log Submission'}</td></tr>
+            ${report.isResubmitted && report.previousRejectionReason ? `<tr><td class="label">Previous Rejection Note</td><td class="value" style="color: #b91c1c; font-weight: bold;">${report.previousRejectionReason}</td></tr>` : ''}
             <tr><td class="label">Approval & Vetting Audit</td><td class="value">${approvalHistory || 'No approval record timestamped yet'}</td></tr>
             <tr><td class="label">Timestamps</td><td class="value">Logged: ${dateSubmitted}<br/>Last Updated: ${new Date(report.updatedAt || report.timestamp).toLocaleString()}</td></tr>
           </tbody>

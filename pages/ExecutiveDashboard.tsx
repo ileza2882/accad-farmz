@@ -54,7 +54,8 @@ import {
   FolderArchive,
   Search,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  RotateCcw
 } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
@@ -1129,9 +1130,22 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     </div>
 
                     <h4 className="text-base font-extrabold text-slate-900">{formatLogName(r)}</h4>
-                    <p className="text-xs font-bold text-slate-700 mt-1">Submitted by: {r.fullName || r.email}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <p className="text-xs font-bold text-slate-700">Submitted by: {r.fullName || r.email}</p>
+                      {r.isResubmitted && (
+                        <span className="inline-flex items-center space-x-1 text-[9px] font-black uppercase text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full shadow-2xs">
+                          <RotateCcw className="w-2.5 h-2.5 text-amber-700" />
+                          <span>Resubmission #{r.resubmissionCount || 1}</span>
+                        </span>
+                      )}
+                    </div>
                     {r.managerApprovedBy && (
                       <p className="text-[11px] font-semibold text-emerald-700 mt-0.5">Manager Vetted: {r.managerApprovedBy}</p>
+                    )}
+                    {r.isResubmitted && r.previousRejectionReason && (
+                      <div className="mt-1.5 p-2 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-950 font-medium">
+                        <strong className="text-rose-700">Addressed Rejection:</strong> "{r.previousRejectionReason}"
+                      </div>
                     )}
                     <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-medium">{r.content}</p>
                   </div>
@@ -1219,7 +1233,20 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     </div>
 
                     <h4 className="text-base font-extrabold text-slate-900">{formatLogName(r)}</h4>
-                    <p className="text-xs font-bold text-slate-700 mt-1">Staff: {r.fullName || r.email}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <p className="text-xs font-bold text-slate-700">Staff: {r.fullName || r.email}</p>
+                      {r.isResubmitted && (
+                        <span className="inline-flex items-center space-x-1 text-[9px] font-black uppercase text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full shadow-2xs">
+                          <RotateCcw className="w-2.5 h-2.5 text-amber-700" />
+                          <span>Resubmission #{r.resubmissionCount || 1}</span>
+                        </span>
+                      )}
+                    </div>
+                    {r.isResubmitted && r.previousRejectionReason && (
+                      <div className="mt-1.5 p-2 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-950 font-medium">
+                        <strong className="text-rose-700">Addressed Rejection:</strong> "{r.previousRejectionReason}"
+                      </div>
+                    )}
                     <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-medium">{r.content}</p>
                   </div>
 
