@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Report, ReportStatus, FisheryAssetFormData, FisheryLivestockFormData, FisheryHatcheryFormData, InventoryType, MACHINE_LABELS } from '../types';
+import { ACCAD_LOGO_BASE64 } from './logoBase64';
 
 /**
  * Get device or computer name fallback
@@ -66,31 +67,39 @@ export function exportLogToPDF(report: Report): void {
     const computerName = report.computerName || getComputerName();
 
     // ACCAD FARMS Official Standard Letterhead Header (Page 1)
+    // Left: Official Brand Logo
+    try {
+      doc.addImage(ACCAD_LOGO_BASE64, 'JPEG', 14, 7, 24, 22.3);
+    } catch (err) {
+      console.warn('Could not embed logo in PDF:', err);
+    }
+
+    // Right/Center: Corporate Header Details
     doc.setTextColor(0, 100, 0); // Deep Forest Green (#006400)
     doc.setFont('times', 'bold');
-    doc.setFontSize(22);
-    doc.text('Accad Farms Limited', 105, 14, { align: 'center' });
+    doc.setFontSize(21);
+    doc.text('Accad Farms Limited', 118, 14, { align: 'center' });
 
     doc.setTextColor(15, 23, 42);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.text('Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.', 105, 20, { align: 'center' });
+    doc.setFontSize(7.8);
+    doc.text('Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.', 118, 20, { align: 'center' });
 
-    doc.setFontSize(7.5);
-    doc.text('+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com', 105, 25, { align: 'center' });
+    doc.setFontSize(7.2);
+    doc.text('+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com', 118, 25, { align: 'center' });
 
     // Double Decorative Green Dividing Rule
     doc.setDrawColor(0, 100, 0);
     doc.setLineWidth(0.8);
-    doc.line(14, 28, 196, 28);
+    doc.line(14, 31, 196, 31);
     doc.setLineWidth(0.3);
-    doc.line(14, 29.2, 196, 29.2);
+    doc.line(14, 32.2, 196, 32.2);
 
     // Document Title
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(`OFFICIAL LOG: ${logName}`, 14, 36);
+    doc.text(`OFFICIAL LOG: ${logName}`, 14, 39);
 
     // Section 1: Metadata & Approval Audit Trail Table
     const approvalChain = [
@@ -540,11 +549,18 @@ export function exportLogToWord(report: Report): void {
       <body>
 
         <!-- Official Standard Letterhead Header -->
-        <div style="text-align: center; border-bottom: 2.5px solid #006400; padding-bottom: 14px; margin-bottom: 22px;">
-          <h1 style="color: #006400; font-family: 'Times New Roman', Georgia, serif; font-size: 26pt; margin: 0 0 4px 0; font-weight: bold; letter-spacing: 0.5px;">Accad Farms Limited</h1>
-          <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 9.5pt; margin: 2px 0;">Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.</p>
-          <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 9pt; margin: 2px 0;">+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com</p>
-        </div>
+        <table style="width: 100%; border: none; border-bottom: 2.5px solid #006400; padding-bottom: 12px; margin-bottom: 22px; page-break-inside: avoid;">
+          <tr>
+            <td style="width: 110px; border: none; vertical-align: middle; padding: 0 12px 0 0;">
+              <img src="${ACCAD_LOGO_BASE64}" width="95" height="88" style="display: block; border-radius: 4px;" alt="Accad Farms Logo" />
+            </td>
+            <td style="border: none; text-align: center; vertical-align: middle; padding: 0;">
+              <h1 style="color: #006400; font-family: 'Times New Roman', Georgia, serif; font-size: 24pt; margin: 0 0 4px 0; font-weight: bold; letter-spacing: 0.5px;">Accad Farms Limited</h1>
+              <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 9pt; margin: 2px 0;">Agboopa Village, Awowo, Ewekoro Local Government Area, Abeokuta, Ogun State, Nigeria.</p>
+              <p style="color: #0f172a; font-family: Arial, sans-serif; font-weight: bold; font-size: 8.5pt; margin: 2px 0;">+234 916 358 3220 / +2347030141958 / +2347082162467 | info@accadfarms.com</p>
+            </td>
+          </tr>
+        </table>
 
         <div class="doc-title">OFFICIAL LOG: ${logName}</div>
 
