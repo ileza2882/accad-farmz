@@ -108,7 +108,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
         // Extrusion & Pelleting
         extrudingPelletingMachine: 'Good',
         dryerUnit: 'Good',
-        shapeQuality: 'Good',
       },
       feedStorage: {
         totalFeedInStoreKg: "",
@@ -125,8 +124,15 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
   });
 
   const [calculatedTotalFeed, setCalculatedTotalFeed] = useState(0);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const [allExpanded, setAllExpanded] = useState<boolean>(true);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    feedsInventory: true,
+    feedStorage: true,
+    ingredientsUsed: true,
+    drugsUsed: true,
+    machineCheck: true,
+    technicalReport: true
+  });
+  const [allExpanded, setAllExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialData) {
@@ -300,6 +306,15 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
   const handleSubmitAll = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+    setCollapsedSections({
+      feedsInventory: true,
+      feedStorage: true,
+      ingredientsUsed: true,
+      drugsUsed: true,
+      machineCheck: true,
+      technicalReport: true
+    });
+    setAllExpanded(false);
   };
 
   // Helper machine status selector pill
@@ -734,16 +749,15 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               <div className="flex items-center space-x-2 border-b border-emerald-200/80 pb-2">
                 <Factory className="w-4 h-4 text-emerald-600" />
                 <h5 className="text-xs font-black uppercase tracking-wider text-emerald-950">
-                  E. Pelleting, Extrusion & Quality Control
+                  E. Extrusion & Pelleting Machinery
                 </h5>
                 <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full ml-auto">
-                  3 Parameters
+                  2 Units
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {renderMachineStatusPicker('extrudingPelletingMachine', 'Extruding / Pelleting Machine')}
                 {renderMachineStatusPicker('dryerUnit', 'Dryer Unit')}
-                {renderMachineStatusPicker('shapeQuality', 'Pellet Shape Quality')}
               </div>
             </div>
 

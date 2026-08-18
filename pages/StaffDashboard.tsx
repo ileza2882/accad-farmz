@@ -30,6 +30,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [activeHatcheryReport, setActiveHatcheryReport] = useState<Report | null>(null);
   const [activeLivestockReport, setActiveLivestockReport] = useState<Report | null>(null);
   const [activeAssetReport, setActiveAssetReport] = useState<Report | null>(null);
+  const [formResetKey, setFormResetKey] = useState(0);
 
   const fetchUserReports = async () => {
     setLoading(true);
@@ -352,16 +353,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         type: 'info'
       });
 
-      // Show success feedback on SAME page WITHOUT redirecting
-      setSubmitSuccess('Farm log successfully saved! You remain on this page.');
+      // Show success feedback on SAME page WITHOUT redirecting, reset form & collapse
+      setSubmitSuccess('Farm log successfully submitted! Forms collapsed to clean default state for new entry.');
       setLogTitle('');
       setLogContent('');
+      setFormResetKey(prev => prev + 1);
+      setActiveAssetReport(null);
+      setActiveLivestockReport(null);
 
       setTimeout(() => {
         setSubmitSuccess(null);
       }, 4000);
 
-      fetchUserReports();
+      await fetchUserReports();
 
     } catch (e: any) {
       alert('Submission failed: ' + e.message);
@@ -473,26 +477,25 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           {/* Form component depending on department & type */}
           {selectedDept === Department.FISHERY && selectedInvType === InventoryType.ASSET ? (
             <FisheryAssetForm 
+              key={`asset_${formResetKey}`}
               initialData={activeAssetReport?.formData}
               reportId={activeAssetReport?.id}
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleFormSubmit} 
-              onSaveSingleRow={handleSaveAssetSection}
-              onRequestChange={handleRequestAssetChange}
               isSubmitting={isSubmitting} 
             />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm 
+              key={`livestock_${formResetKey}`}
               initialData={activeLivestockReport?.formData}
               reportId={activeLivestockReport?.id}
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleFormSubmit} 
-              onSaveSingleRow={handleSaveLivestockPond}
-              onRequestChange={handleRequestLivestockChange}
               isSubmitting={isSubmitting} 
             />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
             <FisheryHatcheryForm 
+              key={`hatchery_${formResetKey}`}
               initialData={activeHatcheryReport?.formData}
               reportId={activeHatcheryReport?.id}
               currentUser={{ fullName: user.fullName, email: user.email }}

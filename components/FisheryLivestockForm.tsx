@@ -196,6 +196,12 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
       ponds,
       generalNotes
     });
+    const allCollapsed: Record<number, boolean> = {};
+    ponds.forEach((_, idx) => {
+      allCollapsed[idx] = true;
+    });
+    setCollapsedPonds(allCollapsed);
+    setAllExpanded(false);
   };
 
   // Total summary calculations

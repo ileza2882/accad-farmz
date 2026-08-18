@@ -95,8 +95,6 @@ export interface FisheryAssetFormData {
     grinder: 'Good' | 'Faulty' | 'Needs Maintenance';
     dryerUnit: 'Good' | 'Faulty' | 'Needs Maintenance';
     extrudingPelletingMachine?: 'Good' | 'Faulty' | 'Needs Maintenance';
-    pelletQuality?: 'Good' | 'Faulty' | 'Needs Maintenance';
-    shapeQuality: 'Good' | 'Faulty' | 'Needs Maintenance';
     pumpingMachineA?: 'Good' | 'Faulty' | 'Needs Maintenance';
     pumpingMachineB?: 'Good' | 'Faulty' | 'Needs Maintenance';
     pumpingMachineC?: 'Good' | 'Faulty' | 'Needs Maintenance';
@@ -134,8 +132,6 @@ export const MACHINE_LABELS: Record<string, string> = {
   grinder: 'Grinder',
   dryerUnit: 'Dryer Unit',
   extrudingPelletingMachine: 'Extruding/Pelleting Machine',
-  pelletQuality: 'Extruding/Pelleting Machine',
-  shapeQuality: 'Shape Quality',
   pumpingMachineA: '1.5 HP pumping machine – A',
   pumpingMachineB: '1.5 HP pumping machine – B (not in use)',
   pumpingMachineC: '1.5 HP pumping machine – C',

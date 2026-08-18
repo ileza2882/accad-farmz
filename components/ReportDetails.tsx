@@ -361,10 +361,10 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   {/* Extrusion & Pelleting Units */}
                   <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-950 block">
-                      🏭 Extrusion, Pelleting & Shape Quality
+                      🏭 Extrusion & Pelleting Machinery
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {['extrudingPelletingMachine', 'dryerUnit', 'shapeQuality'].map((key) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {['extrudingPelletingMachine', 'dryerUnit'].map((key) => {
                         const status = assetData.machineCheck[key] || 'Good';
                         return (
                           <div key={key} className="bg-white p-2.5 rounded-xl border border-emerald-100 flex flex-col justify-between">

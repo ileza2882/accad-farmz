@@ -1320,14 +1320,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             <FisheryAssetForm 
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleEDFormSubmit} 
-              onSaveSingleRow={handleEDSaveAssetSection}
               isSubmitting={isActionProcessing} 
             />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.LIVESTOCK ? (
             <FisheryLivestockForm 
               currentUser={{ fullName: user.fullName, email: user.email }}
               onSubmit={handleEDFormSubmit} 
-              onSaveSingleRow={handleEDSaveLivestockPond}
               isSubmitting={isActionProcessing} 
             />
           ) : selectedDept === Department.FISHERY && selectedInvType === InventoryType.HATCHERY ? (
