@@ -111,14 +111,27 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       // 7 & 8. Check uniqueness by fetching all users in a single call
       const allUsers = await getUsers();
       
-      const existingEmailUser = allUsers.find(u => u.email.toLowerCase().trim() === cleanEmail);
+      const existingEmailUser = allUsers.find(u => {
+        const uEmail = u.email.toLowerCase().trim();
+        // Ignore stale legacy ED records where old email was stored
+        if (uEmail === 'dalestic12@gmail.com' && (u.role === Role.EXECUTIVE_DIRECTOR || u.id === 'ed_user_1')) {
+          return false;
+        }
+        return uEmail === cleanEmail;
+      });
+
       if (existingEmailUser) {
         setError(`Email "${cleanEmail}" is already registered in the system.`);
         setIsSubmitting(false);
         return;
       }
 
-      const existingPhoneUser = allUsers.find(u => u.phone && u.phone.trim().replace(/\s+/g, '') === cleanPhone.replace(/\s+/g, ''));
+      const existingPhoneUser = allUsers.find(u => {
+        if (!u.phone) return false;
+        if (u.id === 'ed_user_1' && u.email.toLowerCase().trim() === 'dalestic12@gmail.com') return false;
+        return u.phone.trim().replace(/\s+/g, '') === cleanPhone.replace(/\s+/g, '');
+      });
+
       if (existingPhoneUser) {
         setError(`Phone number "${cleanPhone}" is already registered in the system.`);
         setIsSubmitting(false);

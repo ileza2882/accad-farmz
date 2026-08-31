@@ -72,7 +72,31 @@ function getLocalUsers(): User[] {
     localStorage.removeItem('accad_users_v1');
     localStorage.removeItem('accad_users');
     const raw = localStorage.getItem('accad_users_v2');
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed: User[] = JSON.parse(raw);
+      // Clean up legacy cache where ed_user_1 had old email dalestic12@gmail.com
+      // The official Executive Director email is strictly info@accadfarms.com
+      const cleaned = parsed
+        .map(u => {
+          if (u.id === 'ed_user_1' || u.role === Role.EXECUTIVE_DIRECTOR) {
+            return {
+              ...u,
+              email: 'info@accadfarms.com',
+              fullName: 'Executive Director',
+              position: 'Executive Director'
+            };
+          }
+          return u;
+        })
+        .filter(u => {
+          // Remove any stray ED user holding dalestic12@gmail.com
+          if (u.email.toLowerCase().trim() === 'dalestic12@gmail.com' && (u.role === Role.EXECUTIVE_DIRECTOR || u.id === 'ed_user_1')) {
+            return false;
+          }
+          return true;
+        });
+      return cleaned;
+    }
   } catch (e) {}
   return [];
 }
@@ -182,12 +206,22 @@ export async function getUsers(): Promise<User[]> {
     }
   }
   for (const u of localList) {
+    if (u.id === 'ed_user_1' || u.role === Role.EXECUTIVE_DIRECTOR) {
+      if (u.email.toLowerCase().trim() !== 'info@accadfarms.com') {
+        continue;
+      }
+    }
     const key = u.email.toLowerCase().trim();
     if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
       userMap.set(key, u);
     }
   }
   for (const u of resultUsers) {
+    if (u.id === 'ed_user_1' || u.role === Role.EXECUTIVE_DIRECTOR) {
+      if (u.email.toLowerCase().trim() !== 'info@accadfarms.com') {
+        continue;
+      }
+    }
     const key = u.email.toLowerCase().trim();
     if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
       userMap.set(key, u);
@@ -216,11 +250,24 @@ export async function getUserByPhone(phone: string): Promise<User | null> {
  * Create a new user (InsForge DB insert + Auth + Local sync)
  */
 export async function createUser(user: User): Promise<User> {
+  const cleanEmail = user.email.toLowerCase().trim();
+  const cleanId = user.id.toLowerCase().trim();
+
+  // Unmark from deleted list if previously marked as deleted
+  try {
+    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
+    if (deletedRaw) {
+      const parsed: string[] = JSON.parse(deletedRaw);
+      const filtered = parsed.filter(id => id !== cleanEmail && id !== cleanId);
+      localStorage.setItem('accad_deleted_user_ids', JSON.stringify(filtered));
+    }
+  } catch (e) {}
+
   const payload = {
     id: user.id,
     originalId: user.id,
     fullName: user.fullName,
-    email: user.email.toLowerCase().trim(),
+    email: cleanEmail,
     phone: user.phone || null,
     role: user.role,
     department: user.department || null,
