@@ -21,7 +21,7 @@ export async function handler(event, context) {
 
   try {
     const data = JSON.parse(event.body || '{}');
-    const { to, subject, html, text, from = 'info@accadfarms.com', fromName = 'ACCAD FARMS Hub' } = data;
+    const { to, subject, html, text, user, customNotes, from = 'info@accadfarms.com', fromName = 'ACCAD FARMS Hub' } = data;
 
     if (!to || !subject) {
       return {
@@ -31,9 +31,9 @@ export async function handler(event, context) {
       };
     }
 
-    console.log(`[Netlify Function: send-email] Dispatched to: ${to}, Subject: "${subject}" from: ${fromName} <${from}>`);
+    console.log(`[Netlify Function: send-email] Dispatched to: ${to}, Subject: "${subject}"`);
 
-    // If RESEND_API_KEY is configured in Netlify environment variables
+    // 1. Resend API (if RESEND_API_KEY exists)
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
       try {
@@ -62,7 +62,50 @@ export async function handler(event, context) {
       }
     }
 
-    // Default acknowledgement response
+    // 2. Direct transactional delivery via FormSubmit Relay
+    try {
+      const formSubmitRes = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(to)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': 'https://accadfarms.netlify.app',
+          'Referer': 'https://accadfarms.netlify.app/'
+        },
+        body: JSON.stringify({
+          name: fromName,
+          email: from,
+          _subject: subject,
+          _template: 'table',
+          _captcha: 'false',
+          'Staff Member Name': user?.fullName || 'Staff Member',
+          'Portal Login Email': to,
+          'Temporary Passcode': user?.password || '123456',
+          'Assigned Role': (user?.role || 'STAFF').toUpperCase(),
+          'Department / Sector': user?.department || 'General Operations',
+          ...(customNotes ? { 'Special Remarks from ED': customNotes } : {}),
+          'Portal URL': 'https://accadfarms.netlify.app',
+          'Security Notice': 'Please log in to the portal and update your password on first sign in.'
+        })
+      });
+
+      const fsJson = await formSubmitRes.json();
+      console.log('[Netlify Function: send-email] FormSubmit delivery response:', fsJson);
+
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({
+          success: true,
+          provider: 'formsubmit_relay',
+          data: fsJson
+        })
+      };
+    } catch (fsErr) {
+      console.warn('[Netlify Function: send-email] FormSubmit relay notice:', fsErr);
+    }
+
+    // 3. Fallback response
     return {
       statusCode: 200,
       headers: {

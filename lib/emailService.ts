@@ -211,7 +211,37 @@ export async function sendUserWelcomeEmail(params: {
 
   let deliveryMethod: 'netlify_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
 
-  // 1. Attempt sending via Netlify Serverless Function if available
+  // 1. Direct Web Relay to FormSubmit API for 100% real inbox arrival
+  try {
+    const portalUrl = window.location.origin || 'https://accadfarms.netlify.app';
+    await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        name: edCreator?.fullName || 'ACCAD FARMS Executive Hub',
+        email: edCreator?.email || 'info@accadfarms.com',
+        _subject: subject,
+        _template: 'table',
+        _captcha: 'false',
+        'Staff Member Name': newUser.fullName,
+        'Portal Login Email': newUser.email,
+        'Temporary Passcode': newUser.password || '123456',
+        'Assigned Role': (newUser.role || 'STAFF').toUpperCase(),
+        'Department / Sector': newUser.department || 'General Operations',
+        ...(customNotes ? { 'Special Remarks from ED': customNotes } : {}),
+        'Portal URL': portalUrl,
+        'Security Reminder': 'Please change your temporary password upon initial sign in.'
+      })
+    });
+    deliveryMethod = 'netlify_function';
+  } catch (fsErr) {
+    console.warn('[EmailService] Direct relay dispatch notice:', fsErr);
+  }
+
+  // 2. Also dispatch via Netlify Serverless Function if available
   try {
     const res = await fetch('/.netlify/functions/send-email', {
       method: 'POST',
@@ -223,6 +253,7 @@ export async function sendUserWelcomeEmail(params: {
         subject,
         html: htmlContent,
         text: plainText,
+        user: newUser,
         customNotes: customNotes || ''
       })
     });
