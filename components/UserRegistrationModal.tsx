@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Role, Department, User } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
-import { sendUserWelcomeEmail, getGmailComposeUrl, getMailtoUrl, generateWelcomeEmailPlainText } from '../lib/emailService';
+import { sendUserWelcomeEmail } from '../lib/emailService';
 import { 
   UserPlus, 
   X, 
@@ -15,14 +15,8 @@ import {
   Building,
   Eye,
   EyeOff,
-  Sparkles,
   KeyRound,
-  Send,
-  Copy,
-  Check,
-  ExternalLink,
-  Share2,
-  Sparkle
+  Send
 } from 'lucide-react';
 
 interface UserRegistrationModalProps {
@@ -59,7 +53,6 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [customNotes, setCustomNotes] = useState('');
-  const [copied, setCopied] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +65,6 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setPassword('123456');
     setConfirmPassword('123456');
     setError(null);
-  };
-
-  const handleCopyCredentials = () => {
-    if (!registeredUser) return;
-    const text = generateWelcomeEmailPlainText(registeredUser, currentEd, customNotes);
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   };
 
   const handleResetForm = () => {
@@ -312,52 +297,10 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               </div>
             </div>
 
-            {/* Email Dispatch Action Hub */}
-            <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
-              <div className="flex items-center space-x-2">
-                <Send className="w-4 h-4 text-emerald-700 shrink-0" />
-                <h4 className="text-xs font-black uppercase text-emerald-950 tracking-wider">
-                  Deliver Credentials Notification to Recipient
-                </h4>
-              </div>
-              <p className="text-xs text-slate-600">
-                You can dispatch the pre-formatted onboarding email with login password directly to <strong className="text-slate-900">{registeredUser.email}</strong> via Gmail or your mail client:
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                <a
-                  href={getGmailComposeUrl(registeredUser, currentEd, customNotes)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-red-200 active:scale-95 transition-all cursor-pointer text-center"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Send via Gmail</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={handleCopyCredentials}
-                  className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border active:scale-95 transition-all cursor-pointer ${
-                    copied
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200'
-                      : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50'
-                  }`}
-                >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  <span>{copied ? 'Copied Invitation!' : 'Copy Credentials'}</span>
-                </button>
-              </div>
-
-              <div className="text-center pt-1">
-                <a
-                  href={getMailtoUrl(registeredUser, currentEd, customNotes)}
-                  className="text-[11px] text-emerald-800 font-bold hover:underline inline-flex items-center gap-1"
-                >
-                  <Mail className="w-3.5 h-3.5 inline" />
-                  <span>Open in Default System Mail App (mailto) &rarr;</span>
-                </a>
-              </div>
+            {/* Live Automated Dispatch Status */}
+            <div className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl py-3.5 px-4 shadow-sm">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Automatic onboarding email with password has been sent to <strong>{registeredUser.email}</strong></span>
             </div>
 
             {/* Modal Bottom Actions */}
