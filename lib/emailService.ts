@@ -34,18 +34,19 @@ export function isValidEmailAddress(email: string): boolean {
 }
 
 /**
- * Generates plain-text invitation and credentials message.
+ * Generates plain-text invitation and credentials message with optional ED remarks.
  */
-export function generateWelcomeEmailPlainText(user: User, edCreator?: User): string {
+export function generateWelcomeEmailPlainText(user: User, edCreator?: User, customNotes?: string): string {
   const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
   const creatorEmail = edCreator?.email || 'info@accadfarms.com';
+  const cleanNotes = customNotes ? customNotes.trim() : '';
 
   return `🌾 ACCAD FARMS - Official Personnel Credentials Notification
 
 Hello ${user.fullName},
 
 Your official staff account has been created on the ACCAD FARMS Portal by the Executive Directorate (${creatorEmail}).
-
+${cleanNotes ? `\n📝 SPECIAL MESSAGE FROM EXECUTIVE DIRECTOR:\n"${cleanNotes}"\n` : ''}
 Here are your verified portal login details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Portal Login Email:  ${user.email}
@@ -67,9 +68,10 @@ Support: info@accadfarms.com | +234 916 358 3220
 /**
  * Generates a clean HTML onboarding template for new users created by the Executive Director.
  */
-export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
+export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNotes?: string): string {
   const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
   const creatorEmail = edCreator?.email || 'info@accadfarms.com';
+  const cleanNotes = customNotes ? customNotes.trim() : '';
   
   return `
 <!DOCTYPE html>
@@ -96,6 +98,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
     .action-btn { display: block; text-align: center; background: #059669; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 800; font-size: 14px; margin: 28px 0; letter-spacing: 0.5px; }
     .action-btn:hover { background: #047857; }
     .notice { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px; font-size: 12px; color: #92400e; line-height: 1.5; margin-top: 20px; }
+    .custom-notes-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 16px; margin: 20px 0; color: #166534; font-size: 13px; line-height: 1.6; }
     .email-footer { background: #f1f5f9; padding: 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.6; }
     .email-footer a { color: #059669; text-decoration: none; font-weight: 600; }
   </style>
@@ -112,6 +115,13 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
       <p class="intro-text">
         An official staff account has been provisioned for you on the <strong>ACCAD FARMS Management Portal</strong> by the Executive Director (<code>${creatorEmail}</code>).
       </p>
+
+      ${cleanNotes ? `
+      <div class="custom-notes-box">
+        <strong>📝 Message from Executive Director:</strong>
+        <p style="margin: 6px 0 0 0; font-style: italic;">"${cleanNotes}"</p>
+      </div>
+      ` : ''}
 
       <div class="cred-card">
         <div class="cred-row">
@@ -156,18 +166,18 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
 /**
  * Returns a 1-click URL to compose and send this welcome email directly in Gmail with prefilled password and details.
  */
-export function getGmailComposeUrl(user: User, edCreator?: User): string {
+export function getGmailComposeUrl(user: User, edCreator?: User, customNotes?: string): string {
   const subject = `Welcome to ACCAD FARMS Portal - Your Staff Login Credentials (${user.fullName})`;
-  const body = generateWelcomeEmailPlainText(user, edCreator);
+  const body = generateWelcomeEmailPlainText(user, edCreator, customNotes);
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(user.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 /**
  * Returns a mailto: URL to trigger the default operating system email client.
  */
-export function getMailtoUrl(user: User, edCreator?: User): string {
+export function getMailtoUrl(user: User, edCreator?: User, customNotes?: string): string {
   const subject = `Welcome to ACCAD FARMS Portal - Your Staff Login Credentials (${user.fullName})`;
-  const body = generateWelcomeEmailPlainText(user, edCreator);
+  const body = generateWelcomeEmailPlainText(user, edCreator, customNotes);
   return `mailto:${encodeURIComponent(user.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -177,8 +187,9 @@ export function getMailtoUrl(user: User, edCreator?: User): string {
 export async function sendUserWelcomeEmail(params: {
   newUser: User;
   edCreator?: User;
+  customNotes?: string;
 }): Promise<EmailDispatchResult> {
-  const { newUser, edCreator } = params;
+  const { newUser, edCreator, customNotes } = params;
   const recipient = newUser.email.trim().toLowerCase();
   const subject = `Welcome to ACCAD FARMS Portal - Your Staff Credentials (${newUser.fullName})`;
 
@@ -195,8 +206,8 @@ export async function sendUserWelcomeEmail(params: {
     };
   }
 
-  const htmlContent = generateWelcomeEmailHtml(newUser, edCreator);
-  const plainText = generateWelcomeEmailPlainText(newUser, edCreator);
+  const htmlContent = generateWelcomeEmailHtml(newUser, edCreator, customNotes);
+  const plainText = generateWelcomeEmailPlainText(newUser, edCreator, customNotes);
 
   let deliveryMethod: 'netlify_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
 
@@ -211,7 +222,8 @@ export async function sendUserWelcomeEmail(params: {
         fromName: 'ACCAD FARMS Executive Hub',
         subject,
         html: htmlContent,
-        text: plainText
+        text: plainText,
+        customNotes: customNotes || ''
       })
     });
 
@@ -220,7 +232,7 @@ export async function sendUserWelcomeEmail(params: {
       console.log(`[EmailService] Welcome email delivered via Netlify function to ${recipient}`);
     }
   } catch (e) {
-    console.log(`[EmailService] Netlify function dispatch unavailable locally:`, e);
+    console.log(`[EmailService] Netlify function dispatch notice:`, e);
   }
 
   // 2. Record system notification in database
@@ -256,7 +268,8 @@ export async function sendUserWelcomeEmail(params: {
       subject,
       timestamp: Date.now(),
       status: 'SENT',
-      deliveryMethod
+      deliveryMethod,
+      customNotes: customNotes || ''
     });
     localStorage.setItem('accad_sent_emails', JSON.stringify(existing.slice(0, 50)));
   } catch (e) {}
@@ -265,7 +278,7 @@ export async function sendUserWelcomeEmail(params: {
     success: true,
     recipient,
     subject,
-    message: `Welcome email notification successfully dispatched to ${recipient}`,
+    message: `Welcome email notification automatically dispatched to ${recipient}`,
     timestamp: Date.now(),
     deliveryMethod
   };

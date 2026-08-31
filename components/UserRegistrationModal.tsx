@@ -56,10 +56,9 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [role, setRole] = useState<Role>(Role.STAFF);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+  const [customNotes, setCustomNotes] = useState('');
   const [copied, setCopied] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
@@ -77,7 +76,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
   const handleCopyCredentials = () => {
     if (!registeredUser) return;
-    const text = generateWelcomeEmailPlainText(registeredUser, currentEd);
+    const text = generateWelcomeEmailPlainText(registeredUser, currentEd, customNotes);
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -90,6 +89,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setPhone('');
     setPassword('');
     setConfirmPassword('');
+    setCustomNotes('');
     setError(null);
     setSuccess(null);
   };
@@ -212,7 +212,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       // Dispatch automated welcome & credentials email notification to user
       sendUserWelcomeEmail({
         newUser: created,
-        edCreator: currentEd
+        edCreator: currentEd,
+        customNotes: customNotes.trim()
       }).catch(err => console.warn('Background email dispatch notice:', err));
 
       if (onUserRegistered) onUserRegistered(created);
@@ -325,7 +326,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 <a
-                  href={getGmailComposeUrl(registeredUser, currentEd)}
+                  href={getGmailComposeUrl(registeredUser, currentEd, customNotes)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-red-200 active:scale-95 transition-all cursor-pointer text-center"
@@ -350,7 +351,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
               <div className="text-center pt-1">
                 <a
-                  href={getMailtoUrl(registeredUser, currentEd)}
+                  href={getMailtoUrl(registeredUser, currentEd, customNotes)}
                   className="text-[11px] text-emerald-800 font-bold hover:underline inline-flex items-center gap-1"
                 >
                   <Mail className="w-3.5 h-3.5 inline" />
@@ -418,7 +419,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
                   <Send className="w-3 h-3 text-emerald-600 inline shrink-0" />
-                  <span>Credentials email will be sent automatically upon creation</span>
+                  <span>Onboarding email with login password is dispatched automatically</span>
                 </p>
               </div>
 
@@ -578,6 +579,26 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               </div>
             )}
 
+            {/* Optional Custom Notes / Additional Words from ED */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Additional Notes / Custom Message to Staff (Optional)
+                </label>
+                <span className="text-[10px] text-slate-400 font-semibold">Included in email</span>
+              </div>
+              <textarea
+                value={customNotes}
+                onChange={(e) => setCustomNotes(e.target.value)}
+                rows={2}
+                placeholder="e.g. Welcome to the ACCAD FARMS team! Please report to the farm station by 8:00 AM on Monday for your onboarding briefing."
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all resize-none font-medium"
+              />
+              <p className="text-[10px] text-slate-500 font-medium">
+                The onboarding email with credentials will be dispatched automatically upon clicking "Register User".
+              </p>
+            </div>
+
             <div className="pt-4 flex justify-end space-x-3 border-t border-slate-100">
               <button
                 type="button"
@@ -592,11 +613,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-200 disabled:opacity-50 transition-all flex items-center space-x-2 cursor-pointer"
               >
                 {isSubmitting ? (
-                  <span>Registering User...</span>
+                  <span>Registering User & Dispatching Email...</span>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>Register User</span>
+                    <span>Register User & Send Email</span>
                   </>
                 )}
               </button>
