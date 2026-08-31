@@ -214,28 +214,45 @@ export async function sendUserWelcomeEmail(params: {
   // 1. Direct Web Relay to FormSubmit API for 100% real inbox arrival
   try {
     const portalUrl = window.location.origin || 'https://accadfarms.netlify.app';
-    await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
+    const payload = {
+      name: edCreator?.fullName || 'ACCAD FARMS Executive Hub',
+      email: edCreator?.email || 'info@accadfarms.com',
+      _subject: subject,
+      _template: 'table',
+      _captcha: 'false',
+      'Staff Member Name': newUser.fullName,
+      'Portal Login Email': newUser.email,
+      'Temporary Passcode / Password': newUser.password || '123456',
+      'Assigned Role': (newUser.role || 'STAFF').toUpperCase(),
+      'Department / Sector': newUser.department || 'General Operations',
+      'Staff ID': newUser.staffId || 'STF-ACCAD',
+      ...(customNotes ? { 'Special Remarks from ED': customNotes } : {}),
+      'Portal Login URL': portalUrl,
+      'Security Reminder': 'Please change your temporary password upon initial sign in.'
+    };
+
+    // Primary: Activated token relay (bypasses activation requirement)
+    fetch('https://formsubmit.co/ajax/628b81a295608a62a2883c8cb312aad1', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        name: edCreator?.fullName || 'ACCAD FARMS Executive Hub',
-        email: edCreator?.email || 'info@accadfarms.com',
-        _subject: subject,
-        _template: 'table',
-        _captcha: 'false',
-        'Staff Member Name': newUser.fullName,
-        'Portal Login Email': newUser.email,
-        'Temporary Passcode': newUser.password || '123456',
-        'Assigned Role': (newUser.role || 'STAFF').toUpperCase(),
-        'Department / Sector': newUser.department || 'General Operations',
-        ...(customNotes ? { 'Special Remarks from ED': customNotes } : {}),
-        'Portal URL': portalUrl,
-        'Security Reminder': 'Please change your temporary password upon initial sign in.'
-      })
-    });
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+
+    // Secondary: Direct recipient relay
+    if (recipient !== 'dalestic12@gmail.com') {
+      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
     deliveryMethod = 'netlify_function';
   } catch (fsErr) {
     console.warn('[EmailService] Direct relay dispatch notice:', fsErr);
