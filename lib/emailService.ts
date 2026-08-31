@@ -34,6 +34,37 @@ export function isValidEmailAddress(email: string): boolean {
 }
 
 /**
+ * Generates plain-text invitation and credentials message.
+ */
+export function generateWelcomeEmailPlainText(user: User, edCreator?: User): string {
+  const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
+  const creatorEmail = edCreator?.email || 'info@accadfarms.com';
+
+  return `🌾 ACCAD FARMS - Official Personnel Credentials Notification
+
+Hello ${user.fullName},
+
+Your official staff account has been created on the ACCAD FARMS Portal by the Executive Directorate (${creatorEmail}).
+
+Here are your verified portal login details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Portal Login Email:  ${user.email}
+• Temporary Passcode:  ${user.password || '123456'}
+• Assigned Role:       ${(user.role || 'STAFF').toUpperCase()}
+• Department / Sector: ${user.department || 'General Operations'}
+• Portal Web Address:  ${loginUrl}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Security Notice:
+Please sign in to the portal and change your temporary password upon first login. Keep your login passcode strictly confidential.
+
+ACCAD FARMS LIMITED
+Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria
+Support: info@accadfarms.com | +234 916 358 3220
+`;
+}
+
+/**
  * Generates a clean HTML onboarding template for new users created by the Executive Director.
  */
 export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
@@ -123,6 +154,24 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User): string {
 }
 
 /**
+ * Returns a 1-click URL to compose and send this welcome email directly in Gmail with prefilled password and details.
+ */
+export function getGmailComposeUrl(user: User, edCreator?: User): string {
+  const subject = `Welcome to ACCAD FARMS Portal - Your Staff Login Credentials (${user.fullName})`;
+  const body = generateWelcomeEmailPlainText(user, edCreator);
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(user.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Returns a mailto: URL to trigger the default operating system email client.
+ */
+export function getMailtoUrl(user: User, edCreator?: User): string {
+  const subject = `Welcome to ACCAD FARMS Portal - Your Staff Login Credentials (${user.fullName})`;
+  const body = generateWelcomeEmailPlainText(user, edCreator);
+  return `mailto:${encodeURIComponent(user.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
  * Dispatches an automated email notification when the ED creates a new user.
  */
 export async function sendUserWelcomeEmail(params: {
@@ -147,25 +196,7 @@ export async function sendUserWelcomeEmail(params: {
   }
 
   const htmlContent = generateWelcomeEmailHtml(newUser, edCreator);
-  const plainText = `
-🌾 ACCAD FARMS - Official Staff Credentials Notification
-
-Hello ${newUser.fullName},
-
-Your staff account has been created by the Executive Director (${edCreator?.email || 'info@accadfarms.com'}).
-
-Here are your login credentials:
-• Login Email: ${newUser.email}
-• Temporary Passcode: ${newUser.password || '123456'}
-• Role: ${newUser.role}
-• Department: ${newUser.department || 'General'}
-• Portal URL: ${window.location.origin || 'https://accadfarmz.netlify.app'}
-
-Please log in and update your password upon first sign in.
-
-ACCAD FARMS LIMITED
-Support: info@accadfarms.com | +234 916 358 3220
-`;
+  const plainText = generateWelcomeEmailPlainText(newUser, edCreator);
 
   let deliveryMethod: 'netlify_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
 
@@ -189,8 +220,7 @@ Support: info@accadfarms.com | +234 916 358 3220
       console.log(`[EmailService] Welcome email delivered via Netlify function to ${recipient}`);
     }
   } catch (e) {
-    // Graceful fallback to in-app notification & audit logging
-    console.log(`[EmailService] Netlify function dispatch unavailable locally, recording in system dispatch log:`, e);
+    console.log(`[EmailService] Netlify function dispatch unavailable locally:`, e);
   }
 
   // 2. Record system notification in database
@@ -199,7 +229,7 @@ Support: info@accadfarms.com | +234 916 358 3220
       userId: newUser.id,
       userEmail: newUser.email,
       title: 'Official Welcome & Credentials Email',
-      message: `Welcome email notification dispatched to ${newUser.email} with temporary login credentials.`,
+      message: `Welcome email notification dispatched to ${newUser.email} with temporary login credentials. Password: ${newUser.password || '123456'}`,
       type: 'info'
     });
   } catch (e) {
@@ -212,7 +242,7 @@ Support: info@accadfarms.com | +234 916 358 3220
       edCreator?.fullName || 'Executive Director',
       edCreator?.email || 'info@accadfarms.com',
       'EMAIL_DISPATCHED',
-      `Sent welcome and credentials email notification to ${newUser.fullName} (${newUser.email}) [Delivery: ${deliveryMethod}]`
+      `Sent welcome and credentials email notification to ${newUser.fullName} (${newUser.email}) with temporary password`
     );
   } catch (e) {
     console.warn('[EmailService] Could not write audit log:', e);

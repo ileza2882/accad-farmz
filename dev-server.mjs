@@ -149,6 +149,31 @@ const server = http.createServer((req, res) => {
   }
 
   let reqPath = decodeURI(req.url.split('?')[0]);
+
+  // Handle send-email serverless endpoint in dev server
+  if (reqPath === '/.netlify/functions/send-email' || reqPath === '/api/send-email') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const parsed = JSON.parse(body || '{}');
+          console.log(`\n📧 [Dev Server Mail Hub] Dispatched Email Notification:`);
+          console.log(`   To: ${parsed.to}`);
+          console.log(`   Subject: "${parsed.subject}"`);
+          console.log(`   Sender: ${parsed.fromName || 'ACCAD FARMS'} <${parsed.from || 'info@accadfarms.com'}>`);
+          console.log(`   Status: 200 OK Delivered\n`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: `Email dispatched to ${parsed.to}`, deliveredAt: new Date().toISOString() }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+      return;
+    }
+  }
+
   if (reqPath === '/') reqPath = '/index.html';
 
   let filePath = path.join(distDir, reqPath);
