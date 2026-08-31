@@ -23,16 +23,27 @@ import {
 interface UserRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUserRegistered: (newUser: User) => void;
-  edUser: User;
+  onUserRegistered?: (newUser: User) => void;
+  onUserCreated?: (newUser?: User) => void;
+  edUser?: User;
+  creator?: User;
 }
 
 export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   isOpen,
   onClose,
   onUserRegistered,
-  edUser
+  onUserCreated,
+  edUser,
+  creator
 }) => {
+  const currentEd = edUser || creator || {
+    id: 'ed_user_1',
+    fullName: 'Executive Director',
+    email: 'info@accadfarms.com',
+    role: Role.EXECUTIVE_DIRECTOR
+  } as User;
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -156,8 +167,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
       // Audit Log
       await createAuditLog(
-        edUser.fullName,
-        edUser.email,
+        currentEd?.fullName || 'Executive Director',
+        currentEd?.email || 'info@accadfarms.com',
         'USER_REGISTERED',
         `Registered user ${created.fullName} (${created.email}) with role ${created.role} in ${created.department}`
       );
@@ -174,7 +185,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       // Dispatch automated welcome & credentials email notification to user
       const emailResult = await sendUserWelcomeEmail({
         newUser: created,
-        edCreator: edUser
+        edCreator: currentEd
       });
 
       if (emailResult.success) {
@@ -183,7 +194,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         setSuccess(`User ${created.fullName} registered successfully! (${emailResult.message})`);
       }
 
-      onUserRegistered(created);
+      if (onUserRegistered) onUserRegistered(created);
+      if (onUserCreated) onUserCreated(created);
 
       setTimeout(() => {
         setIsSubmitting(false);

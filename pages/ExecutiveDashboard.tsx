@@ -1566,7 +1566,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         onUserCreated={loadData}
+        onUserRegistered={loadData}
         creator={user}
+        edUser={user}
       />
 
       {/* Report Details Modal */}
