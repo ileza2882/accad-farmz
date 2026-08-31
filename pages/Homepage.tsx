@@ -488,7 +488,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
                   Quick Executive Credentials
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div>
                   <button
                     type="button"
                     onClick={() => {
@@ -496,31 +496,22 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                       setEdPassword('123456');
                       setEdError(null);
                     }}
-                    className={`p-2.5 rounded-xl border text-left text-xs font-extrabold transition-all cursor-pointer ${
+                    className={`w-full p-3 rounded-xl border text-left text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between ${
                       edEmail === 'info@accadfarms.com'
-                        ? 'bg-purple-50 border-purple-400 text-purple-950 ring-1 ring-purple-300'
+                        ? 'bg-purple-50 border-purple-400 text-purple-950 ring-2 ring-purple-300 shadow-xs'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    <div className="text-[10px] text-purple-700 font-black uppercase">Primary ED</div>
-                    <div className="truncate font-bold">info@accadfarms.com</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEdEmail('dalestic12@gmail.com');
-                      setEdPassword('123456');
-                      setEdError(null);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left text-xs font-extrabold transition-all cursor-pointer ${
-                      edEmail === 'dalestic12@gmail.com'
-                        ? 'bg-purple-50 border-purple-400 text-purple-950 ring-1 ring-purple-300'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="text-[10px] text-purple-700 font-black uppercase">Executive Email</div>
-                    <div className="truncate font-bold">dalestic12@gmail.com</div>
+                    <div>
+                      <div className="text-[10px] text-purple-700 font-black uppercase flex items-center gap-1">
+                        <Crown className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Executive Director Email</span>
+                      </div>
+                      <div className="text-sm font-black text-purple-950 mt-0.5">info@accadfarms.com</div>
+                    </div>
+                    <span className="text-[10px] bg-purple-200/70 text-purple-900 px-2.5 py-1 rounded-lg font-black uppercase tracking-wider">
+                      Auto-Fill
+                    </span>
                   </button>
                 </div>
               </div>

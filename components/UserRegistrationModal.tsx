@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Role, Department, User } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
+import { sendUserWelcomeEmail } from '../lib/emailService';
 import { 
   UserPlus, 
   X, 
@@ -15,7 +16,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  KeyRound
+  KeyRound,
+  Send
 } from 'lucide-react';
 
 interface UserRegistrationModalProps {
@@ -156,13 +158,24 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         type: 'info'
       });
 
-      setSuccess(`User ${created.fullName} successfully registered!`);
+      // Dispatch automated welcome & credentials email notification to user
+      const emailResult = await sendUserWelcomeEmail({
+        newUser: created,
+        edCreator: edUser
+      });
+
+      if (emailResult.success) {
+        setSuccess(`User ${created.fullName} registered successfully! Welcome email notification sent to ${created.email}.`);
+      } else {
+        setSuccess(`User ${created.fullName} registered successfully! (${emailResult.message})`);
+      }
+
       onUserRegistered(created);
 
       setTimeout(() => {
         setIsSubmitting(false);
         onClose();
-      }, 1500);
+      }, 2200);
 
     } catch (err: any) {
       setError(err.message || 'Failed to register user. Please try again.');
@@ -242,10 +255,14 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="dalestic12@gmail.com"
+                  placeholder="staff@accadfarms.com"
                   className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
                 />
               </div>
+              <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
+                <Send className="w-3 h-3 text-emerald-600 inline shrink-0" />
+                <span>Credentials email will be sent automatically upon creation</span>
+              </p>
             </div>
 
             <div>
