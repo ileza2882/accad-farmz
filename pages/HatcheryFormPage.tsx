@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { User, Role, Department, InventoryType, FisherySection, Report, ReportStatus, FisheryHatcheryFormData, FisheryHatcheryBatchData } from '../types';
+import { 
+  User, 
+  Role, 
+  Department, 
+  InventoryType, 
+  FisherySection, 
+  Report, 
+  ReportStatus, 
+  FisheryHatcheryFormData, 
+  FisheryHatcheryBatchData,
+  BATCH_NUMBER_OPTIONS
+} from '../types';
 import { getReports, createReport, updateReport, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { getComputerName } from '../lib/exportUtils';
@@ -10,7 +21,6 @@ import {
   ChevronRight, 
   Building2, 
   RefreshCw, 
-  ExternalLink, 
   CheckCircle2, 
   Plus
 } from 'lucide-react';
@@ -147,7 +157,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
     };
 
     const firstBatchName = allBatches[0]?.batchNumber || 'Batch';
-    const effectiveTitle = `Hatchery Log - ${firstBatchName}`;
+    const effectiveTitle = `Hatchery Log - ${firstBatchName} Batch`;
     const status = effectiveUser.role === Role.EXECUTIVE_DIRECTOR 
       ? ReportStatus.APPROVED 
       : ReportStatus.PENDING_MANAGER;
@@ -155,7 +165,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
     try {
       const updated = await updateReport(report.id, {
         title: effectiveTitle,
-        content: `Hatchery log updated (${allBatches.length} batch record). Row #${rowIndex + 1} saved.`,
+        content: `Hatchery log updated. Row #${rowIndex + 1} saved.`,
         formData: {
           batches: allBatches,
           generalNotes: report.formData?.generalNotes
@@ -211,14 +221,14 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
 
     try {
       const firstBatchName = formData.batches?.[0]?.batchNumber || 'Batch';
-      const effectiveTitle = `Hatchery Log - ${firstBatchName}`;
+      const effectiveTitle = `Hatchery Log - ${firstBatchName} Batch`;
       const status = effectiveUser.role === Role.EXECUTIVE_DIRECTOR 
         ? ReportStatus.APPROVED 
         : ReportStatus.PENDING_MANAGER;
 
       const updated = await updateReport(report.id, {
         title: effectiveTitle,
-        content: `Hatchery log completed & archived (${formData.batches?.length || 1} batches recorded).`,
+        content: `Hatchery log completed & archived (${firstBatchName} Batch).`,
         formData,
         status,
         updatedAt: Date.now()
@@ -244,44 +254,61 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
     }
   };
 
-  const handleOpenAnotherFormInNewTab = async () => {
-    const newId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const initialReport: Report = {
-      id: newId,
-      userId: user?.id || 'hatchery_user',
-      email: user?.email || 'hatchery@accadfarms.com',
-      fullName: user?.fullName || 'Hatchery Manager',
-      department: Department.FISHERY,
-      inventoryType: InventoryType.HATCHERY,
-      section: FisherySection.HATCHERY,
-      title: 'New Hatchery Log',
-      content: 'New hatchery batch record.',
-      timestamp: Date.now(),
-      status: ReportStatus.PENDING_MANAGER,
-      computerName: getComputerName(),
-      formData: {
-        batches: [
-          {
-            sourceOfBroodstock: 'Outside the Farm',
-            batchNumber: '1st',
-            hatcheryDate: '',
-            firstDateOfFeeding: '',
-            dateOfTransferToGrowOut: '',
-            totalTransferredFingerlings: '',
-            averageWeightTransferred: '',
-            ageOfFingerlingsTransferred: '',
-            healthStatusTransferred: 'Good',
-            destinatedPondTransferred: '',
-            remarks: '',
-            isLocked: false,
-            lockedRows: {}
-          }
-        ]
-      }
-    };
+  const handleAddNewLog = async () => {
+    setLoading(true);
+    try {
+      const newId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const allReports = await getReports();
+      const existingHatcheryReports = allReports.filter(r =>
+        r.department === Department.FISHERY &&
+        (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+      );
+      const nextBatchIndex = existingHatcheryReports.length;
+      const nextBatchName = BATCH_NUMBER_OPTIONS[nextBatchIndex] || `${nextBatchIndex + 1}th`;
 
-    await createReport(initialReport);
-    window.open(`${window.location.origin}/#/hatchery/form/${newId}`, '_blank');
+      const initialReport: Report = {
+        id: newId,
+        userId: user?.id || 'hatchery_user',
+        email: user?.email || 'hatchery@accadfarms.com',
+        fullName: user?.fullName || 'Hatchery Manager',
+        department: Department.FISHERY,
+        inventoryType: InventoryType.HATCHERY,
+        section: FisherySection.HATCHERY,
+        title: `Hatchery Log - ${nextBatchName} Batch`,
+        content: 'Hatchery Section single-form ledger record.',
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName: getComputerName(),
+        formData: {
+          batches: [
+            {
+              sourceOfBroodstock: 'Outside the Farm',
+              batchNumber: nextBatchName,
+              hatcheryDate: '',
+              firstDateOfFeeding: '',
+              dateOfTransferToGrowOut: '',
+              totalTransferredFingerlings: '',
+              averageWeightTransferred: '',
+              ageOfFingerlingsTransferred: '',
+              healthStatusTransferred: 'Good',
+              destinatedPondTransferred: '',
+              remarks: '',
+              isLocked: false,
+              lockedRows: {}
+            }
+          ]
+        }
+      };
+
+      await createReport(initialReport);
+      setReport(initialReport);
+      navigate(`/hatchery/form/${newId}`);
+    } catch (err: any) {
+      console.error('Error creating new log:', err);
+      navigate('/hatchery/form/new');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) return null;
@@ -312,15 +339,6 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
           </div>
 
           <div className="flex items-center space-x-2 shrink-0">
-            <button
-              onClick={handleOpenAnotherFormInNewTab}
-              className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
-              title="Start another hatchery form on a new page in a separate browser tab to work on both forms simultaneously"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Start New Form in New Tab ↗</span>
-            </button>
-
             <button
               onClick={() => navigate('/hatchery/dashboard')}
               className="inline-flex items-center space-x-1 text-xs font-extrabold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
@@ -371,6 +389,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
               reportId={report.id}
               currentUser={{ fullName: user.fullName, email: user.email }}
               onCancel={() => navigate('/hatchery/dashboard')}
+              onAddNewLog={handleAddNewLog}
               onSubmit={handleHatcherySubmit}
               onSaveSingleRow={handleSaveSingleRow}
               onRequestChange={handleRequestChange}
@@ -384,3 +403,4 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
     </div>
   );
 };
+

@@ -541,41 +541,40 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   };
 
   return (
-    <div className="space-y-8 bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-slate-900 font-sans">
-      
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
+    <div className="space-y-8 animate-fadeIn max-w-6xl mx-auto pb-12">
+
+      {/* Top Header Card */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center space-x-1.5 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+            <span className="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
               <Egg className="w-3.5 h-3.5 text-emerald-600" />
               <span>Hatchery Progressive Ledger</span>
             </span>
-            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-              <Lock className="w-3 h-3 text-emerald-600" />
+            <span className="inline-flex items-center space-x-1 bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">
+              <Lock className="w-3 h-3 text-slate-500" />
               <span>Auto-Archive on Save</span>
             </span>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight mt-2">
-            Hatchery Section Logs
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+            HATCHERY SECTION LOGS
           </h3>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
+          <p className="text-xs text-slate-500 font-medium max-w-xl">
             Active in-progress batches appear at the top. Completed/saved logs are cleanly stored in the Permanent Archive below until an edit request is made.
           </p>
         </div>
 
-        {/* Quick Summary Pill & Controls */}
+        {/* Global Action Tools */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-2xl flex items-center space-x-3 shrink-0">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2.5 flex items-center space-x-3">
             <Droplets className="w-5 h-5 text-emerald-600" />
             <div>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Total Fingerlings</span>
-              <span className="text-base font-black text-emerald-700">{totalFingerlings.toLocaleString()} Fish</span>
+              <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800">Total Fingerlings</p>
+              <p className="text-base font-black text-emerald-950">{totalFingerlings.toLocaleString()} Fish</p>
             </div>
           </div>
 
-          {/* Expand / Collapse All Toggle Button */}
           <button
             type="button"
             onClick={toggleExpandAll}
@@ -585,17 +584,6 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             <ChevronsUpDown className="w-4 h-4 text-slate-600" />
             <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
           </button>
-
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-              title="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -612,11 +600,18 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={addBatch}
+              onClick={() => {
+                if (onAddNewLog) {
+                  onAddNewLog();
+                } else {
+                  window.location.hash = '#/hatchery/form/new';
+                }
+              }}
               className="inline-flex items-center space-x-1.5 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Start a new hatchery log on a separate page"
             >
               <Plus className="w-3.5 h-3.5 text-emerald-700" />
-              <span>+ Add Batch Row</span>
+              <span>Add New Log</span>
             </button>
           </div>
         </div>
@@ -637,11 +632,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             </div>
             <button
               type="button"
-              onClick={addBatch}
+              onClick={() => {
+                if (onAddNewLog) {
+                  onAddNewLog();
+                } else {
+                  window.location.hash = '#/hatchery/form/new';
+                }
+              }}
               className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Start Next Batch Record</span>
+              <span>Add New Log</span>
             </button>
           </div>
         ) : (
@@ -730,11 +731,16 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         title="Save Batch and move to permanent archive"
                       >
                         {isSavingThis ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Saving...</span>
+                          </>
                         ) : (
-                          <Save className="w-3.5 h-3.5" />
+                          <>
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Save Batch</span>
+                          </>
                         )}
-                        <span>Save Batch</span>
                       </button>
 
                       {batches.length > 1 && (
