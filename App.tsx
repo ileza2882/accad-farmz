@@ -6,6 +6,9 @@ import { StaffDashboard } from './pages/StaffDashboard';
 import { ManagerDashboard } from './pages/ManagerDashboard';
 import { ExecutiveDashboard } from './pages/ExecutiveDashboard';
 import { FisheryDepartmentPage } from './pages/FisheryDepartmentPage';
+import { HatcheryLoginPage } from './pages/HatcheryLoginPage';
+import { HatcheryDashboardPage } from './pages/HatcheryDashboardPage';
+import { HatcheryFormPage } from './pages/HatcheryFormPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Header } from './components/Header';
@@ -72,11 +75,38 @@ const App: React.FC = () => {
             {/* Public Homepage with Direct Executive Director Login & Section Navigation */}
             <Route path="/" element={<Homepage user={currentUser} onLoginSuccess={setCurrentUser} />} />
 
-            {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Sections) */}
+            {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Gateway) */}
             <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} />} />
             
-            {/* Direct Hatchery Logs Route with Hatchery Manager Login Gateway */}
-            <Route path="/hatchery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} defaultSection={FisherySection.HATCHERY} />} />
+            {/* Dedicated Hatchery Manager Login Page */}
+            <Route 
+              path="/hatchery" 
+              element={
+                currentUser && (currentUser.role === Role.HATCHERY_MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
+                  ? <Navigate to="/hatchery/dashboard" replace />
+                  : <HatcheryLoginPage user={currentUser} onLoginSuccess={setCurrentUser} />
+              } 
+            />
+
+            {/* Hatchery Manager Dashboard (Forms Selection Table) */}
+            <Route 
+              path="/hatchery/dashboard" 
+              element={
+                currentUser && (currentUser.role === Role.HATCHERY_MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
+                  ? <HatcheryDashboardPage user={currentUser} />
+                  : <Navigate to="/hatchery" replace />
+              } 
+            />
+
+            {/* Individual Hatchery Form Ledger (One Form Per Page) */}
+            <Route 
+              path="/hatchery/form/:reportId" 
+              element={
+                currentUser && (currentUser.role === Role.HATCHERY_MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
+                  ? <HatcheryFormPage user={currentUser} />
+                  : <Navigate to="/hatchery" replace />
+              } 
+            />
 
             {/* Public Login Page */}
             <Route 
@@ -84,7 +114,7 @@ const App: React.FC = () => {
               element={
                 currentUser ? (
                   currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
-                  currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/fishery" replace /> :
+                  currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/hatchery/dashboard" replace /> :
                   currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                   <Navigate to="/staff" replace />
                 ) : (
@@ -99,7 +129,7 @@ const App: React.FC = () => {
               element={
                 !currentUser ? <Navigate to="/login" replace /> :
                 currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
-                currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/fishery" replace /> :
+                currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/hatchery/dashboard" replace /> :
                 currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                 <Navigate to="/staff" replace />
               } 
