@@ -39,10 +39,21 @@ const browserShimsPlugin = {
   }
 };
 
-const jsBundleName = 'index-bundle.js';
+const timestamp = Date.now();
+const jsBundleName = `index-${timestamp}.js`;
 const jsBundlePath = path.join(distAssetsDir, jsBundleName);
 
-console.log('📦 Bundling index.tsx with esbuild-wasm (minified & tree-shaken)...');
+// Clean previous JS bundles from distAssetsDir to save bandwidth
+try {
+  const existingFiles = fs.readdirSync(distAssetsDir);
+  for (const f of existingFiles) {
+    if (f.startsWith('index-') && f.endsWith('.js')) {
+      fs.unlinkSync(path.join(distAssetsDir, f));
+    }
+  }
+} catch (e) {}
+
+console.log(`📦 Bundling index.tsx with esbuild-wasm (minified & tree-shaken -> ${jsBundleName})...`);
 const result = await esbuild.build({
   entryPoints: [path.join(root, 'index.tsx')],
   bundle: true,
@@ -76,22 +87,37 @@ const result = await esbuild.build({
 const bundleSize = fs.statSync(jsBundlePath).size;
 console.log(`✅ JS Bundle created: dist/assets/${jsBundleName} (${(bundleSize / 1024).toFixed(1)} KB)`);
 
-// 3. Generate dist/index.html
+// 3. Copy public assets into dist
+const publicDir = path.join(root, 'public');
+if (fs.existsSync(publicDir)) {
+  const publicFiles = fs.readdirSync(publicDir);
+  for (const file of publicFiles) {
+    const srcFile = path.join(publicDir, file);
+    const destFile = path.join(distDir, file);
+    if (!fs.statSync(srcFile).isDirectory()) {
+      fs.copyFileSync(srcFile, destFile);
+    }
+  }
+  console.log('✅ Copied public/ static assets to dist/');
+}
+
+// 4. Generate dist/index.html with fresh bundle script
 const sourceHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf-8');
 const finalHtml = sourceHtml.replace(
-  '<script type="module" src="/index.tsx"></script>',
+  /<script\s+type="module"\s+src="[^"]+"><\/script>/i,
   `<script type="module" src="/assets/${jsBundleName}"></script>`
 );
 fs.writeFileSync(path.join(distDir, 'index.html'), finalHtml, 'utf-8');
 console.log('✅ Generated dist/index.html');
 
-// 4. Generate Netlify _redirects & _headers
+// 5. Generate Netlify _redirects & _headers
 fs.writeFileSync(path.join(distDir, '_redirects'), '/*  /index.html  200\n', 'utf-8');
 fs.writeFileSync(
   path.join(distDir, '_headers'),
-  `/*\n  Cache-Control: no-cache, no-store, must-revalidate\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n`,
+  `/*\n  Cache-Control: no-cache, no-store, must-revalidate, max-age=0\n/assets/*\n  Cache-Control: public, max-age=31536000, immutable\n`,
   'utf-8'
 );
 console.log('✅ Generated dist/_redirects & dist/_headers');
 
 console.log('🎉 WASM Production Build Complete!');
+
