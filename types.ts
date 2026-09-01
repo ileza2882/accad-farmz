@@ -59,20 +59,8 @@ export const DEPARTMENT_CATEGORIZED_ROLES: {
   {
     category: 'Piggery Department',
     roles: [
-      { id: 'PIGGERY_STAFF', label: 'Piggery Staff', department: Department.PIGS, baseRole: Role.STAFF, position: 'Piggery Staff' },
-      { id: 'PIGGERY_MANAGER', label: 'Piggery Manager', department: Department.PIGS, baseRole: Role.MANAGER, position: 'Piggery Manager' }
-    ]
-  },
-  {
-    category: 'Administration & Executive',
-    roles: [
-      { id: 'EXECUTIVE_DIRECTOR', label: 'Executive Director (Admin)', department: Department.ADMIN, baseRole: Role.EXECUTIVE_DIRECTOR, position: 'Executive Director' }
-    ]
-  },
-  {
-    category: 'Others',
-    roles: [
-      { id: 'OTHERS', label: 'Others (Type-in Custom Role)', department: Department.OTHERS, baseRole: Role.STAFF, position: 'Custom Position' }
+      { id: 'PIGGERY_STAFF', label: 'Piggery Staff', department: Department.PIGGERY, baseRole: Role.STAFF, position: 'Piggery Staff' },
+      { id: 'PIGGERY_MANAGER', label: 'Piggery Manager', department: Department.PIGGERY, baseRole: Role.MANAGER, position: 'Piggery Manager' }
     ]
   }
 ];
@@ -368,7 +356,7 @@ export function getHatcheryBatchStage(batch?: Partial<FisheryHatcheryBatchData>)
     return {
       stage: 'Incubation',
       progressPercent: 25,
-      badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       isComplete: false
     };
   }

@@ -182,7 +182,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
 
   const getStatusClasses = (status: string) => {
     if (status === ReportStatus.APPROVED) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-    if (status === ReportStatus.PENDING_ED) return 'bg-purple-100 text-purple-800 border-purple-300';
+    if (status === ReportStatus.PENDING_ED) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
     if (status === ReportStatus.PENDING_MANAGER) return 'bg-blue-100 text-blue-800 border-blue-300';
     return 'bg-rose-100 text-rose-800 border-rose-300';
   };
@@ -209,7 +209,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
             <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-1 uppercase tracking-tight">
               {deptFilter === 'ALL' ? 'All Farm Logs' : `${deptFilter} Department Logs`}
               {deptFilter === Department.FISHERY && sectionFilter !== 'ALL' && (
-                <span className="text-purple-700 ml-2">
+                <span className="text-emerald-700 ml-2">
                   &bull; {sectionFilter === 'HATCHERY' ? 'Hatchery Section' : 'Grow-Out Section'}
                 </span>
               )}
@@ -345,8 +345,8 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                 onClick={() => handleSectionChange('HATCHERY')}
                 className={`px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-1.5 ${
                   sectionFilter === 'HATCHERY'
-                    ? 'bg-purple-900 text-white shadow-xs ring-2 ring-purple-400'
-                    : 'bg-white text-purple-900 border border-purple-300 hover:bg-purple-100'
+                    ? 'bg-emerald-700 text-white shadow-xs ring-2 ring-emerald-400'
+                    : 'bg-white text-emerald-900 border border-emerald-300 hover:bg-emerald-100'
                 }`}
               >
                 <Egg className="w-3.5 h-3.5" />
@@ -358,7 +358,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                 <button
                   type="button"
                   onClick={handleBulkHatcheryExcelExport}
-                  className="ml-auto px-3 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                  className="ml-auto px-3 py-1 bg-emerald-600 hover:bg-emerald-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-xs cursor-pointer"
                   title="Export all filtered Hatchery batch logs to Excel (.xlsx)"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -455,7 +455,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                       <div className="flex items-start space-x-3">
                         <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${
                           report.department === Department.FISHERY
-                            ? isHatchery ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            ? isHatchery ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                             : 'bg-slate-50 border-slate-200 text-slate-700'
                         }`}>
                           {report.department === Department.FISHERY ? (
@@ -481,7 +481,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                               </span>
                             )}
                             {report.formData?.batches && (
-                              <span className="text-[9px] font-black uppercase bg-purple-100 text-purple-900 border border-purple-200 px-2 py-0.5 rounded-full">
+                              <span className="text-[9px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-full">
                                 {report.formData.batches.length} Batches
                               </span>
                             )}
@@ -504,7 +504,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                           {report.department === Department.FISHERY ? (
                             <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
                               isHatchery 
-                                ? 'bg-purple-50 text-purple-800 border-purple-200' 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
                                 : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             }`}>
                               {isHatchery ? '🥚 Hatchery Section' : '🌊 Grow-Out Section'}
@@ -609,10 +609,10 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                           <button
                             onClick={() => handleExcelExport(report)}
                             disabled={exportingId === report.id + '_excel'}
-                            className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1 cursor-pointer disabled:opacity-50"
                             title="Export Hatchery Batch Ledger to Excel (.xlsx)"
                           >
-                            {exportingId === report.id + '_excel' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3 text-purple-700" />}
+                            {exportingId === report.id + '_excel' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3 text-emerald-700" />}
                             <span>XLSX</span>
                           </button>
                         )}
@@ -702,7 +702,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
                   {isHatchery && (
                     <button
                       onClick={() => handleExcelExport(report)}
-                      className="px-3 py-1.5 bg-purple-50 text-purple-900 border border-purple-300 rounded-xl text-xs font-black"
+                      className="px-3 py-1.5 bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-xl text-xs font-black"
                     >
                       XLS
                     </button>

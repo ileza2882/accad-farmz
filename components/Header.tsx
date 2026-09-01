@@ -147,8 +147,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                     if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
                   }}
                   className={`text-[10px] font-extrabold uppercase px-2 py-1.5 rounded-xl border outline-none cursor-pointer transition-all shadow-sm ${
-                    user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100' :
-                    user.role === Role.MANAGER ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100' :
+                    user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-slate-900 text-white border-slate-800' :
+                    user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200' :
                     'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                   }`}
                   title="Switch user role and redirect dashboard"
@@ -181,10 +181,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
 
               <Link
                 to="/?ed_login=true"
-                className="flex items-center space-x-1.5 bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-purple-200 transition-all active:scale-95 border border-purple-700"
+                className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 border border-emerald-500"
                 title="Executive Director Governance Portal"
               >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <ShieldCheck className="w-4 h-4 text-emerald-100" />
                 <span>Executive Director Login</span>
               </Link>
             </div>
@@ -259,8 +259,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                       if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
                     }}
                     className={`w-full text-xs font-extrabold uppercase px-3 py-2.5 rounded-xl border outline-none cursor-pointer transition-all ${
-                      user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-purple-50 text-purple-800 border-purple-300' :
-                      user.role === Role.MANAGER ? 'bg-blue-50 text-blue-800 border-blue-300' :
+                      user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-slate-900 text-white border-slate-800' :
+                      user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
                       'bg-emerald-50 text-emerald-800 border-emerald-300'
                     }`}
                   >
@@ -291,10 +291,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
 
                 <Link
                   to="/?ed_login=true"
-                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-800 to-indigo-900 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-purple-200 transition-all active:scale-95 border border-purple-700"
+                  className="w-full flex items-center justify-center space-x-2 bg-emerald-600 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 border border-emerald-500"
                 >
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <span>Executive Director Portal</span>
+                  <ShieldCheck className="w-4 h-4 text-emerald-100" />
+                  <span>Executive Director Login</span>
                 </Link>
               </div>
             )}

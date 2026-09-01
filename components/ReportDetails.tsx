@@ -53,8 +53,8 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
         );
       case ReportStatus.PENDING_ED:
         return (
-          <span className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-800 border border-purple-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
-            <Clock className="w-4 h-4 text-purple-600" />
+          <span className="inline-flex items-center space-x-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300 px-3.5 py-1 rounded-full text-xs font-black uppercase shadow-sm">
+            <Clock className="w-4 h-4 text-emerald-600" />
             <span>Pending ED Final Approval</span>
           </span>
         );
@@ -124,10 +124,10 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             {(report.department === Department.FISHERY && (report.inventoryType === InventoryType.HATCHERY || report.section === FisherySection.HATCHERY || Boolean(report.formData?.batches))) && (
               <button
                 onClick={() => exportHatcheryToExcel(report)}
-                className="p-2.5 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                className="p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
                 title="Download AccadFarms Hatchery Excel Sheet (.xlsx)"
               >
-                <FileSpreadsheet className="w-4 h-4 text-purple-700" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
                 <span>Export Excel (.xlsx)</span>
               </button>
             )}
@@ -153,7 +153,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
 
           <div className="p-3 bg-white border border-slate-200 rounded-2xl">
             <span className="text-[10px] text-slate-400 font-black uppercase">ED Authorization</span>
-            <p className="text-purple-700 font-bold mt-0.5">{report.edApprovedBy ? `Approved by ${report.edApprovedBy}` : 'Pending Authorization'}</p>
+            <p className="text-emerald-700 font-bold mt-0.5">{report.edApprovedBy ? `Approved by ${report.edApprovedBy}` : 'Pending Authorization'}</p>
           </div>
         </div>
 
@@ -258,7 +258,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             {assetData.ingredientsUsed && (
               <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
                 <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
-                  <Factory className="w-4 h-4 text-purple-600" />
+                  <Factory className="w-4 h-4 text-emerald-600" />
                   <span>Raw Ingredients Usage Audit (KG)</span>
                 </div>
 
@@ -271,7 +271,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                     return (
                       <div key={ingName} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
                         <span className="text-[10px] text-slate-400 font-black uppercase truncate" title={formattedLabel}>{formattedLabel}</span>
-                        <p className="text-sm font-black text-purple-900 mt-1">{ingVal || 0} Kg</p>
+                        <p className="text-sm font-black text-emerald-900 mt-1">{ingVal || 0} Kg</p>
                       </div>
                     );
                   })}
@@ -302,7 +302,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
             {assetData.machineCheck && (
               <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-5">
                 <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
-                  <Wrench className="w-4 h-4 text-purple-700" />
+                  <Wrench className="w-4 h-4 text-emerald-700" />
                   <span>Machinery Health & Status Audit (By Machine Type)</span>
                 </div>
 
@@ -350,15 +350,15 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   </div>
 
                   {/* Feed Mixers */}
-                  <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-950 block">
+                  <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block">
                       🌀 Feed Mixers & Wet Blenders
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {['chineseMixer', 'locallyFabricatedMixer', 'localWetMixer'].map((key) => {
                         const status = assetData.machineCheck[key] || 'Good';
                         return (
-                          <div key={key} className="bg-white p-2.5 rounded-xl border border-purple-100 flex flex-col justify-between">
+                          <div key={key} className="bg-white p-2.5 rounded-xl border border-emerald-100 flex flex-col justify-between">
                             <span className="text-[10px] font-bold text-slate-700">{MACHINE_LABELS[key] || key}</span>
                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md mt-1 w-fit ${
                               status === 'Good' ? 'bg-emerald-100 text-emerald-800' :

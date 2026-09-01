@@ -191,9 +191,9 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                 {isED && (
                   <button
                     onClick={() => navigate('/fishery')}
-                    className="w-full sm:w-auto bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-900 hover:to-indigo-950 text-white font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer border border-purple-700"
+                    className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-black px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-slate-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer border border-slate-700"
                   >
-                    <Fish className="w-4 h-4 text-amber-400" />
+                    <Fish className="w-4 h-4 text-emerald-400" />
                     <span>View Fishery Reports</span>
                   </button>
                 )}
@@ -207,19 +207,19 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
 
       {/* ===== EXECUTIVE DIRECTOR LOGGED-IN CONSOLE ===== */}
       {isED && (
-        <section className="bg-gradient-to-b from-purple-50/70 to-slate-50 border-b border-purple-200 py-10 px-4 sm:px-6 lg:px-8">
+        <section className="bg-gradient-to-b from-emerald-50/60 to-slate-50/80 border-b border-emerald-100 py-10 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto space-y-6">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-800 text-amber-400 flex items-center justify-center shadow-md">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-800 text-emerald-100 flex items-center justify-center shadow-md">
                   <Crown className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-black text-purple-950 uppercase tracking-tight">
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">
                     Executive Director Command Hub
                   </h3>
-                  <p className="text-xs text-purple-700 font-medium">
+                  <p className="text-xs text-slate-600 font-medium">
                     Logged in as <strong>{user.fullName}</strong>. Select a section to fetch and manage data:
                   </p>
                 </div>
@@ -227,7 +227,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
 
               <button
                 onClick={() => navigate('/admin')}
-                className="inline-flex items-center space-x-1.5 bg-purple-900 hover:bg-purple-950 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all"
+                className="inline-flex items-center space-x-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all"
               >
                 <span>Open Full Admin Dashboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -447,7 +447,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
       {/* ===== EXECUTIVE DIRECTOR LOGIN MODAL ===== */}
       {isEDModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white border border-purple-200 rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden relative p-6 sm:p-8 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden relative p-6 sm:p-8 space-y-6">
             
             <button
               onClick={() => setIsEDModalOpen(false)}
@@ -456,19 +456,26 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Header Emblem */}
-            <div className="text-center space-y-2">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-purple-800 to-indigo-950 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-purple-200 border-2 border-purple-600">
-                <Crown className="w-8 h-8" />
+            {/* Logo Emblem Header */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-emerald-50 rounded-3xl p-2.5 border-2 border-emerald-200 flex items-center justify-center mb-3 shadow-md">
+                <img 
+                  src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
+                  alt="ACCAD Farms Logo" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </div>
-              <div className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-900 text-[10px] font-black uppercase px-3 py-1 rounded-full border border-purple-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
-                <span>Executive Clearance Required</span>
+
+              <div className="inline-flex items-center space-x-1.5 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-3 py-1 rounded-full border border-emerald-200 mb-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Executive Governance Clearance</span>
               </div>
+
               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
                 Executive Director Login
               </h3>
-              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto mt-1">
                 Sign in to access centralized farm governance, department reports, and approvals.
               </p>
             </div>
@@ -483,7 +490,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
 
             <form onSubmit={handleEDLogin} className="space-y-4">
               
-              {/* Quick 1-Click ED Options */}
+              {/* Quick 1-Click ED Credentials */}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
                   Quick Executive Credentials
@@ -496,20 +503,20 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                       setEdPassword('123456');
                       setEdError(null);
                     }}
-                    className={`w-full p-3 rounded-xl border text-left text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between ${
+                    className={`w-full p-3.5 rounded-2xl border text-left text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between ${
                       edEmail === 'info@accadfarms.com'
-                        ? 'bg-purple-50 border-purple-400 text-purple-950 ring-2 ring-purple-300 shadow-xs'
+                        ? 'bg-emerald-50 border-emerald-400 text-emerald-950 ring-2 ring-emerald-200 shadow-xs'
                         : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     <div>
-                      <div className="text-[10px] text-purple-700 font-black uppercase flex items-center gap-1">
-                        <Crown className="w-3.5 h-3.5 text-purple-600" />
+                      <div className="text-[10px] text-emerald-700 font-black uppercase flex items-center gap-1">
+                        <Crown className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Executive Director Email</span>
                       </div>
-                      <div className="text-sm font-black text-purple-950 mt-0.5">info@accadfarms.com</div>
+                      <div className="text-sm font-black text-slate-900 mt-0.5">info@accadfarms.com</div>
                     </div>
-                    <span className="text-[10px] bg-purple-200/70 text-purple-900 px-2.5 py-1 rounded-lg font-black uppercase tracking-wider">
+                    <span className="text-[10px] bg-emerald-200/80 text-emerald-950 px-2.5 py-1 rounded-xl font-black uppercase tracking-wider">
                       Auto-Fill
                     </span>
                   </button>
@@ -528,8 +535,8 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                     required
                     value={edEmail}
                     onChange={(e) => setEdEmail(e.target.value)}
-                    placeholder="ed@accadfarms.com"
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 outline-none transition-all"
+                    placeholder="info@accadfarms.com"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-900 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -547,7 +554,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                     value={edPassword}
                     onChange={(e) => setEdPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-slate-900 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-slate-900 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -555,13 +562,13 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
               <button
                 type="submit"
                 disabled={isEdSubmitting}
-                className="w-full bg-gradient-to-r from-purple-800 to-indigo-950 hover:from-purple-900 hover:to-indigo-900 text-white font-black py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-purple-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 border border-purple-700"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
               >
                 {isEdSubmitting ? (
                   <span>Authenticating Clearance...</span>
                 ) : (
                   <>
-                    <KeyRound className="w-4 h-4 text-amber-400" />
+                    <KeyRound className="w-4 h-4 text-emerald-200" />
                     <span>Enter Executive Hub</span>
                   </>
                 )}
@@ -571,7 +578,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
 
             <div className="text-center pt-1 border-t border-slate-100">
               <span className="text-[10px] font-bold text-slate-400">
-                Staff or Manager? <Link to="/login" onClick={() => setIsEDModalOpen(false)} className="text-emerald-600 font-extrabold hover:underline">Use Portal Login →</Link>
+                Staff or Manager? <Link to="/login" onClick={() => setIsEDModalOpen(false)} className="text-emerald-700 font-extrabold hover:underline">Use Portal Login →</Link>
               </span>
             </div>
 

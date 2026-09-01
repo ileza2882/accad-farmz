@@ -578,7 +578,7 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
       <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
-            <Wrench className="w-5 h-5 text-purple-700" />
+            <Wrench className="w-5 h-5 text-emerald-700" />
             <div>
               <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase">
                 5. Machine Health Checks & Operational Status
@@ -630,13 +630,13 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
           </div>
 
           {/* SUBSECTION C: MIXERS & BLENDERS */}
-          <div className="p-4 sm:p-5 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-3">
-            <div className="flex items-center space-x-2 border-b border-purple-200/80 pb-2">
-              <RefreshCw className="w-4 h-4 text-purple-600" />
-              <h5 className="text-xs font-black uppercase tracking-wider text-purple-950">
+          <div className="p-4 sm:p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-emerald-200/80 pb-2">
+              <RefreshCw className="w-4 h-4 text-emerald-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-slate-900">
                 C. Feed Mixers & Wet Blenders
               </h5>
-              <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full ml-auto">
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full ml-auto">
                 3 Units
               </span>
             </div>

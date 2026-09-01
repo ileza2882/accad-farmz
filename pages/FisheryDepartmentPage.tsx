@@ -164,8 +164,8 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                   <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 group-hover:bg-emerald-700 group-hover:text-white transition-colors shadow-sm">
                     <Egg className="w-7 h-7" />
                   </div>
-                  <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-black uppercase px-3 py-1 rounded-full flex items-center space-x-1">
-                    <Sparkles className="w-3 h-3 text-purple-600" />
+                  <span className="bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10px] font-black uppercase px-3 py-1 rounded-full flex items-center space-x-1">
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
                     <span>Hatchery Manager Restricted</span>
                   </span>
                 </div>
@@ -181,19 +181,19 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
                 <div className="grid grid-cols-2 gap-2.5 pt-2">
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
-                    <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Broodstock Sourcing</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
-                    <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                    <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Feeding Milestones</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
-                    <Droplets className="w-4 h-4 text-purple-600 shrink-0" />
+                    <Droplets className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Fingerling Weights</span>
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center space-x-2 text-xs font-bold text-slate-700">
-                    <MapPin className="w-4 h-4 text-purple-600 shrink-0" />
+                    <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Grow-Out Transfers</span>
                   </div>
                 </div>

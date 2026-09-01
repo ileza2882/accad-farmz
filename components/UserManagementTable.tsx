@@ -103,10 +103,10 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   };
 
   const getRoleBadgeClasses = (role: Role) => {
-    if (role === Role.EXECUTIVE_DIRECTOR) return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (role === Role.MANAGER) return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (role === Role.HATCHERY_MANAGER) return 'bg-teal-100 text-teal-800 border-teal-200';
-    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (role === Role.EXECUTIVE_DIRECTOR) return 'bg-slate-900 text-white border-slate-800';
+    if (role === Role.MANAGER) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (role === Role.HATCHERY_MANAGER) return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+    return 'bg-emerald-50 text-emerald-800 border-emerald-200';
   };
 
   return (
@@ -145,7 +145,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
               <option value={Department.FISHERY}>Fishery</option>
               <option value={Department.POULTRY}>Poultry</option>
               <option value={Department.CATTLE}>Cattle</option>
-              <option value={Department.PIGS}>Pigs</option>
+              <option value={Department.PIGGERY}>Piggery</option>
             </select>
 
             <button

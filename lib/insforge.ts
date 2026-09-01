@@ -551,6 +551,11 @@ export async function createReport(report: Report): Promise<Report> {
     localStorage.setItem('accad_reports_v2', JSON.stringify(localReports));
   } catch (e) {}
 
+  // Trigger InsForge email notification to Manager & Executive Director
+  import('./emailService').then(({ sendReportSubmittedEmail }) => {
+    sendReportSubmittedEmail(report).catch(err => console.warn('InsForge report email dispatch notice:', err));
+  }).catch(() => {});
+
   return report;
 }
 
@@ -587,16 +592,27 @@ export async function updateReportStatus(
 
   try {
     const localReports: Report[] = JSON.parse(localStorage.getItem('accad_reports_v2') || localStorage.getItem('accad_reports_v1') || '[]');
+    let targetReport: Report | undefined;
     const updated = localReports.map(r => {
       if (r.id === reportId) {
-        return {
+        targetReport = {
           ...r,
           ...updates
         };
+        return targetReport;
       }
       return r;
     });
     localStorage.setItem('accad_reports_v2', JSON.stringify(updated));
+
+    if (targetReport) {
+      const reviewerName = edApprovedBy || managerApprovedBy || rejectedBy || 'Supervisor';
+      import('./emailService').then(({ sendReportStatusEmail }) => {
+        sendReportStatusEmail(targetReport!, status, reviewerName, rejectionReason).catch(err =>
+          console.warn('InsForge status email dispatch notice:', err)
+        );
+      }).catch(() => {});
+    }
   } catch (e) {}
 
   return true;
@@ -937,6 +953,13 @@ export async function createHatcheryChangeRequest(
       'FARM_LOG_CHANGE_REQUESTED',
       `Requested unlock for ${reqData.batchNumber} (Report: ${reqData.reportId}): ${reqData.reason}`
     );
+
+    // Dispatch InsForge email alert to ED
+    import('./emailService').then(({ sendChangeRequestEmail }) => {
+      sendChangeRequestEmail(changeReq).catch(err =>
+        console.warn('InsForge change request email dispatch notice:', err)
+      );
+    }).catch(() => {});
   } catch (e) {
     console.error('Error creating change request:', e);
   }

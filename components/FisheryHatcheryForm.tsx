@@ -506,10 +506,10 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 isSubmitting: false
               });
             }}
-            className="text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md flex items-center space-x-1 transition-all cursor-pointer"
+            className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center space-x-1 transition-all cursor-pointer"
             title={`Request correction for ${fieldTitle}`}
           >
-            <Edit3 className="w-2.5 h-2.5 text-purple-600" />
+            <Edit3 className="w-2.5 h-2.5 text-emerald-600" />
             <span>Request Change</span>
           </button>
         </div>
@@ -551,8 +551,8 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
               <Egg className="w-3.5 h-3.5 text-emerald-600" />
               <span>Hatchery Progressive Ledger</span>
             </span>
-            <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-              <Lock className="w-3 h-3 text-purple-600" />
+            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+              <Lock className="w-3 h-3 text-emerald-600" />
               <span>Auto-Archive on Save</span>
             </span>
           </div>
@@ -1085,11 +1085,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             className="flex items-center justify-between p-4 bg-slate-100 hover:bg-slate-200/80 rounded-2xl cursor-pointer select-none transition-colors"
           >
             <div className="flex items-center space-x-2.5">
-              <FolderArchive className="w-5 h-5 text-purple-700" />
+              <FolderArchive className="w-5 h-5 text-emerald-700" />
               <div>
                 <h4 className="text-sm font-black uppercase text-slate-900 tracking-tight flex items-center space-x-2">
                   <span>Permanent Farm Archive & Completed Records</span>
-                  <span className="bg-purple-100 text-purple-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-purple-200">
+                  <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
                     {archivedBatchesWithIndices.length} Completed Batches
                   </span>
                 </h4>
@@ -1174,7 +1174,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95 ${
                             isPendingChange
                               ? 'bg-amber-100 text-amber-900 border border-amber-300 cursor-not-allowed'
-                              : 'bg-purple-900 hover:bg-purple-950 text-white shadow-purple-200'
+                              : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-200'
                           }`}
                           title="Submit a request to ED to unlock this record"
                         >
@@ -1395,8 +1395,8 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             </button>
 
             <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-800">
-                <Edit3 className="w-5 h-5 text-purple-700" />
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-800">
+                <Edit3 className="w-5 h-5 text-emerald-700" />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 uppercase">
@@ -1418,7 +1418,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 value={changeRequestModal.reason}
                 onChange={(e) => setChangeRequestModal({ ...changeRequestModal, reason: e.target.value })}
                 placeholder="e.g. Need to correct transferred fingerling count from 12,000 to 14,500 due to recount verification..."
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-2xl p-3.5 text-xs font-medium text-slate-900 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl p-3.5 text-xs font-medium text-slate-900 outline-none transition-all"
               />
             </div>
 
@@ -1435,7 +1435,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 type="button"
                 disabled={changeRequestModal.isSubmitting || !changeRequestModal.reason.trim()}
                 onClick={handleSubmitChangeRequest}
-                className="px-6 py-2.5 bg-purple-900 hover:bg-purple-950 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-purple-200 transition-all cursor-pointer flex items-center space-x-2 disabled:opacity-50"
+                className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer flex items-center space-x-2 disabled:opacity-50"
               >
                 {changeRequestModal.isSubmitting ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />

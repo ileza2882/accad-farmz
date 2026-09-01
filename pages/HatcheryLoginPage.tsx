@@ -85,11 +85,6 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
     }
   };
 
-  const handleAutoFill = () => {
-    setEmail('hatchery@accadfarms.com');
-    setPassword('123456');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/30 to-emerald-50/40 flex items-center justify-center p-4 sm:p-6 font-sans">
       
@@ -155,23 +150,7 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
               </div>
             )}
 
-            {/* Quick Auto-Fill */}
-            <div className="bg-teal-50/70 border border-teal-200 p-3.5 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-extrabold text-teal-950 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Default Hatchery Manager Account</span>
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleAutoFill}
-                className="w-full text-[11px] font-bold text-teal-700 bg-white hover:bg-teal-100 border border-teal-300 py-2 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer active:scale-[0.98]"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Auto-Fill: hatchery@accadfarms.com / 123456</span>
-              </button>
-            </div>
+
 
             {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">

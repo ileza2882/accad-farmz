@@ -228,7 +228,7 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
           </div>
           <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
-              <Egg className="w-3.5 h-3.5 text-purple-600" />
+              <Egg className="w-3.5 h-3.5 text-emerald-600" />
               <span>Total Batches</span>
             </div>
             <span className="text-2xl font-black text-slate-900">{totalBatches}</span>
@@ -319,7 +319,7 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
                               {batches.length} batch{batches.length !== 1 ? 'es' : ''}
                             </span>
                             {lockedBatches > 0 && (
-                              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <Lock className="w-2.5 h-2.5" />
                                 {lockedBatches} saved
                               </span>
@@ -371,8 +371,8 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
             {completedReports.length > 0 && (
               <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-200 flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-200 flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-purple-700" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Role, Department, User, DEPARTMENT_CATEGORIZED_ROLES } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
 import { sendUserWelcomeEmail } from '../lib/emailService';
@@ -47,15 +48,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [selectedPresetRole, setSelectedPresetRole] = useState<string>('FISHERY_STAFF');
-  const [customRoleTitle, setCustomRoleTitle] = useState<string>('');
-  const [customDepartment, setCustomDepartment] = useState<string>('');
-  const [department, setDepartment] = useState<Department | string>(Department.FISHERY);
-  const [role, setRole] = useState<Role>(Role.STAFF);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [department, setDepartment] = useState<Department>(Department.FISHERY);
+  const [selectedRoleType, setSelectedRoleType] = useState<string>('STAFF');
   const [customNotes, setCustomNotes] = useState('');
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
@@ -65,48 +59,12 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePresetRoleChange = (presetId: string) => {
-    setSelectedPresetRole(presetId);
-    if (presetId === 'FISHERY_STAFF') {
-      setRole(Role.STAFF);
-      setDepartment(Department.FISHERY);
-    } else if (presetId === 'FISHERY_MANAGER') {
-      setRole(Role.MANAGER);
-      setDepartment(Department.FISHERY);
-    } else if (presetId === 'HATCHERY_MANAGER') {
-      setRole(Role.HATCHERY_MANAGER);
-      setDepartment(Department.FISHERY);
-    } else if (presetId === 'POULTRY_STAFF') {
-      setRole(Role.STAFF);
-      setDepartment(Department.POULTRY);
-    } else if (presetId === 'POULTRY_MANAGER') {
-      setRole(Role.MANAGER);
-      setDepartment(Department.POULTRY);
-    } else if (presetId === 'CATTLE_STAFF') {
-      setRole(Role.STAFF);
-      setDepartment(Department.CATTLE);
-    } else if (presetId === 'CATTLE_MANAGER') {
-      setRole(Role.MANAGER);
-      setDepartment(Department.CATTLE);
-    } else if (presetId === 'PIGGERY_STAFF') {
-      setRole(Role.STAFF);
-      setDepartment(Department.PIGS);
-    } else if (presetId === 'PIGGERY_MANAGER') {
-      setRole(Role.MANAGER);
-      setDepartment(Department.PIGS);
-    } else if (presetId === 'EXECUTIVE_DIRECTOR') {
-      setRole(Role.EXECUTIVE_DIRECTOR);
-      setDepartment(Department.ADMIN);
-    } else if (presetId === 'OTHERS') {
-      setRole(Role.STAFF);
-      setDepartment(Department.OTHERS);
+  const handleDepartmentChange = (newDept: Department) => {
+    setDepartment(newDept);
+    // If switching away from Fishery and role was Hatchery Manager, reset to STAFF
+    if (newDept !== Department.FISHERY && selectedRoleType === 'HATCHERY_MANAGER') {
+      setSelectedRoleType('STAFF');
     }
-  };
-
-  const handleUseDefaultPassword = () => {
-    setPassword('123456');
-    setConfirmPassword('123456');
-    setError(null);
   };
 
   const handleResetForm = () => {
@@ -114,13 +72,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setFullName('');
     setEmail('');
     setPhone('');
-    setSelectedPresetRole('FISHERY_STAFF');
-    setCustomRoleTitle('');
-    setCustomDepartment('');
     setDepartment(Department.FISHERY);
-    setRole(Role.STAFF);
-    setPassword('');
-    setConfirmPassword('');
+    setSelectedRoleType('STAFF');
     setCustomNotes('');
     setError(null);
     setSuccess(null);
@@ -134,12 +87,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     const cleanName = fullName.trim();
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
-    const cleanPass = password;
-    const cleanConfirm = confirmPassword;
+    const defaultPassword = 'Password123!';
 
     // 1. Empty field validation
-    if (!cleanName || !cleanEmail || !cleanPhone || !cleanPass || !cleanConfirm) {
-      setError('All fields marked with * are required.');
+    if (!cleanName || !cleanEmail || !cleanPhone) {
+      setError('All required fields marked with * must be filled.');
       return;
     }
 
@@ -157,58 +109,29 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       return;
     }
 
-    // 4. Role selection check
-    if (!role) {
-      setError('Please select an account role.');
-      return;
-    }
+    // 4. Resolve Base Role and Position title
+    let resolvedRole: Role = Role.STAFF;
+    let resolvedPosition = `${department} Staff`;
 
-    // 4b. Custom role validation
-    let resolvedPosition = '';
-    let resolvedDept = department;
-
-    if (selectedPresetRole === 'FISHERY_STAFF') resolvedPosition = 'Fishery Staff';
-    else if (selectedPresetRole === 'FISHERY_MANAGER') resolvedPosition = 'Fishery Manager';
-    else if (selectedPresetRole === 'HATCHERY_MANAGER') resolvedPosition = 'Hatchery Manager';
-    else if (selectedPresetRole === 'POULTRY_STAFF') resolvedPosition = 'Poultry Staff';
-    else if (selectedPresetRole === 'POULTRY_MANAGER') resolvedPosition = 'Poultry Manager';
-    else if (selectedPresetRole === 'CATTLE_STAFF') resolvedPosition = 'Cattle Staff';
-    else if (selectedPresetRole === 'CATTLE_MANAGER') resolvedPosition = 'Cattle Manager';
-    else if (selectedPresetRole === 'PIGGERY_STAFF') resolvedPosition = 'Piggery Staff';
-    else if (selectedPresetRole === 'PIGGERY_MANAGER') resolvedPosition = 'Piggery Manager';
-    else if (selectedPresetRole === 'EXECUTIVE_DIRECTOR') resolvedPosition = 'Executive Director';
-    else if (selectedPresetRole === 'OTHERS') {
-      if (!customRoleTitle.trim()) {
-        setError('Please type in the custom role / position title.');
-        return;
-      }
-      resolvedPosition = customRoleTitle.trim();
-      if (customDepartment.trim()) {
-        resolvedDept = customDepartment.trim();
-      }
-    }
-
-    // 5. Password length check (min 6 chars to support standard 123456 passwords)
-    if (cleanPass.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
-    }
-
-    // 6. Confirm password check
-    if (cleanPass !== cleanConfirm) {
-      setError('Passwords do not match. Please verify both password fields.');
-      return;
+    if (selectedRoleType === 'MANAGER') {
+      resolvedRole = Role.MANAGER;
+      resolvedPosition = `${department} Manager`;
+    } else if (selectedRoleType === 'HATCHERY_MANAGER' && department === Department.FISHERY) {
+      resolvedRole = Role.HATCHERY_MANAGER;
+      resolvedPosition = 'Hatchery Manager';
+    } else {
+      resolvedRole = Role.STAFF;
+      resolvedPosition = `${department} Staff`;
     }
 
     setIsSubmitting(true);
 
     try {
-      // 7 & 8. Check uniqueness by fetching all users in a single call
+      // 5. Check uniqueness
       const allUsers = await getUsers();
       
       const existingEmailUser = allUsers.find(u => {
         const uEmail = u.email.toLowerCase().trim();
-        // Ignore stale legacy ED records where old email was stored
         if (uEmail === 'dalestic12@gmail.com' && (u.role === Role.EXECUTIVE_DIRECTOR || u.id === 'ed_user_1')) {
           return false;
         }
@@ -239,12 +162,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         fullName: cleanName,
         email: cleanEmail,
         phone: cleanPhone,
-        role: role,
-        department: resolvedDept,
+        role: resolvedRole,
+        department: department,
         position: resolvedPosition,
-        customRoleTitle: selectedPresetRole === 'OTHERS' ? customRoleTitle.trim() : undefined,
         status: 'active',
-        password: cleanPass,
+        password: defaultPassword,
         profilePicture: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=059669&color=fff`,
         createdAt: Date.now()
       };
@@ -458,209 +380,47 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               </div>
             </div>
 
-            {/* Categorized Role & Department Selection */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Assigned Role (Categorized by Department) *
-                  </label>
-                  <div className="relative">
-                    <Shield className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
-                    <select
-                      value={selectedPresetRole}
-                      onChange={(e) => handlePresetRoleChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all cursor-pointer font-bold"
-                    >
-                      <optgroup label="🐟 Fishery Department">
-                        <option value="FISHERY_STAFF">Fishery Staff</option>
-                        <option value="FISHERY_MANAGER">Fishery Manager</option>
-                        <option value="HATCHERY_MANAGER">Hatchery Manager</option>
-                      </optgroup>
-                      <optgroup label="🐔 Poultry Department">
-                        <option value="POULTRY_STAFF">Poultry Staff</option>
-                        <option value="POULTRY_MANAGER">Poultry Manager</option>
-                      </optgroup>
-                      <optgroup label="🐂 Cattle Department">
-                        <option value="CATTLE_STAFF">Cattle Staff</option>
-                        <option value="CATTLE_MANAGER">Cattle Manager</option>
-                      </optgroup>
-                      <optgroup label="🐖 Piggery Department">
-                        <option value="PIGGERY_STAFF">Piggery Staff</option>
-                        <option value="PIGGERY_MANAGER">Piggery Manager</option>
-                      </optgroup>
-                      <optgroup label="🏛️ Administration & Executive">
-                        <option value="EXECUTIVE_DIRECTOR">Executive Director</option>
-                      </optgroup>
-                      <optgroup label="✨ Others">
-                        <option value="OTHERS">Others – (Type-in Field)</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Department / Division *
-                  </label>
-                  <div className="relative">
-                    <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    <select
-                      disabled={selectedPresetRole !== 'OTHERS'}
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value as Department)}
-                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none transition-all font-bold ${
-                        selectedPresetRole !== 'OTHERS'
-                          ? 'bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed'
-                          : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-slate-900 cursor-pointer'
-                      }`}
-                    >
-                      <option value={Department.FISHERY}>Fishery Department</option>
-                      <option value={Department.POULTRY}>Poultry Department</option>
-                      <option value={Department.PIGS}>Piggery Department</option>
-                      <option value={Department.CATTLE}>Cattle Department</option>
-                      <option value={Department.ADMIN}>Administration & HR</option>
-                      <option value={Department.CROPS}>Crops & Horticulture</option>
-                      <option value={Department.FEED_MILL}>Feed Mill</option>
-                      <option value={Department.SECURITY}>Security</option>
-                      <option value={Department.MAINTENANCE}>Maintenance & Engineering</option>
-                      <option value={Department.STORE}>Store & Logistics</option>
-                      <option value={Department.ACCOUNTING}>Accounting & Finance</option>
-                      <option value={Department.OTHERS}>Others (Custom Unit)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Conditional Type-In Field for "Others" */}
-              {selectedPresetRole === 'OTHERS' && (
-                <div className="bg-emerald-50/70 border-2 border-emerald-300/80 rounded-2xl p-4 space-y-3 animate-fadeIn">
-                  <div className="flex items-center space-x-2 text-emerald-950 font-black text-xs">
-                    <Edit3 className="w-4 h-4 text-emerald-700" />
-                    <span>Others: Specify Custom Role & Department Information</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-black uppercase text-emerald-900 mb-1">
-                        Type-in Role / Position Title *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={customRoleTitle}
-                        onChange={(e) => setCustomRoleTitle(e.target.value)}
-                        placeholder="e.g. Farm Agronomist, Head Veterinarian, Feed Specialist"
-                        className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 placeholder-slate-400 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-black uppercase text-emerald-900 mb-1">
-                        Custom Department / Unit Name
-                      </label>
-                      <input
-                        type="text"
-                        value={customDepartment}
-                        onChange={(e) => setCustomDepartment(e.target.value)}
-                        placeholder="e.g. Crop Plantation / Veterinary Clinic"
-                        className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 placeholder-slate-400 outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Password Section */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                  <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Security Credentials</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleUseDefaultPassword}
-                  className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-lg transition-colors border border-emerald-200 flex items-center space-x-1 cursor-pointer"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Use Default Password (123456)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Password & Confirm Password Grid */}
+            {/* Department & Role Selection Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Password *
+                  Department / Division *
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (error) setError(null);
-                    }}
-                    placeholder="Min 6 characters (e.g. 123456)"
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  <Building className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
+                  <select
+                    value={department}
+                    onChange={(e) => handleDepartmentChange(e.target.value as Department)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-slate-900 rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none transition-all font-bold cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                    <option value={Department.FISHERY}>Fishery Department</option>
+                    <option value={Department.POULTRY}>Poultry Department</option>
+                    <option value={Department.CATTLE}>Cattle Department</option>
+                    <option value={Department.PIGGERY}>Piggery Department</option>
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Confirm Password *
+                  Assigned Role *
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (error) setError(null);
-                    }}
-                    placeholder="Repeat password"
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  <Shield className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
+                  <select
+                    value={selectedRoleType}
+                    onChange={(e) => setSelectedRoleType(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all cursor-pointer font-bold"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                    <option value="STAFF">Staff Member</option>
+                    <option value="MANAGER">Sector Manager</option>
+                    {department === Department.FISHERY && (
+                      <option value="HATCHERY_MANAGER">Hatchery Manager</option>
+                    )}
+                  </select>
                 </div>
               </div>
             </div>
-
-            {/* Password Match Visual Indicator */}
-            {password && confirmPassword && (
-              <div className="text-xs font-bold flex items-center space-x-1.5 pt-1">
-                {password === confirmPassword ? (
-                  <span className="text-emerald-600 flex items-center space-x-1">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Passwords match!</span>
-                  </span>
-                ) : (
-                  <span className="text-rose-600 flex items-center space-x-1">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Passwords do not match.</span>
-                  </span>
-                )}
-              </div>
-            )}
 
             {/* Optional Custom Notes / Additional Words from ED */}
             <div className="space-y-1.5 pt-2 border-t border-slate-100">

@@ -546,15 +546,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     <div className="min-h-screen bg-slate-50/50 text-slate-900 px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-8 font-sans">
       
       {/* Executive Portal Header Banner */}
-      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-slate-950 text-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden border border-purple-800/40">
+      <div className="bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-900 text-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden border border-emerald-800/40">
         
         <div className="relative z-10 space-y-1.5 sm:space-y-2">
-          <div className="inline-flex items-center space-x-2 bg-purple-800/60 border border-purple-700/60 px-2.5 sm:px-3.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black tracking-widest uppercase">
-            <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-300" />
+          <div className="inline-flex items-center space-x-2 bg-emerald-900/60 border border-emerald-700/60 px-2.5 sm:px-3.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black tracking-widest uppercase">
+            <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-300" />
             <span>Executive Governance Hub</span>
           </div>
           <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight uppercase">ED Portal</h1>
-          <p className="text-[10px] sm:text-xs text-purple-200 font-medium break-all sm:break-normal">
+          <p className="text-[10px] sm:text-xs text-emerald-200 font-medium break-all sm:break-normal">
             Admin: <strong className="text-white">{user.fullName}</strong>
             <span className="hidden sm:inline"> ({user.email})</span>
           </p>
@@ -585,7 +585,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         <div className="bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-1 sm:space-y-2">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Accounts</span>
-            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900">{usersList.length}</div>
           <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold flex items-center space-x-1">
@@ -600,7 +600,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900">{reportsList.length}</div>
-          <p className="text-[10px] sm:text-[11px] text-purple-600 font-bold">
+          <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold">
             {pendingEDReports.length} Pending ED
           </p>
         </div>
@@ -632,7 +632,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('all_logs')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'all_logs'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -644,11 +644,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('approvals')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'approvals'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <CheckSquare className="w-4 h-4 text-purple-400" />
+          <CheckSquare className="w-4 h-4 text-emerald-400" />
           <span>ED Approvals ({pendingEDReports.length + pendingChangeRequests.length})</span>
         </button>
 
@@ -656,7 +656,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('manager_hub')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'manager_hub'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -668,7 +668,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('staff_entry')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'staff_entry'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -680,7 +680,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('users')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'users'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -692,7 +692,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('analytics')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'analytics'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -704,7 +704,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           onClick={() => setActiveTab('audit')}
           className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
             activeTab === 'audit'
-              ? 'bg-purple-900 text-white shadow-lg shadow-purple-900/20'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -723,7 +723,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1 rounded-full">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
                   Executive Department Registry
                 </span>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mt-1.5">
@@ -926,8 +926,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     onClick={() => setSelectedFisherySection('HATCHERY')}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       selectedFisherySection === 'HATCHERY'
-                        ? 'bg-purple-900 text-white border-purple-950 shadow-sm ring-2 ring-purple-300'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-50'
+                        ? 'bg-emerald-700 text-white border-emerald-950 shadow-sm ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'
                     }`}
                   >
                     <div className="flex items-center space-x-1 text-xs font-black uppercase">
@@ -964,15 +964,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 </div>
               </div>
             ) : selectedDashboardDept === Department.FISHERY && selectedFisherySection === 'HATCHERY' ? (
-              <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-200 text-xs space-y-3">
+              <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 text-xs space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <span className="text-[10px] font-black uppercase text-slate-400 block">Hatchery Batches</span>
-                    <span className="text-base font-black text-purple-900">{totalHatcheryBatches} Batches</span>
+                    <span className="text-base font-black text-emerald-900">{totalHatcheryBatches} Batches</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase text-slate-400 block">Transferred Fingerlings</span>
-                    <span className="text-base font-black text-purple-900">{totalHatcheryFingerlings.toLocaleString()} Fish</span>
+                    <span className="text-base font-black text-emerald-900">{totalHatcheryFingerlings.toLocaleString()} Fish</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase text-slate-400 block">Pending Unlock Requests</span>
@@ -984,14 +984,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-purple-200/70 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] text-purple-950 font-medium">
+                <div className="pt-2 border-t border-emerald-200/70 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-900 font-medium">
                     Download complete progressive batch tracking ledger with columns for each parameter and rows for each batch update:
                   </span>
                   <button
                     type="button"
                     onClick={() => exportHatcheryToExcel(hatcheryReports.length > 0 ? hatcheryReports : reportsList)}
-                    className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-1.5 shadow-sm cursor-pointer"
                     title="Export Complete Hatchery Progressive Batch Ledger to Excel (.xlsx)"
                   >
                     <FileSpreadsheet className="w-4 h-4" />
@@ -1012,7 +1012,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                     setSelectedDept(selectedDashboardDept as Department);
                     setActiveTab('staff_entry');
                   }}
-                  className="px-3.5 py-1.5 bg-purple-900 text-white rounded-xl text-xs font-black uppercase tracking-wider"
+                  className="px-3.5 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider"
                 >
                   + Direct {selectedDashboardDept} Entry
                 </button>
@@ -1075,7 +1075,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                       </div>
 
                       <div className="text-xs font-bold text-slate-900">
-                        Requested by: <span className="text-purple-900">{req.requestedBy}</span> ({req.requestedByEmail})
+                        Requested by: <span className="text-emerald-900">{req.requestedBy}</span> ({req.requestedByEmail})
                       </div>
 
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-700 font-medium">
@@ -1120,7 +1120,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
               className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh"
             >
-              <RefreshCw className="w-4 h-4 text-purple-700" />
+              <RefreshCw className="w-4 h-4 text-emerald-700" />
             </button>
           </div>
 
@@ -1135,10 +1135,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pendingEDReports.map((r) => (
-                <div key={r.id} className="bg-white border border-slate-200 hover:border-purple-400 p-6 rounded-3xl shadow-sm transition-all flex flex-col justify-between space-y-4">
+                <div key={r.id} className="bg-white border border-slate-200 hover:border-emerald-400 p-6 rounded-3xl shadow-sm transition-all flex flex-col justify-between space-y-4">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-black uppercase text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                      <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                         {r.department} • {r.inventoryType}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400">
@@ -1168,7 +1168,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <span className="bg-purple-100 text-purple-800 border border-purple-300 text-[10px] font-black uppercase px-2.5 py-1 rounded-full">
+                    <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black uppercase px-2.5 py-1 rounded-full">
                       Pending ED Final Approval
                     </span>
 
@@ -1223,7 +1223,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
               className="p-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition-all active:scale-95 cursor-pointer"
               title="Refresh"
             >
-              <RefreshCw className="w-4 h-4 text-purple-700" />
+              <RefreshCw className="w-4 h-4 text-emerald-700" />
             </button>
           </div>
 
@@ -1291,7 +1291,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                       <button
                         onClick={() => handleEDApprove(r)}
                         disabled={isActionProcessing}
-                        className="flex items-center space-x-1 bg-purple-900 hover:bg-purple-950 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
+                        className="flex items-center space-x-1 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
                       >
                         {isActionProcessing ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1313,7 +1313,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       {activeTab === 'staff_entry' && (
         <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
           <div className="border-b border-slate-200 pb-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
               Executive Direct Entry Mode
             </span>
             <h2 className="text-xl font-extrabold text-slate-900 mt-2">Submit New Log Entry</h2>
@@ -1389,7 +1389,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                   value={logTitle}
                   onChange={(e) => setLogTitle(e.target.value)}
                   placeholder={`e.g. ${selectedDept} Department Operational Audit`}
-                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs font-bold outline-none transition-all"
                 />
               </div>
 
@@ -1401,14 +1401,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                   value={logContent}
                   onChange={(e) => setLogContent(e.target.value)}
                   placeholder="Enter complete details, observation notes, and operational status..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 rounded-xl p-4 text-xs font-medium outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl p-4 text-xs font-medium outline-none transition-all"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => handleEDFormSubmit()}
                 disabled={isActionProcessing}
-                className="bg-purple-900 hover:bg-purple-950 text-white font-extrabold px-8 py-3.5 rounded-2xl text-xs uppercase shadow-md transition-all active:scale-95 flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold px-8 py-3.5 rounded-2xl text-xs uppercase shadow-md transition-all active:scale-95 flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
               >
                 {isActionProcessing ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1530,7 +1530,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
               <h3 className="text-lg font-black text-slate-900 uppercase">System Audit Trail</h3>
               <p className="text-xs text-slate-500 font-medium">Immutable log of all user actions, logins, unlocks, and authorizations</p>
             </div>
-            <span className="text-xs font-black text-purple-900 bg-purple-100 px-3 py-1 rounded-full">
+            <span className="text-xs font-black text-emerald-900 bg-emerald-100 px-3 py-1 rounded-full">
               {auditLogsList.length} Total Events
             </span>
           </div>
@@ -1543,7 +1543,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 <div key={log.id} className="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors">
                   <div className="space-y-0.5">
                     <div className="flex items-center space-x-2">
-                      <span className="bg-purple-100 text-purple-900 px-2 py-0.5 rounded font-black text-[10px] uppercase">
+                      <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-black text-[10px] uppercase">
                         {log.action}
                       </span>
                       <span className="font-bold text-slate-900">{log.userName}</span>

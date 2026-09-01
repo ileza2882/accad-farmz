@@ -106,7 +106,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <div className="mt-2">
                   <Link 
                     to="/" 
-                    className="inline-flex items-center space-x-1 text-purple-900 bg-purple-100 hover:bg-purple-200 px-3 py-1.5 rounded-xl font-black uppercase text-[10px] tracking-wider transition-colors"
+                    className="inline-flex items-center space-x-1 text-emerald-900 bg-emerald-100 hover:bg-purple-200 px-3 py-1.5 rounded-xl font-black uppercase text-[10px] tracking-wider transition-colors"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Go to Homepage ED Portal</span>
@@ -124,7 +124,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 text-center">
               Quick Role Login Options
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -132,33 +132,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
+                className={`p-3.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
                   email === 'manager@accadfarms.com'
-                    ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm font-extrabold ring-2 ring-blue-200'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm font-extrabold ring-2 ring-emerald-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
-                <Briefcase className="w-4 h-4 text-blue-600" />
+                <Briefcase className="w-4 h-4 text-emerald-700" />
                 <span className="text-[11px] uppercase tracking-tight font-black">Sector Mgr</span>
                 <span className="text-[9px] text-slate-400 font-medium">Vetting & Review</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('hatchery@accadfarms.com');
-                  setPassword('123456');
-                  setError(null);
-                }}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
-                  email === 'hatchery@accadfarms.com'
-                    ? 'bg-teal-50 border-teal-400 text-teal-900 shadow-sm font-extrabold ring-2 ring-teal-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
-                }`}
-              >
-                <Egg className="w-4 h-4 text-teal-600" />
-                <span className="text-[11px] uppercase tracking-tight font-black">Hatchery Mgr</span>
-                <span className="text-[9px] text-slate-400 font-medium">Hatchery Form</span>
               </button>
 
               <button
@@ -168,9 +150,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
+                className={`p-3.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
                   email === 'staff@accadfarms.com'
-                    ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-sm font-extrabold ring-2 ring-emerald-200'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm font-extrabold ring-2 ring-emerald-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
@@ -236,17 +218,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* Executive Director Notice */}
         <div className="mt-6 pt-5 border-t border-slate-100 text-center space-y-2">
-          <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl text-left space-y-1.5">
-            <div className="flex items-center space-x-2 text-purple-900 font-extrabold text-xs">
-              <ShieldCheck className="w-4 h-4 text-purple-700 shrink-0" />
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-1.5">
+            <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-xs">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Executive Director Access</span>
             </div>
-            <p className="text-[11px] text-purple-800 font-medium leading-relaxed">
+            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
               The Executive Director portal is located directly on the central Homepage.
             </p>
             <Link
               to="/"
-              className="inline-flex items-center space-x-1 text-[11px] font-black text-purple-700 hover:text-purple-900 underline pt-0.5"
+              className="inline-flex items-center space-x-1 text-[11px] font-black text-emerald-700 hover:text-emerald-900 underline pt-0.5"
             >
               <span>Go to Executive Director Homepage Entrance →</span>
             </Link>

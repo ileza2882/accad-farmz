@@ -79,7 +79,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
             <h2 className="text-xl font-extrabold text-slate-900">{user.fullName}</h2>
             <div className="flex items-center space-x-2 mt-1">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-purple-100 text-purple-700' :
+                user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-emerald-100 text-emerald-700' :
                 user.role === Role.MANAGER ? 'bg-blue-100 text-blue-700' :
                 user.role === Role.HATCHERY_MANAGER ? 'bg-teal-100 text-teal-800' : 'bg-emerald-100 text-emerald-700'
               }`}>
@@ -118,7 +118,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
       {/* Role Switching Card */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
         <div className="flex items-center space-x-2 text-slate-900 font-extrabold">
-          <Shield className="w-5 h-5 text-purple-600" />
+          <Shield className="w-5 h-5 text-emerald-600" />
           <h3 className="text-base font-extrabold">Switch Active Account Role</h3>
         </div>
         <p className="text-xs text-slate-500 font-medium">
