@@ -7,15 +7,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '.');
 
-console.log('🚀 Starting ACCAD FARMS WASM Production Build...');
+console.log('🚀 Starting Optimized ACCAD FARMS WASM Production Build...');
 
-// 1. Ensure dist and dist/assets directories exist
 const distDir = path.join(root, 'dist');
 const distAssetsDir = path.join(distDir, 'assets');
 if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 if (!fs.existsSync(distAssetsDir)) fs.mkdirSync(distAssetsDir, { recursive: true });
 
-// 2. Initialize esbuild-wasm for Node.js
+// 2. Initialize esbuild-wasm
 await esbuild.initialize({});
 
 const browserShimsPlugin = {
@@ -43,15 +42,18 @@ const browserShimsPlugin = {
 const jsBundleName = 'index-bundle.js';
 const jsBundlePath = path.join(distAssetsDir, jsBundleName);
 
-console.log('📦 Bundling index.tsx with esbuild-wasm...');
-await esbuild.build({
+console.log('📦 Bundling index.tsx with esbuild-wasm (minified & tree-shaken)...');
+const result = await esbuild.build({
   entryPoints: [path.join(root, 'index.tsx')],
   bundle: true,
   minify: true,
+  treeShaking: true,
+  legalComments: 'none',
   format: 'esm',
   target: 'es2020',
   outfile: jsBundlePath,
   plugins: [browserShimsPlugin],
+  metafile: true,
   define: {
     'process.env.NODE_ENV': '"production"',
     'process.env.API_KEY': '""',
@@ -71,7 +73,8 @@ await esbuild.build({
   }
 });
 
-console.log(`✅ JS Bundle created: dist/assets/${jsBundleName}`);
+const bundleSize = fs.statSync(jsBundlePath).size;
+console.log(`✅ JS Bundle created: dist/assets/${jsBundleName} (${(bundleSize / 1024).toFixed(1)} KB)`);
 
 // 3. Generate dist/index.html
 const sourceHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf-8');
