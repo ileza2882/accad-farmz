@@ -15,14 +15,6 @@ const distAssetsDir = path.join(distDir, 'assets');
 if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 if (!fs.existsSync(distAssetsDir)) fs.mkdirSync(distAssetsDir, { recursive: true });
 
-// Clean old bundles
-try {
-  const files = fs.readdirSync(distAssetsDir);
-  for (const file of files) {
-    try { fs.unlinkSync(path.join(distAssetsDir, file)); } catch (e) {}
-  }
-} catch (e) {}
-
 // 2. Initialize esbuild-wasm for Node.js
 await esbuild.initialize({});
 
@@ -39,7 +31,7 @@ const browserShimsPlugin = {
       loader: 'js'
     }));
 
-    // Shim core-js polyfills (modern browsers have native support)
+    // Shim core-js polyfills
     build.onResolve({ filter: /^core-js/ }, () => ({ path: 'core-js-shim', namespace: 'core-js-shim' }));
     build.onLoad({ filter: /.*/, namespace: 'core-js-shim' }, () => ({
       contents: 'export default {};',
@@ -48,8 +40,7 @@ const browserShimsPlugin = {
   }
 };
 
-const timestamp = Date.now();
-const jsBundleName = `index-${timestamp}.js`;
+const jsBundleName = 'index-bundle.js';
 const jsBundlePath = path.join(distAssetsDir, jsBundleName);
 
 console.log('📦 Bundling index.tsx with esbuild-wasm...');
