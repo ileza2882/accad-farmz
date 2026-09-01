@@ -62,8 +62,8 @@ async function bundleApp() {
         'process.env.API_KEY': '""',
         'process.env.GEMINI_API_KEY': '""',
         'import.meta.env.VITE_INSFORGE_PROJECT_NAME': '"accadfarmz"',
-        'import.meta.env.VITE_INSFORGE_URL': '"https://a7yjmvd8.us-east.insforge.app"',
-        'import.meta.env.VITE_INSFORGE_API_KEY': '"ik_d5f1bd324edbe697b5f79c8e19de1b28"',
+        'import.meta.env.VITE_INSFORGE_URL': '"https://imf45qwi.us-east.insforge.app"',
+        'import.meta.env.VITE_INSFORGE_API_KEY': '"ik_56a71ca7e6aa4249545fc5bd8f983c38"',
         'import.meta.env.VITE_DISCONNECT_DATABASE': '"false"'
       },
       loader: {

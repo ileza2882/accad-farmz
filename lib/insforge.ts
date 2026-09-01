@@ -2,8 +2,8 @@ import { createClient } from '@insforge/sdk';
 import { User, Report, ReportStatus, Role, Department, NotificationItem, AuditLog, HatcheryChangeRequest } from '../types';
 
 export const INSFORGE_PROJECT_NAME = (import.meta as any).env?.VITE_INSFORGE_PROJECT_NAME || 'accadfarmz';
-export const INSFORGE_URL = (import.meta as any).env?.VITE_INSFORGE_URL || 'https://a7yjmvd8.us-east.insforge.app';
-export const INSFORGE_API_KEY = (import.meta as any).env?.VITE_INSFORGE_API_KEY || 'ik_d5f1bd324edbe697b5f79c8e19de1b28';
+export const INSFORGE_URL = (import.meta as any).env?.VITE_INSFORGE_URL || 'https://imf45qwi.us-east.insforge.app';
+export const INSFORGE_API_KEY = (import.meta as any).env?.VITE_INSFORGE_API_KEY || 'ik_56a71ca7e6aa4249545fc5bd8f983c38';
 
 // Database connection is active unless explicitly set to disconnect mode
 export const IS_DISCONNECTED_MODE = (import.meta as any).env?.VITE_DISCONNECT_DATABASE === 'true';

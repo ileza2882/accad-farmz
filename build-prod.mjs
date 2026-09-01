@@ -29,8 +29,8 @@ if (!fs.existsSync(esbuildPath)) {
 const envDefines = [
   '--define:process.env.NODE_ENV="production"',
   '--define:import.meta.env.VITE_INSFORGE_PROJECT_NAME="accadfarmz"',
-  '--define:import.meta.env.VITE_INSFORGE_URL="https://a7yjmvd8.us-east.insforge.app"',
-  '--define:import.meta.env.VITE_INSFORGE_API_KEY="ik_d5f1bd324edbe697b5f79c8e19de1b28"',
+  '--define:import.meta.env.VITE_INSFORGE_URL="https://imf45qwi.us-east.insforge.app"',
+  '--define:import.meta.env.VITE_INSFORGE_API_KEY="ik_56a71ca7e6aa4249545fc5bd8f983c38"',
   '--define:import.meta.env.VITE_DISCONNECT_DATABASE="false"'
 ];
 
