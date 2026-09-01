@@ -15,6 +15,14 @@ const distAssetsDir = path.join(distDir, 'assets');
 if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
 if (!fs.existsSync(distAssetsDir)) fs.mkdirSync(distAssetsDir, { recursive: true });
 
+// Clean old bundles
+try {
+  const files = fs.readdirSync(distAssetsDir);
+  for (const file of files) {
+    try { fs.unlinkSync(path.join(distAssetsDir, file)); } catch (e) {}
+  }
+} catch (e) {}
+
 // 2. Initialize esbuild-wasm for Node.js
 await esbuild.initialize({});
 
