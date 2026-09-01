@@ -105,6 +105,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   const getRoleBadgeClasses = (role: Role) => {
     if (role === Role.EXECUTIVE_DIRECTOR) return 'bg-purple-100 text-purple-700 border-purple-200';
     if (role === Role.MANAGER) return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (role === Role.HATCHERY_MANAGER) return 'bg-teal-100 text-teal-800 border-teal-200';
     return 'bg-emerald-100 text-emerald-700 border-emerald-200';
   };
 
@@ -221,6 +222,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                           className="bg-white border border-emerald-500 rounded-lg px-2 py-1 text-xs font-bold outline-none"
                         >
                           <option value={Role.STAFF}>Staff</option>
+                          <option value={Role.HATCHERY_MANAGER}>Hatchery Manager</option>
                           <option value={Role.MANAGER}>Manager</option>
                           <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
                         </select>

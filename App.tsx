@@ -73,7 +73,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Homepage user={currentUser} onLoginSuccess={setCurrentUser} />} />
 
             {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Sections) */}
-            <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} />} />
+            <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} />} />
 
             {/* Public Login Page */}
             <Route 
@@ -81,6 +81,7 @@ const App: React.FC = () => {
               element={
                 currentUser ? (
                   currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
+                  currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/fishery" replace /> :
                   currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                   <Navigate to="/staff" replace />
                 ) : (
@@ -95,6 +96,7 @@ const App: React.FC = () => {
               element={
                 !currentUser ? <Navigate to="/login" replace /> :
                 currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
+                currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/fishery" replace /> :
                 currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                 <Navigate to="/staff" replace />
               } 

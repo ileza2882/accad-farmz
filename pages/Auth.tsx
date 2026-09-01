@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Department, Role, User } from '../types';
-import { Shield, Users, User as UserIcon } from 'lucide-react';
+import { Shield, Users, User as UserIcon, Egg } from 'lucide-react';
 import { getUsers, getUserByEmail, createUser, seedInitialUsers, migrateDataToInsforge } from '../lib/insforge';
 
 interface AuthProps {
@@ -123,6 +123,8 @@ export const Auth: React.FC<AuthProps> = ({ department, onAuthSuccess }) => {
       onAuthSuccess(authenticatedUser);
       if (authenticatedUser.role === Role.EXECUTIVE_DIRECTOR) {
         navigate('/executive');
+      } else if (authenticatedUser.role === Role.HATCHERY_MANAGER) {
+        navigate('/fishery');
       } else if (authenticatedUser.role === Role.MANAGER) {
         navigate('/manager');
       } else {
@@ -146,7 +148,7 @@ export const Auth: React.FC<AuthProps> = ({ department, onAuthSuccess }) => {
             <p className="text-sm text-slate-500 mt-2 font-medium">Choose your access level to continue</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button 
               onClick={() => {
                 setSelectedRole(Role.EXECUTIVE_DIRECTOR);
@@ -154,45 +156,61 @@ export const Auth: React.FC<AuthProps> = ({ department, onAuthSuccess }) => {
                 setEmail('info@accadfarms.com');
                 setPassword('123456');
               }}
-              className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
             >
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-50 transition-colors">
-                <Shield className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+              <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-emerald-50 transition-colors">
+                <Shield className="w-7 h-7 text-slate-400 group-hover:text-emerald-600 transition-colors" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Executive Director</h3>
-              <p className="text-xs text-slate-500 mt-2">Full system access and analytics</p>
+              <h3 className="text-base font-bold text-slate-900 uppercase tracking-tight">Executive Director</h3>
+              <p className="text-xs text-slate-500 mt-1">Full system governance & analytics</p>
+            </button>
+
+            <button 
+              onClick={() => {
+                setSelectedRole(Role.HATCHERY_MANAGER);
+                setIsLogin(true);
+                setEmail('hatchery@accadfarms.com');
+                setPassword('123456');
+              }}
+              className="bg-white p-6 rounded-2xl shadow-lg border border-teal-200 hover:border-teal-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
+            >
+              <div className="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-teal-100 transition-colors">
+                <Egg className="w-7 h-7 text-teal-600 group-hover:scale-110 transition-transform" />
+              </div>
+              <h3 className="text-base font-bold text-teal-950 uppercase tracking-tight">Hatchery Manager</h3>
+              <p className="text-xs text-slate-500 mt-1">Hatchery batch logs & progressive ledgers</p>
             </button>
 
             <button 
               onClick={() => {
                 setSelectedRole(Role.MANAGER);
                 setIsLogin(true);
-                setEmail('');
-                setPassword('');
+                setEmail('manager@accadfarms.com');
+                setPassword('123456');
               }}
-              className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
             >
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-50 transition-colors">
-                <Users className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+              <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-emerald-50 transition-colors">
+                <Users className="w-7 h-7 text-slate-400 group-hover:text-emerald-600 transition-colors" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Sector Manager</h3>
-              <p className="text-xs text-slate-500 mt-2">Department oversight and vetting</p>
+              <h3 className="text-base font-bold text-slate-900 uppercase tracking-tight">Sector Manager</h3>
+              <p className="text-xs text-slate-500 mt-1">Department oversight and vetting</p>
             </button>
 
             <button 
               onClick={() => {
                 setSelectedRole(Role.STAFF);
                 setIsLogin(true);
-                setEmail('');
-                setPassword('');
+                setEmail('staff@accadfarms.com');
+                setPassword('123456');
               }}
-              className="bg-white p-8 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
+              className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all group text-center flex flex-col items-center"
             >
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-50 transition-colors">
-                <UserIcon className="w-8 h-8 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+              <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-emerald-50 transition-colors">
+                <UserIcon className="w-7 h-7 text-slate-400 group-hover:text-emerald-600 transition-colors" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Staff Member</h3>
-              <p className="text-xs text-slate-500 mt-2">Inventory logging and records</p>
+              <h3 className="text-base font-bold text-slate-900 uppercase tracking-tight">Staff Member</h3>
+              <p className="text-xs text-slate-500 mt-1">Inventory logging and records</p>
             </button>
           </div>
           

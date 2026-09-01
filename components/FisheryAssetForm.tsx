@@ -124,15 +124,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
   });
 
   const [calculatedTotalFeed, setCalculatedTotalFeed] = useState(0);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    feedsInventory: true,
-    feedStorage: true,
-    ingredientsUsed: true,
-    drugsUsed: true,
-    machineCheck: true,
-    technicalReport: true
-  });
-  const [allExpanded, setAllExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialData) {
@@ -163,23 +154,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
       }
     }));
   }, [formData.technicalReport.dieselGeneratorLitres, formData.technicalReport.dieselKegsLitres]);
-
-  const toggleSectionCollapse = (key: string) => {
-    setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleToggleAll = () => {
-    const nextState = !allExpanded;
-    setAllExpanded(nextState);
-    setCollapsedSections({
-      feedsInventory: !nextState,
-      feedStorage: !nextState,
-      ingredientsUsed: !nextState,
-      drugsUsed: !nextState,
-      machineCheck: !nextState,
-      technicalReport: !nextState
-    });
-  };
 
   // Field updates
   const handleFeedItemChange = (index: number, field: string, value: any) => {
@@ -362,38 +336,20 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
             Complete Grow-Out asset overview. Solar Systems, Grinding Machines, and Mixers are categorized into separate subsections for clarity.
           </p>
         </div>
-
-        <div className="flex items-center space-x-2 relative z-10">
-          <button
-            type="button"
-            onClick={handleToggleAll}
-            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer border border-slate-700 active:scale-95"
-          >
-            <ChevronsUpDown className="w-4 h-4" />
-            <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
-          </button>
-        </div>
       </div>
 
       {/* ===== SECTION 1: FEEDS INVENTORY ===== */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          onClick={() => toggleSectionCollapse('feedsInventory')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Package className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase">
               1. Feeds Inventory in Store
             </h4>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.feedsInventory ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.feedsInventory && (
-          <div className="space-y-4 pt-1 animate-fadeIn">
+        <div className="space-y-4 pt-1">
             {formData.feedsInventory.items.map((item, index) => (
               <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div>
@@ -472,187 +428,159 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               </div>
             </div>
           </div>
-        )}
       </div>
 
       {/* ===== SECTION 2: FEED STORAGE & WASTAGE ===== */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          onClick={() => toggleSectionCollapse('feedStorage')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Building className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase">
               2. Feed Storage & Wastage Observations
             </h4>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.feedStorage ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.feedStorage && (
-          <div className="space-y-4 pt-1 animate-fadeIn">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feed Wastage Noticed?</label>
-                <div className="flex space-x-3 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStorageWastageChange(true, formData.feedStorage.wastageNoticed.comment)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
-                      formData.feedStorage.wastageNoticed.hasWastage ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStorageWastageChange(false, '')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
-                      !formData.feedStorage.wastageNoticed.hasWastage ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-                {formData.feedStorage.wastageNoticed.hasWastage && (
-                  <input
-                    type="text"
-                    value={formData.feedStorage.wastageNoticed.comment}
-                    onChange={(e) => handleStorageWastageChange(true, e.target.value)}
-                    placeholder="Describe feed wastage details..."
-                    className="w-full border rounded-xl px-3 py-2 text-xs font-bold bg-white border-slate-200"
-                  />
-                )}
+        <div className="space-y-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feed Wastage Noticed?</label>
+              <div className="flex space-x-3 mb-2">
+                <button
+                  type="button"
+                  onClick={() => handleStorageWastageChange(true, formData.feedStorage.wastageNoticed.comment)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
+                    formData.feedStorage.wastageNoticed.hasWastage ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStorageWastageChange(false, '')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
+                    !formData.feedStorage.wastageNoticed.hasWastage ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  No
+                </button>
               </div>
+              {formData.feedStorage.wastageNoticed.hasWastage && (
+                <input
+                  type="text"
+                  value={formData.feedStorage.wastageNoticed.comment}
+                  onChange={(e) => handleStorageWastageChange(true, e.target.value)}
+                  placeholder="Describe feed wastage details..."
+                  className="w-full border rounded-xl px-3 py-2 text-xs font-bold bg-white border-slate-200"
+                />
+              )}
+            </div>
 
-              <div>
-                <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Machinery Issues Noticed?</label>
-                <div className="flex space-x-3 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStorageIssueChange(true, formData.feedStorage.machineIssues.comment)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
-                      formData.feedStorage.machineIssues.hasIssue ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStorageIssueChange(false, '')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
-                      !formData.feedStorage.machineIssues.hasIssue ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-                {formData.feedStorage.machineIssues.hasIssue && (
-                  <input
-                    type="text"
-                    value={formData.feedStorage.machineIssues.comment}
-                    onChange={(e) => handleStorageIssueChange(true, e.target.value)}
-                    placeholder="Describe machine issue details..."
-                    className="w-full border rounded-xl px-3 py-2 text-xs font-bold bg-white border-slate-200"
-                  />
-                )}
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Machinery Issues Noticed?</label>
+              <div className="flex space-x-3 mb-2">
+                <button
+                  type="button"
+                  onClick={() => handleStorageIssueChange(true, formData.feedStorage.machineIssues.comment)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
+                    formData.feedStorage.machineIssues.hasIssue ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStorageIssueChange(false, '')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-extrabold border ${
+                    !formData.feedStorage.machineIssues.hasIssue ? 'bg-slate-700 text-white border-slate-700' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  No
+                </button>
               </div>
+              {formData.feedStorage.machineIssues.hasIssue && (
+                <input
+                  type="text"
+                  value={formData.feedStorage.machineIssues.comment}
+                  onChange={(e) => handleStorageIssueChange(true, e.target.value)}
+                  placeholder="Describe machine issue details..."
+                  className="w-full border rounded-xl px-3 py-2 text-xs font-bold bg-white border-slate-200"
+                />
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* ===== SECTION 3: RAW INGREDIENTS USAGE ===== */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          onClick={() => toggleSectionCollapse('ingredientsUsed')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Droplet className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase">
               3. Raw Ingredients Usage (KG)
             </h4>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.ingredientsUsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.ingredientsUsed && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 pt-1 animate-fadeIn">
-            {Object.keys(formData.ingredientsUsed).map((key) => {
-              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              return (
-                <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.ingredientsUsed[key] || ''}
-                    onChange={(e) => handleIngredientChange(key, e.target.value)}
-                    placeholder="KG"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 pt-1">
+          {Object.keys(formData.ingredientsUsed).map((key) => {
+            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            return (
+              <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.ingredientsUsed[key] || ''}
+                  onChange={(e) => handleIngredientChange(key, e.target.value)}
+                  placeholder="KG"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ===== SECTION 4: DRUGS & ADDITIVES ===== */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          onClick={() => toggleSectionCollapse('drugsUsed')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Activity className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase">
               4. Drugs, Additives & Supplements (KG)
             </h4>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.drugsUsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.drugsUsed && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1 animate-fadeIn">
-            {Object.keys(formData.drugsUsed).map((key) => {
-              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              return (
-                <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.drugsUsed[key] || ''}
-                    onChange={(e) => handleDrugChange(key, e.target.value)}
-                    placeholder="KG"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+          {Object.keys(formData.drugsUsed).map((key) => {
+            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            return (
+              <div key={key} className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1 truncate">{label}</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.drugsUsed[key] || ''}
+                  onChange={(e) => handleDrugChange(key, e.target.value)}
+                  placeholder="KG"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold"
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ===== SECTION 5: MACHINE HEALTH CHECKS (SUBSECTION SEPARATED) ===== */}
       <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <div 
-          onClick={() => toggleSectionCollapse('machineCheck')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Wrench className="w-5 h-5 text-purple-700" />
             <div>
-              <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase group-hover:text-purple-700 transition-colors">
+              <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase">
                 5. Machine Health Checks & Operational Status
               </h4>
               <p className="text-[11px] text-slate-500 font-medium">
@@ -660,130 +588,116 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               </p>
             </div>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.machineCheck ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.machineCheck && (
-          <div className="space-y-6 pt-1 animate-fadeIn">
-            
-            {/* SUBSECTION A: SOLAR POWER SYSTEMS */}
-            <div className="p-4 sm:p-5 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
-              <div className="flex items-center space-x-2 border-b border-amber-200/80 pb-2">
-                <Sun className="w-4 h-4 text-amber-600" />
-                <h5 className="text-xs font-black uppercase tracking-wider text-amber-950">
-                  A. Solar Power Systems
-                </h5>
-                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
-                  5 Units
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                {renderMachineStatusPicker('solarSystemA', 'Solar System A')}
-                {renderMachineStatusPicker('solarSystemB', 'Solar System B')}
-                {renderMachineStatusPicker('solarSystemC', 'Solar System C')}
-                {renderMachineStatusPicker('solarSystemD', 'Solar System D')}
-                {renderMachineStatusPicker('solarSystemE', 'Solar System E')}
-              </div>
+        <div className="space-y-6 pt-1">
+          {/* SUBSECTION A: SOLAR POWER SYSTEMS */}
+          <div className="p-4 sm:p-5 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-amber-200/80 pb-2">
+              <Sun className="w-4 h-4 text-amber-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-amber-950">
+                A. Solar Power Systems
+              </h5>
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
+                5 Units
+              </span>
             </div>
-
-            {/* SUBSECTION B: GRINDING MACHINERY */}
-            <div className="p-4 sm:p-5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
-              <div className="flex items-center space-x-2 border-b border-blue-200/80 pb-2">
-                <Cog className="w-4 h-4 text-blue-600" />
-                <h5 className="text-xs font-black uppercase tracking-wider text-blue-950">
-                  B. Grinding Machinery
-                </h5>
-                <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full ml-auto">
-                  3 Units
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {renderMachineStatusPicker('chineseGrindingMachine', 'Chinese Grinding Machine')}
-                {renderMachineStatusPicker('locallyFabricatedGrindingMachine', 'Locally Fabricated Grinding Machine')}
-                {renderMachineStatusPicker('grinder', 'Primary Grinder Unit')}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {renderMachineStatusPicker('solarSystemA', 'Solar System A')}
+              {renderMachineStatusPicker('solarSystemB', 'Solar System B')}
+              {renderMachineStatusPicker('solarSystemC', 'Solar System C')}
+              {renderMachineStatusPicker('solarSystemD', 'Solar System D')}
+              {renderMachineStatusPicker('solarSystemE', 'Solar System E')}
             </div>
-
-            {/* SUBSECTION C: MIXERS & BLENDERS */}
-            <div className="p-4 sm:p-5 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-3">
-              <div className="flex items-center space-x-2 border-b border-purple-200/80 pb-2">
-                <RefreshCw className="w-4 h-4 text-purple-600" />
-                <h5 className="text-xs font-black uppercase tracking-wider text-purple-950">
-                  C. Feed Mixers & Wet Blenders
-                </h5>
-                <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full ml-auto">
-                  3 Units
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {renderMachineStatusPicker('chineseMixer', 'Chinese Mixer')}
-                {renderMachineStatusPicker('locallyFabricatedMixer', 'Locally Fabricated Mixer')}
-                {renderMachineStatusPicker('localWetMixer', 'Local Wet Mixer')}
-              </div>
-            </div>
-
-            {/* SUBSECTION D: WATER PUMPING STATIONS */}
-            <div className="p-4 sm:p-5 bg-cyan-50/60 rounded-2xl border border-cyan-200 space-y-3">
-              <div className="flex items-center space-x-2 border-b border-cyan-200/80 pb-2">
-                <Waves className="w-4 h-4 text-cyan-600" />
-                <h5 className="text-xs font-black uppercase tracking-wider text-cyan-950">
-                  D. Water Pumping Stations
-                </h5>
-                <span className="text-[10px] font-bold text-cyan-800 bg-cyan-100 px-2 py-0.5 rounded-full ml-auto">
-                  5 Pumping Units
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                {renderMachineStatusPicker('pumpingMachineA', '1.5 HP Pump – A')}
-                {renderMachineStatusPicker('pumpingMachineB', '1.5 HP Pump – B')}
-                {renderMachineStatusPicker('pumpingMachineC', '1.5 HP Pump – C')}
-                {renderMachineStatusPicker('pumpingMachineD', '1.0 HP Pump – D')}
-                {renderMachineStatusPicker('pumpingMachineE', '5.5 HP Pump – E')}
-              </div>
-            </div>
-
-            {/* SUBSECTION E: EXTRUSION & PELLETING UNITS */}
-            <div className="p-4 sm:p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
-              <div className="flex items-center space-x-2 border-b border-emerald-200/80 pb-2">
-                <Factory className="w-4 h-4 text-emerald-600" />
-                <h5 className="text-xs font-black uppercase tracking-wider text-emerald-950">
-                  E. Extrusion & Pelleting Machinery
-                </h5>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full ml-auto">
-                  2 Units
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {renderMachineStatusPicker('extrudingPelletingMachine', 'Extruding / Pelleting Machine')}
-                {renderMachineStatusPicker('dryerUnit', 'Dryer Unit')}
-              </div>
-            </div>
-
           </div>
-        )}
+
+          {/* SUBSECTION B: GRINDING MACHINERY */}
+          <div className="p-4 sm:p-5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-blue-200/80 pb-2">
+              <Cog className="w-4 h-4 text-blue-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-blue-950">
+                B. Grinding Machinery
+              </h5>
+              <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full ml-auto">
+                3 Units
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {renderMachineStatusPicker('chineseGrindingMachine', 'Chinese Grinding Machine')}
+              {renderMachineStatusPicker('locallyFabricatedGrindingMachine', 'Locally Fabricated Grinding Machine')}
+              {renderMachineStatusPicker('grinder', 'Primary Grinder Unit')}
+            </div>
+          </div>
+
+          {/* SUBSECTION C: MIXERS & BLENDERS */}
+          <div className="p-4 sm:p-5 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-purple-200/80 pb-2">
+              <RefreshCw className="w-4 h-4 text-purple-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-purple-950">
+                C. Feed Mixers & Wet Blenders
+              </h5>
+              <span className="text-[10px] font-bold text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full ml-auto">
+                3 Units
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {renderMachineStatusPicker('chineseMixer', 'Chinese Mixer')}
+              {renderMachineStatusPicker('locallyFabricatedMixer', 'Locally Fabricated Mixer')}
+              {renderMachineStatusPicker('localWetMixer', 'Local Wet Mixer')}
+            </div>
+          </div>
+
+          {/* SUBSECTION D: WATER PUMPING STATIONS */}
+          <div className="p-4 sm:p-5 bg-cyan-50/60 rounded-2xl border border-cyan-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-cyan-200/80 pb-2">
+              <Waves className="w-4 h-4 text-cyan-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-cyan-950">
+                D. Water Pumping Stations
+              </h5>
+              <span className="text-[10px] font-bold text-cyan-800 bg-cyan-100 px-2 py-0.5 rounded-full ml-auto">
+                5 Pumping Units
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {renderMachineStatusPicker('pumpingMachineA', '1.5 HP Pump – A')}
+              {renderMachineStatusPicker('pumpingMachineB', '1.5 HP Pump – B')}
+              {renderMachineStatusPicker('pumpingMachineC', '1.5 HP Pump – C')}
+              {renderMachineStatusPicker('pumpingMachineD', '1.0 HP Pump – D')}
+              {renderMachineStatusPicker('pumpingMachineE', '5.5 HP Pump – E')}
+            </div>
+          </div>
+
+          {/* SUBSECTION E: EXTRUSION & PELLETING UNITS */}
+          <div className="p-4 sm:p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
+            <div className="flex items-center space-x-2 border-b border-emerald-200/80 pb-2">
+              <Factory className="w-4 h-4 text-emerald-600" />
+              <h5 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                E. Extrusion & Pelleting Machinery
+              </h5>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full ml-auto">
+                2 Units
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {renderMachineStatusPicker('extrudingPelletingMachine', 'Extruding / Pelleting Machine')}
+              {renderMachineStatusPicker('dryerUnit', 'Dryer Unit')}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ===== SECTION 6: TECHNICAL FUEL AUDIT ===== */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div 
-          onClick={() => toggleSectionCollapse('technicalReport')}
-          className="flex items-center justify-between border-b border-slate-100 pb-3 cursor-pointer group select-none"
-        >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center space-x-2.5">
             <Droplets className="w-5 h-5 text-emerald-600" />
-            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase group-hover:text-emerald-700 transition-colors">
+            <h4 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase">
               6. Technical Fuel & Meter Audit
             </h4>
           </div>
-          <div className="text-slate-400">
-            {collapsedSections.technicalReport ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </div>
         </div>
 
-        {!collapsedSections.technicalReport && (
-          <div className="space-y-4 pt-1 animate-fadeIn">
+        <div className="space-y-4 pt-1">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Diesel Generator (Litres)</label>
@@ -830,7 +744,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
               )}
             </div>
           </div>
-        )}
       </div>
 
       {/* Whole Form Submit Action */}

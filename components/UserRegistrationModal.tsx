@@ -419,10 +419,17 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                   <Shield className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value as Role)}
+                    onChange={(e) => {
+                      const newRole = e.target.value as Role;
+                      setRole(newRole);
+                      if (newRole === Role.HATCHERY_MANAGER) {
+                        setDepartment(Department.FISHERY);
+                      }
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all cursor-pointer font-medium"
                   >
                     <option value={Role.STAFF}>Staff Member</option>
+                    <option value={Role.HATCHERY_MANAGER}>Hatchery Manager</option>
                     <option value={Role.MANAGER}>Sector Manager</option>
                     <option value={Role.EXECUTIVE_DIRECTOR}>Executive Director</option>
                   </select>

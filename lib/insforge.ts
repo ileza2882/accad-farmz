@@ -45,6 +45,20 @@ export const DEFAULT_USERS: User[] = [
     createdAt: Date.now()
   },
   {
+    id: 'hatchery_mgr_1',
+    fullName: 'Hatchery Manager',
+    email: 'hatchery@accadfarms.com',
+    phone: '+2348000000003',
+    password: '123456',
+    role: Role.HATCHERY_MANAGER,
+    department: Department.FISHERY,
+    staffId: 'HTCH-001',
+    position: 'Hatchery Operations Manager',
+    profilePicture: 'https://ui-avatars.com/api/?name=Hatchery+Manager&background=0d9488&color=fff',
+    status: 'active',
+    createdAt: Date.now()
+  },
+  {
     id: 'staff_user_1',
     fullName: 'Staff Member',
     email: 'staff@accadfarms.com',

@@ -80,9 +80,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
             <div className="flex items-center space-x-2 mt-1">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                 user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-purple-100 text-purple-700' :
-                user.role === Role.MANAGER ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                user.role === Role.MANAGER ? 'bg-blue-100 text-blue-700' :
+                user.role === Role.HATCHERY_MANAGER ? 'bg-teal-100 text-teal-800' : 'bg-emerald-100 text-emerald-700'
               }`}>
-                {user.role === Role.EXECUTIVE_DIRECTOR ? 'ADMIN / ED' : user.role}
+                {user.role === Role.EXECUTIVE_DIRECTOR ? 'ADMIN / ED' : user.role === Role.HATCHERY_MANAGER ? 'Hatchery Manager' : user.role}
               </span>
               <span className="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase">
                 {user.status}
@@ -124,8 +125,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
           Switch your operational role to change permissions and access the corresponding dashboard. Role updates are persisted to the database.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[Role.STAFF, Role.MANAGER, Role.EXECUTIVE_DIRECTOR].map((r) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[Role.STAFF, Role.HATCHERY_MANAGER, Role.MANAGER, Role.EXECUTIVE_DIRECTOR].map((r) => (
             <button
               key={r}
               type="button"
@@ -142,9 +143,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
                   : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
               }`}
             >
-              <div className="text-xs uppercase font-black">{r === Role.EXECUTIVE_DIRECTOR ? 'Admin (ED)' : r}</div>
+              <div className="text-xs uppercase font-black">
+                {r === Role.EXECUTIVE_DIRECTOR ? 'Admin (ED)' : r === Role.HATCHERY_MANAGER ? 'Hatchery Mgr' : r}
+              </div>
               <div className="text-[10px] text-slate-500 font-normal mt-1">
                 {r === Role.EXECUTIVE_DIRECTOR ? 'Executive governance & full control' :
+                 r === Role.HATCHERY_MANAGER ? 'Hatchery batches, incubation & transfers' :
                  r === Role.MANAGER ? 'Vetting & sector management' :
                  'Daily log entries & submissions'}
               </div>

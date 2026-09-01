@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getUserByEmail } from '../lib/insforge';
-import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase, Egg } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (user: User) => void;
@@ -56,10 +56,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      // Login success for Manager or Staff
+      // Login success for Manager, Hatchery Manager, or Staff
       onLoginSuccess(user);
       
-      if (user.role === Role.MANAGER) {
+      if (user.role === Role.HATCHERY_MANAGER) {
+        navigate('/fishery');
+      } else if (user.role === Role.MANAGER) {
         navigate('/manager');
       } else {
         navigate('/staff');
@@ -122,7 +124,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 text-center">
               Quick Role Login Options
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -130,15 +132,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 cursor-pointer active:scale-95 ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
                   email === 'manager@accadfarms.com'
                     ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm font-extrabold ring-2 ring-blue-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
-                <Briefcase className="w-5 h-5 text-blue-600" />
-                <span className="text-xs uppercase tracking-tight font-black">Sector Manager</span>
-                <span className="text-[10px] text-slate-400 font-medium">Vetting & Review</span>
+                <Briefcase className="w-4 h-4 text-blue-600" />
+                <span className="text-[11px] uppercase tracking-tight font-black">Sector Mgr</span>
+                <span className="text-[9px] text-slate-400 font-medium">Vetting & Review</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('hatchery@accadfarms.com');
+                  setPassword('123456');
+                  setError(null);
+                }}
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
+                  email === 'hatchery@accadfarms.com'
+                    ? 'bg-teal-50 border-teal-400 text-teal-900 shadow-sm font-extrabold ring-2 ring-teal-200'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
+                }`}
+              >
+                <Egg className="w-4 h-4 text-teal-600" />
+                <span className="text-[11px] uppercase tracking-tight font-black">Hatchery Mgr</span>
+                <span className="text-[9px] text-slate-400 font-medium">Hatchery Form</span>
               </button>
 
               <button
@@ -148,15 +168,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   setPassword('123456');
                   setError(null);
                 }}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1.5 cursor-pointer active:scale-95 ${
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center space-y-1 cursor-pointer active:scale-95 ${
                   email === 'staff@accadfarms.com'
                     ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-sm font-extrabold ring-2 ring-emerald-200'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
                 }`}
               >
-                <Users className="w-5 h-5 text-emerald-600" />
-                <span className="text-xs uppercase tracking-tight font-black">Staff Member</span>
-                <span className="text-[10px] text-slate-400 font-medium">Daily Farm Logs</span>
+                <Users className="w-4 h-4 text-emerald-600" />
+                <span className="text-[11px] uppercase tracking-tight font-black">Staff Member</span>
+                <span className="text-[9px] text-slate-400 font-medium">Daily Farm Logs</span>
               </button>
             </div>
           </div>

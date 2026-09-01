@@ -63,8 +63,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
   });
 
   const [generalNotes, setGeneralNotes] = useState(initialData?.generalNotes || '');
-  const [collapsedPonds, setCollapsedPonds] = useState<Record<number, boolean>>({});
-  const [allExpanded, setAllExpanded] = useState<boolean>(false); // Start collapsed for clean overview
   const [activePondFilter, setActivePondFilter] = useState<'ALL' | 'ACTIVE_STOCK' | 'MORTALITY'>('ALL');
 
   useEffect(() => {
@@ -75,21 +73,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
       setGeneralNotes(initialData.generalNotes);
     }
   }, [initialData]);
-
-  // Expand / Collapse Toggles
-  const togglePondCollapse = (idx: number) => {
-    setCollapsedPonds(prev => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  const handleToggleAll = () => {
-    const nextState = !allExpanded;
-    setAllExpanded(nextState);
-    const updated: Record<number, boolean> = {};
-    ponds.forEach((_, idx) => {
-      updated[idx] = !nextState; // false means expanded, true means collapsed
-    });
-    setCollapsedPonds(updated);
-  };
 
   // Field Updates
   const handlePondChange = (index: number, field: keyof FisheryLivestockPondData, value: any) => {
@@ -236,15 +219,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
         <div className="flex items-center space-x-2 relative z-10">
           <button
             type="button"
-            onClick={handleToggleAll}
-            className="px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer border border-emerald-700 active:scale-95"
-          >
-            <ChevronsUpDown className="w-4 h-4" />
-            <span>{allExpanded ? 'Collapse All Ponds' : 'Expand All Ponds'}</span>
-          </button>
-
-          <button
-            type="button"
             onClick={handleAddPond}
             className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-950/30 active:scale-95"
           >
@@ -282,9 +256,8 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
       </div>
 
       {/* Ponds List */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {ponds.map((pond, pondIndex) => {
-          const isCollapsed = collapsedPonds[pondIndex] ?? !allExpanded;
           const fishCount = Number(pond.quantityOfFish) || 0;
           const mortalityCount = Number(pond.mortality) || 0;
 
@@ -293,11 +266,8 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
               key={pondIndex} 
               className="bg-white rounded-3xl border border-slate-200 shadow-sm transition-all overflow-hidden"
             >
-              {/* Pond Accordion Header */}
-              <div 
-                onClick={() => togglePondCollapse(pondIndex)}
-                className="p-4 sm:p-5 flex items-center justify-between gap-3 bg-slate-50/80 hover:bg-slate-100/80 cursor-pointer select-none transition-colors border-b border-slate-100"
-              >
+              {/* Pond Header */}
+              <div className="p-4 sm:p-5 flex items-center justify-between gap-3 bg-slate-50/80 border-b border-slate-100">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm border border-emerald-200">
                     {pondIndex + 1}
@@ -325,26 +295,21 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
                       {mortalityCount} Mortality
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemovePond(pondIndex);
-                    }}
-                    className="text-slate-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors"
-                    title="Delete this pond"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <div className="p-2 text-slate-400">
-                    {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-                  </div>
+                  {ponds.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePond(pondIndex)}
+                      className="text-slate-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Delete this pond"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Pond Form Inputs */}
-              {!isCollapsed && (
-                <div className="p-5 sm:p-7 space-y-5 animate-fadeIn">
+              <div className="p-5 sm:p-7 space-y-5">
                   
                   {/* Row 1: Basic Pond Details */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -576,7 +541,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
                   </div>
 
                 </div>
-              )}
             </div>
           );
         })}

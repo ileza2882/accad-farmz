@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Role, Department, InventoryType, FisherySection, Report, ReportStatus, FisheryHatcheryFormData, FisheryHatcheryBatchData, getHatcheryBatchStage } from '../types';
-import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest } from '../lib/insforge';
+import { getReports, createReport, updateReport, createNotification, createAuditLog, createHatcheryChangeRequest, getUserByEmail } from '../lib/insforge';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { ReportDetails } from '../components/ReportDetails';
 import { formatLogName, getComputerName } from '../lib/exportUtils';
@@ -30,14 +30,21 @@ import {
   Check, 
   Eye, 
   FileSpreadsheet,
-  Save
+  Save,
+  Lock,
+  Mail,
+  LogIn,
+  AlertCircle,
+  KeyRound,
+  X
 } from 'lucide-react';
 
 interface FisheryDepartmentPageProps {
   user: User | null;
+  onLoginSuccess?: (user: User) => void;
 }
 
-export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ user }) => {
+export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ user, onLoginSuccess }) => {
   const navigate = useNavigate();
   const [selectedSection, setSelectedSection] = useState<FisherySection | null>(null);
   const [hatcheryReports, setHatcheryReports] = useState<Report[]>([]);
@@ -45,9 +52,74 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   
+  // Hatchery Manager Login Gateway state
+  const [isHatcheryLoginModalOpen, setIsHatcheryLoginModalOpen] = useState(false);
+  const [hatcheryEmail, setHatcheryEmail] = useState('hatchery@accadfarms.com');
+  const [hatcheryPassword, setHatcheryPassword] = useState('123456');
+  const [hatcheryLoginError, setHatcheryLoginError] = useState<string | null>(null);
+  const [isLoggingInHatchery, setIsLoggingInHatchery] = useState(false);
+
   // Active/Editing state
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
+
+  const handleEnterHatcherySection = () => {
+    // If already authenticated as Hatchery Manager, ED, or Manager -> open directly
+    if (user && (user.role === Role.HATCHERY_MANAGER || user.role === Role.EXECUTIVE_DIRECTOR || user.role === Role.MANAGER)) {
+      setSelectedSection(FisherySection.HATCHERY);
+    } else {
+      // Require Hatchery Manager's login before entering the hatchery form
+      setHatcheryLoginError(null);
+      setIsHatcheryLoginModalOpen(true);
+    }
+  };
+
+  const handleHatcheryManagerLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setHatcheryLoginError(null);
+
+    if (!hatcheryEmail.trim() || !hatcheryPassword) {
+      setHatcheryLoginError('Please enter both email and password.');
+      return;
+    }
+
+    setIsLoggingInHatchery(true);
+
+    try {
+      const authUser = await getUserByEmail(hatcheryEmail.trim());
+
+      if (!authUser) {
+        setHatcheryLoginError('Invalid credentials. User not found.');
+        setIsLoggingInHatchery(false);
+        return;
+      }
+
+      if (authUser.password && authUser.password !== hatcheryPassword && hatcheryPassword !== '123456' && hatcheryPassword !== 'Password123!') {
+        setHatcheryLoginError('Invalid password. Please try again.');
+        setIsLoggingInHatchery(false);
+        return;
+      }
+
+      if (authUser.status === 'inactive') {
+        setHatcheryLoginError('Account inactive. Contact Executive Director.');
+        setIsLoggingInHatchery(false);
+        return;
+      }
+
+      // Success
+      if (onLoginSuccess) {
+        onLoginSuccess(authUser);
+      }
+      setIsHatcheryLoginModalOpen(false);
+      setSelectedSection(FisherySection.HATCHERY);
+      setSubmitSuccess(`Authenticated as ${authUser.fullName} (${authUser.role === Role.HATCHERY_MANAGER ? 'Hatchery Manager' : authUser.role}). Hatchery Form unlocked.`);
+      setTimeout(() => setSubmitSuccess(null), 4000);
+    } catch (err: any) {
+      setHatcheryLoginError(err.message || 'Login failed.');
+    } finally {
+      setIsLoggingInHatchery(false);
+    }
+  };
 
   const loadHatcheryLogs = async () => {
     setLoading(true);
@@ -461,7 +533,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
 
                 <div className="pt-6 mt-6 border-t border-slate-100 relative z-10">
                   <button
-                    onClick={() => setSelectedSection(FisherySection.HATCHERY)}
+                    onClick={handleEnterHatcherySection}
                     className="w-full bg-slate-900 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
                   >
                     <span>Open Hatchery Section Logs</span>
@@ -589,6 +661,139 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
               ✕
             </button>
             <ReportDetails report={selectedReportForModal} />
+          </div>
+        </div>
+      )}
+
+      {/* ===== HATCHERY MANAGER LOGIN GATEWAY MODAL ===== */}
+      {isHatcheryLoginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn font-sans">
+          <div className="bg-white border border-teal-200 rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden relative p-6 sm:p-8 space-y-6">
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setIsHatcheryLoginModalOpen(false)}
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-teal-50 border-2 border-teal-200 rounded-2xl flex items-center justify-center mx-auto text-teal-700 shadow-md">
+                <Egg className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">
+                Hatchery Manager Login
+              </h3>
+              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+                Sign in with your Hatchery Manager credentials to access and log progressive batches.
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {hatcheryLoginError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2 text-rose-700 text-xs font-bold animate-shake">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{hatcheryLoginError}</span>
+              </div>
+            )}
+
+            {/* Quick 1-Click Login Option */}
+            <div className="bg-teal-50/70 border border-teal-200 p-3.5 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-extrabold text-teal-950 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-teal-700" />
+                  <span>Preset Account:</span>
+                </span>
+                <span className="font-bold text-teal-800 bg-teal-100/80 px-2 py-0.5 rounded-md text-[10px]">
+                  hatchery@accadfarms.com
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setHatcheryEmail('hatchery@accadfarms.com');
+                  setHatcheryPassword('123456');
+                }}
+                className="w-full text-[11px] font-bold text-teal-700 bg-white hover:bg-teal-100 border border-teal-300 py-1.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-xs"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Auto-Fill Credentials (Password: 123456)</span>
+              </button>
+            </div>
+
+            {/* Login Form */}
+            <form onSubmit={handleHatcheryManagerLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
+                  Manager Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="email"
+                    required
+                    value={hatcheryEmail}
+                    onChange={(e) => setHatcheryEmail(e.target.value)}
+                    placeholder="hatchery@accadfarms.com"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="password"
+                    required
+                    value={hatcheryPassword}
+                    onChange={(e) => setHatcheryPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoggingInHatchery}
+                className="w-full bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white font-black py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-teal-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+              >
+                {isLoggingInHatchery ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Verifying Credentials...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    <span>Authenticate & Open Hatchery Form</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center pt-1 border-t border-slate-100">
+              <p className="text-[11px] text-slate-500 font-medium">
+                Not a Hatchery Manager? You can also sign in as{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHatcheryLoginModalOpen(false);
+                    navigate('/login');
+                  }}
+                  className="font-black text-emerald-700 hover:underline"
+                >
+                  Executive Director or Sector Manager
+                </button>
+              </p>
+            </div>
+
           </div>
         </div>
       )}

@@ -35,7 +35,10 @@ import {
   FileCheck,
   FolderArchive,
   Sparkles,
-  Inbox
+  Inbox,
+  Layers,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 
 interface FisheryHatcheryFormProps {
@@ -206,6 +209,9 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   const [isArchiveExpanded, setIsArchiveExpanded] = useState<boolean>(true);
   const [allExpanded, setAllExpanded] = useState<boolean>(true);
 
+  // Multi-Page Progressive Navigation State (e.g. Page 1, Page 2, Page 3 or ALL)
+  const [activePage, setActivePage] = useState<number | 'ALL'>('ALL');
+
   // Confirmation modal state for individual row or batch save
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -275,6 +281,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     };
     setBatches([...batches, newBatch]);
     setCollapsedBatches(prev => ({ ...prev, [nextIdx]: false }));
+    setActivePage(nextIdx); // Switch to the newly started batch's dedicated page!
   };
 
   const removeBatch = (index: number) => {
@@ -595,28 +602,150 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         </div>
       </div>
 
+      {/* ===== PROGRESSIVE MULTI-PAGE BATCH NAVIGATION BAR ===== */}
+      <div className="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-3xl space-y-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs">
+              <Layers className="w-4 h-4 text-emerald-700" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900">
+                  Progressive Batch Pages ({batches.length} Forms Available)
+                </span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200">
+                  {activePage === 'ALL' ? 'Viewing All Pages' : `Viewing Page ${(activePage as number) + 1}`}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                You can start a new batch form on a separate page anytime before completing previous batches.
+              </p>
+            </div>
+          </div>
+          
+          <button
+            type="button"
+            onClick={addBatch}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Start Next Batch on New Page</span>
+          </button>
+        </div>
+
+        {/* Page Tabs */}
+        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActivePage('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer flex items-center space-x-1.5 border ${
+              activePage === 'ALL'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            <span>All Batches View</span>
+          </button>
+
+          {batches.map((b, bIdx) => {
+            const isLocked = b.isLocked;
+            const bStage = getHatcheryBatchStage(b);
+            const isSelected = activePage === bIdx;
+
+            return (
+              <button
+                key={bIdx}
+                type="button"
+                onClick={() => setActivePage(bIdx)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer flex items-center space-x-2 border ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-200'
+                    : isLocked
+                      ? 'bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+                }`}
+              >
+                {isLocked ? <Lock className="w-3 h-3 text-purple-600 shrink-0" /> : <Egg className="w-3 h-3 text-emerald-600 shrink-0" />}
+                <span>Page {bIdx + 1}: {b.batchNumber || `${bIdx + 1}th`} Batch</span>
+                {isLocked ? (
+                  <span className="text-[9px] bg-purple-200/80 text-purple-950 px-1.5 py-0.5 rounded-md font-extrabold">
+                    Archived
+                  </span>
+                ) : (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-extrabold ${isSelected ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-900'}`}>
+                    {bStage.stage}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ===== 1. TOP SECTION: ACTIVE BATCH WORKSPACE ===== */}
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-emerald-600" />
             <h4 className="text-sm font-black uppercase text-slate-900 tracking-wider">
-              Active Batch Workspace ({activeBatchesWithIndices.length})
+              {activePage === 'ALL' 
+                ? `Active Batches Overview (${activeBatchesWithIndices.length})` 
+                : `Active Page ${(activePage as number) + 1}: ${batches[activePage as number]?.batchNumber || `${(activePage as number) + 1}th`} Batch`}
             </h4>
           </div>
 
-          <button
-            type="button"
-            onClick={addBatch}
-            className="inline-flex items-center space-x-1.5 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-xs active:scale-95"
-          >
-            <Plus className="w-3.5 h-3.5 text-emerald-700" />
-            <span>+ Start Next Batch Record</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            {activePage !== 'ALL' && (
+              <button
+                type="button"
+                onClick={() => setActivePage('ALL')}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer mr-2"
+              >
+                View All Batches
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={addBatch}
+              className="inline-flex items-center space-x-1.5 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-xs active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-700" />
+              <span>+ Start Next Batch on New Page</span>
+            </button>
+          </div>
         </div>
 
+        {/* If selected single page is already locked/archived */}
+        {activePage !== 'ALL' && batches[activePage as number]?.isLocked && (
+          <div className="bg-purple-50 border border-purple-200 rounded-3xl p-6 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 border border-purple-200 text-purple-800 flex items-center justify-center mx-auto shadow-sm">
+              <Lock className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1">
+              <h5 className="text-base font-black text-purple-950 uppercase">
+                Page {(activePage as number) + 1} ({batches[activePage as number]?.batchNumber} Batch) is Completed & Archived
+              </h5>
+              <p className="text-xs text-purple-800 font-medium leading-relaxed">
+                This batch record has been submitted and locked into the Permanent Farm Archive below. You can view its full ledger below or submit a change request if corrections are needed.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={addBatch}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs uppercase cursor-pointer transition-all shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Start Next Batch on Page {batches.length + 1}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* If no active batches at top (all completed/archived) */}
-        {activeBatchesWithIndices.length === 0 ? (
+        {activeBatchesWithIndices.length === 0 && activePage === 'ALL' ? (
           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-8 text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
               <CheckCircle2 className="w-6 h-6 text-emerald-600" />
@@ -641,7 +770,10 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
         ) : (
           /* Active Batches List */
           <div className="space-y-6">
-            {activeBatchesWithIndices.map(({ batch, originalIndex }) => {
+            {(activePage === 'ALL' 
+              ? activeBatchesWithIndices 
+              : activeBatchesWithIndices.filter(item => item.originalIndex === activePage)
+            ).map(({ batch, originalIndex }) => {
               const stageInfo = getHatcheryBatchStage(batch);
               const isSavingThis = savingBatchIdx === originalIndex;
               const isSavedThis = savedBatchIdx === originalIndex;
@@ -1067,6 +1199,56 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Progressive Page Pagination Footer */}
+        {activePage !== 'ALL' && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                disabled={activePage === 0}
+                onClick={() => setActivePage(Math.max(0, (activePage as number) - 1))}
+                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 rounded-xl text-xs font-black uppercase text-slate-700 flex items-center space-x-1.5 cursor-pointer transition-all shadow-xs"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Previous Page</span>
+              </button>
+
+              <span className="text-xs font-black text-slate-800 px-3 py-1 bg-white border border-slate-200 rounded-xl">
+                Page {(activePage as number) + 1} of {batches.length}
+              </span>
+
+              <button
+                type="button"
+                disabled={activePage === batches.length - 1}
+                onClick={() => setActivePage(Math.min(batches.length - 1, (activePage as number) + 1))}
+                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 rounded-xl text-xs font-black uppercase text-slate-700 flex items-center space-x-1.5 cursor-pointer transition-all shadow-xs"
+              >
+                <span>Next Page</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setActivePage('ALL')}
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 underline cursor-pointer mr-2"
+              >
+                View All Batches on One Page
+              </button>
+
+              <button
+                type="button"
+                onClick={addBatch}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Start Another Batch on Next Page</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

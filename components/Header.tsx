@@ -64,6 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
     if (!user) return '/login';
     if (user.role === Role.EXECUTIVE_DIRECTOR) return '/admin';
     if (user.role === Role.MANAGER) return '/manager';
+    if (user.role === Role.HATCHERY_MANAGER) return '/fishery';
     return '/staff';
   };
 
