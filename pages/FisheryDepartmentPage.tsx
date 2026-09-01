@@ -42,11 +42,12 @@ import {
 interface FisheryDepartmentPageProps {
   user: User | null;
   onLoginSuccess?: (user: User) => void;
+  defaultSection?: FisherySection;
 }
 
-export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ user, onLoginSuccess }) => {
+export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ user, onLoginSuccess, defaultSection }) => {
   const navigate = useNavigate();
-  const [selectedSection, setSelectedSection] = useState<FisherySection | null>(null);
+  const [selectedSection, setSelectedSection] = useState<FisherySection | null>(defaultSection || null);
   const [hatcheryReports, setHatcheryReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,9 +64,17 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [selectedReportForModal, setSelectedReportForModal] = useState<Report | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sectionParam = params.get('section');
+    if (sectionParam === 'hatchery' || defaultSection === FisherySection.HATCHERY) {
+      handleEnterHatcherySection();
+    }
+  }, [user, defaultSection]);
+
   const handleEnterHatcherySection = () => {
-    // If already authenticated as Hatchery Manager, ED, or Manager -> open directly
-    if (user && (user.role === Role.HATCHERY_MANAGER || user.role === Role.EXECUTIVE_DIRECTOR || user.role === Role.MANAGER)) {
+    // The Hatchery Logs can only be accessed by the Hatchery Manager (or Executive Director)
+    if (user && (user.role === Role.HATCHERY_MANAGER || user.role === Role.EXECUTIVE_DIRECTOR)) {
       setSelectedSection(FisherySection.HATCHERY);
     } else {
       // Require Hatchery Manager's login before entering the hatchery form
@@ -89,13 +98,19 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       const authUser = await getUserByEmail(hatcheryEmail.trim());
 
       if (!authUser) {
-        setHatcheryLoginError('Invalid credentials. User not found.');
+        setHatcheryLoginError('Invalid credentials. User account not found.');
+        setIsLoggingInHatchery(false);
+        return;
+      }
+
+      if (authUser.role !== Role.HATCHERY_MANAGER && authUser.role !== Role.EXECUTIVE_DIRECTOR) {
+        setHatcheryLoginError(`Access Denied: The Hatchery Logs module can ONLY be accessed by the Hatchery Manager. Account "${authUser.email}" has role: ${authUser.position || authUser.role}.`);
         setIsLoggingInHatchery(false);
         return;
       }
 
       if (authUser.password && authUser.password !== hatcheryPassword && hatcheryPassword !== '123456' && hatcheryPassword !== 'Password123!') {
-        setHatcheryLoginError('Invalid password. Please try again.');
+        setHatcheryLoginError('Invalid password. Please verify your Hatchery Manager password.');
         setIsLoggingInHatchery(false);
         return;
       }
@@ -112,7 +127,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
       }
       setIsHatcheryLoginModalOpen(false);
       setSelectedSection(FisherySection.HATCHERY);
-      setSubmitSuccess(`Authenticated as ${authUser.fullName} (${authUser.role === Role.HATCHERY_MANAGER ? 'Hatchery Manager' : authUser.role}). Hatchery Form unlocked.`);
+      setSubmitSuccess(`Authenticated as Hatchery Manager: ${authUser.fullName}. Hatchery Form unlocked.`);
       setTimeout(() => setSubmitSuccess(null), 4000);
     } catch (err: any) {
       setHatcheryLoginError(err.message || 'Login failed.');
@@ -684,11 +699,16 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
                 <Egg className="w-8 h-8" />
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">
-                Hatchery Manager Login
+                Hatchery Manager Gateway
               </h3>
-              <p className="text-xs text-slate-500 font-medium max-w-xs mx-auto">
-                Sign in with your Hatchery Manager credentials to access and log progressive batches.
+              <p className="text-xs text-slate-600 font-medium max-w-xs mx-auto">
+                The Hatchery Logs module can <strong className="text-teal-900 font-black">ONLY</strong> be accessed by the Hatchery Manager.
               </p>
+              {user && user.role !== Role.HATCHERY_MANAGER && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-[11px] font-bold text-left">
+                  ⚠️ Currently signed in as <strong>{user.fullName}</strong> ({user.position || user.role}). Please enter Hatchery Manager credentials to access Hatchery Logs.
+                </div>
+              )}
             </div>
 
             {/* Error Message */}
@@ -704,7 +724,7 @@ export const FisheryDepartmentPage: React.FC<FisheryDepartmentPageProps> = ({ us
               <div className="flex items-center justify-between text-xs">
                 <span className="font-extrabold text-teal-950 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-teal-700" />
-                  <span>Preset Account:</span>
+                  <span>Hatchery Manager Account:</span>
                 </span>
                 <span className="font-bold text-teal-800 bg-teal-100/80 px-2 py-0.5 rounded-md text-[10px]">
                   hatchery@accadfarms.com

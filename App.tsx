@@ -74,6 +74,9 @@ const App: React.FC = () => {
 
             {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Sections) */}
             <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} />} />
+            
+            {/* Direct Hatchery Logs Route with Hatchery Manager Login Gateway */}
+            <Route path="/hatchery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} defaultSection={FisherySection.HATCHERY} />} />
 
             {/* Public Login Page */}
             <Route 

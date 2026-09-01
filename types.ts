@@ -9,8 +9,73 @@ export enum Department {
   FISHERY = 'Fishery',
   POULTRY = 'Poultry',
   CATTLE = 'Cattle',
-  PIGS = 'Pigs'
+  PIGS = 'Pigs',
+  PIGGERY = 'Piggery',
+  CROPS = 'Crops & Horticulture',
+  FEED_MILL = 'Feed Mill',
+  SECURITY = 'Security',
+  MAINTENANCE = 'Maintenance & Engineering',
+  STORE = 'Store & Logistics',
+  ACCOUNTING = 'Accounting & Finance',
+  ADMIN = 'Administration & HR',
+  OTHERS = 'Others'
 }
+
+export interface CategorizedRoleOption {
+  id: string;
+  label: string;
+  department: Department;
+  baseRole: Role;
+  position: string;
+  category: string;
+}
+
+export const DEPARTMENT_CATEGORIZED_ROLES: {
+  category: string;
+  roles: { id: string; label: string; department: Department; baseRole: Role; position: string }[];
+}[] = [
+  {
+    category: 'Fishery Department',
+    roles: [
+      { id: 'FISHERY_STAFF', label: 'Fishery Staff', department: Department.FISHERY, baseRole: Role.STAFF, position: 'Fishery Staff' },
+      { id: 'FISHERY_MANAGER', label: 'Fishery Manager', department: Department.FISHERY, baseRole: Role.MANAGER, position: 'Fishery Manager' },
+      { id: 'HATCHERY_MANAGER', label: 'Hatchery Manager', department: Department.FISHERY, baseRole: Role.HATCHERY_MANAGER, position: 'Hatchery Manager' }
+    ]
+  },
+  {
+    category: 'Poultry Department',
+    roles: [
+      { id: 'POULTRY_STAFF', label: 'Poultry Staff', department: Department.POULTRY, baseRole: Role.STAFF, position: 'Poultry Staff' },
+      { id: 'POULTRY_MANAGER', label: 'Poultry Manager', department: Department.POULTRY, baseRole: Role.MANAGER, position: 'Poultry Manager' }
+    ]
+  },
+  {
+    category: 'Cattle Department',
+    roles: [
+      { id: 'CATTLE_STAFF', label: 'Cattle Staff', department: Department.CATTLE, baseRole: Role.STAFF, position: 'Cattle Staff' },
+      { id: 'CATTLE_MANAGER', label: 'Cattle Manager', department: Department.CATTLE, baseRole: Role.MANAGER, position: 'Cattle Manager' }
+    ]
+  },
+  {
+    category: 'Piggery Department',
+    roles: [
+      { id: 'PIGGERY_STAFF', label: 'Piggery Staff', department: Department.PIGS, baseRole: Role.STAFF, position: 'Piggery Staff' },
+      { id: 'PIGGERY_MANAGER', label: 'Piggery Manager', department: Department.PIGS, baseRole: Role.MANAGER, position: 'Piggery Manager' }
+    ]
+  },
+  {
+    category: 'Administration & Executive',
+    roles: [
+      { id: 'EXECUTIVE_DIRECTOR', label: 'Executive Director (Admin)', department: Department.ADMIN, baseRole: Role.EXECUTIVE_DIRECTOR, position: 'Executive Director' }
+    ]
+  },
+  {
+    category: 'Others',
+    roles: [
+      { id: 'OTHERS', label: 'Others (Type-in Custom Role)', department: Department.OTHERS, baseRole: Role.STAFF, position: 'Custom Position' }
+    ]
+  }
+];
 
 export enum InventoryType {
   ASSET = 'Asset Inventory',
@@ -37,9 +102,10 @@ export interface User {
   email: string;
   phone?: string;
   role: Role;
-  department?: Department;
+  department?: Department | string;
   staffId?: string;
   position?: string;
+  customRoleTitle?: string;
   status: 'active' | 'inactive';
   profilePicture?: string;
   password?: string;

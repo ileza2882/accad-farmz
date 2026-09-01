@@ -221,10 +221,10 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                           onChange={(e) => setEditingRole(e.target.value as Role)}
                           className="bg-white border border-emerald-500 rounded-lg px-2 py-1 text-xs font-bold outline-none"
                         >
-                          <option value={Role.STAFF}>Staff</option>
+                          <option value={Role.STAFF}>Staff Member</option>
                           <option value={Role.HATCHERY_MANAGER}>Hatchery Manager</option>
-                          <option value={Role.MANAGER}>Manager</option>
-                          <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
+                          <option value={Role.MANAGER}>Sector Manager</option>
+                          <option value={Role.EXECUTIVE_DIRECTOR}>Executive Director</option>
                         </select>
                         <button onClick={() => handleRoleChange(u, (editingRole || u.role) as Role)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md" title="Save role">
                           <Save className="w-4 h-4" />
@@ -236,7 +236,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                     ) : (
                       <div className="flex items-center space-x-2">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase border ${getRoleBadgeClasses(u.role)}`}>
-                          {u.role === Role.EXECUTIVE_DIRECTOR ? 'ADMIN / ED' : u.role}
+                          {u.position || (u.role === Role.EXECUTIVE_DIRECTOR ? 'ADMIN / ED' : u.role === Role.HATCHERY_MANAGER ? 'Hatchery Manager' : u.role)}
                         </span>
                         {edUser.email !== u.email && (
                           <button
@@ -313,7 +313,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                   {u.department || 'General'}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${getRoleBadgeClasses(u.role)}`}>
-                  {u.role === Role.EXECUTIVE_DIRECTOR ? 'Admin / ED' : u.role}
+                  {u.position || (u.role === Role.EXECUTIVE_DIRECTOR ? 'Admin / ED' : u.role === Role.HATCHERY_MANAGER ? 'Hatchery Manager' : u.role)}
                 </span>
                 {u.phone && (
                   <span className="text-slate-500 font-medium">{u.phone}</span>
@@ -330,9 +330,10 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                         onChange={(e) => setEditingRole(e.target.value as Role)}
                         className="flex-1 bg-white border border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
                       >
-                        <option value={Role.STAFF}>Staff</option>
-                        <option value={Role.MANAGER}>Manager</option>
-                        <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
+                        <option value={Role.STAFF}>Staff Member</option>
+                        <option value={Role.HATCHERY_MANAGER}>Hatchery Manager</option>
+                        <option value={Role.MANAGER}>Sector Manager</option>
+                        <option value={Role.EXECUTIVE_DIRECTOR}>Executive Director</option>
                       </select>
                       <button onClick={() => handleRoleChange(u, (editingRole || u.role) as Role)} className="p-2 bg-emerald-600 text-white rounded-xl active:scale-95" title="Save">
                         <Save className="w-4 h-4" />

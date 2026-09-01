@@ -38,7 +38,8 @@ import {
   Inbox,
   Layers,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
 
 interface FisheryHatcheryFormProps {
@@ -238,6 +239,20 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       setBatches(cleanInitialBatches(initialData.batches));
       setGeneralNotes(initialData.generalNotes || '');
     }
+    
+    // Check if a specific batch page is requested via URL query (e.g. ?section=hatchery&page=2)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page');
+      if (pageParam) {
+        const pageNum = parseInt(pageParam, 10);
+        if (!isNaN(pageNum) && pageNum > 0) {
+          setActivePage(pageNum - 1);
+        }
+      }
+    } catch (e) {
+      console.warn('URL param parse error:', e);
+    }
   }, [initialData]);
 
   const toggleBatchCollapse = (index: number) => {
@@ -282,6 +297,39 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
     setBatches([...batches, newBatch]);
     setCollapsedBatches(prev => ({ ...prev, [nextIdx]: false }));
     setActivePage(nextIdx); // Switch to the newly started batch's dedicated page!
+  };
+
+  const handleStartBatchInNewTab = () => {
+    const nextIdx = batches.length;
+    const defaultBatchOption = BATCH_NUMBER_OPTIONS[nextIdx] || `${nextIdx + 1}th`;
+    const newBatch: FisheryHatcheryBatchData = {
+      sourceOfBroodstock: batches[batches.length - 1]?.sourceOfBroodstock || 'Outside the Farm',
+      batchNumber: defaultBatchOption,
+      hatcheryDate: '',
+      firstDateOfFeeding: '',
+      dateOfTransferToGrowOut: '',
+      totalTransferredFingerlings: '',
+      averageWeightTransferred: '',
+      ageOfFingerlingsTransferred: '',
+      healthStatusTransferred: 'Good',
+      destinatedPondTransferred: '',
+      remarks: '',
+      isLocked: false,
+      lockedRows: {}
+    };
+    const updated = [...batches, newBatch];
+    setBatches(updated);
+    setCollapsedBatches(prev => ({ ...prev, [nextIdx]: false }));
+    
+    // Open in separate browser window/tab with ?section=hatchery&page=N
+    const newTabUrl = `${window.location.origin}/fishery?section=hatchery&page=${nextIdx + 1}`;
+    window.open(newTabUrl, '_blank');
+  };
+
+  const handleOpenPageInNewTab = (pageIndex?: number) => {
+    const targetPageNum = pageIndex !== undefined ? pageIndex + 1 : (activePage === 'ALL' ? 1 : (activePage as number) + 1);
+    const newTabUrl = `${window.location.origin}/fishery?section=hatchery&page=${targetPageNum}`;
+    window.open(newTabUrl, '_blank');
   };
 
   const removeBatch = (index: number) => {
@@ -624,14 +672,26 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             </div>
           </div>
           
-          <button
-            type="button"
-            onClick={addBatch}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>+ Start Next Batch on New Page</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleStartBatchInNewTab}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer"
+              title="Open a brand new batch form in a separate browser tab to work on multiple logs simultaneously"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Open in New Tab ↗</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={addBatch}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Start Next Batch on New Page</span>
+            </button>
+          </div>
         </div>
 
         {/* Page Tabs */}
@@ -1231,13 +1291,23 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setActivePage('ALL')}
                 className="text-xs font-bold text-slate-500 hover:text-slate-900 underline cursor-pointer mr-2"
               >
                 View All Batches on One Page
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStartBatchInNewTab}
+                className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
+                title="Open a new batch log in a new tab"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Open in New Tab ↗</span>
               </button>
 
               <button

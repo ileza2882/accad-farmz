@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Role, Department, User } from '../types';
+import { Role, Department, User, DEPARTMENT_CATEGORIZED_ROLES } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
 import { sendUserWelcomeEmail } from '../lib/emailService';
 import { 
@@ -16,7 +15,9 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  Send
+  Send,
+  Edit3,
+  Sparkles
 } from 'lucide-react';
 
 interface UserRegistrationModalProps {
@@ -46,7 +47,10 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [department, setDepartment] = useState<Department>(Department.FISHERY);
+  const [selectedPresetRole, setSelectedPresetRole] = useState<string>('FISHERY_STAFF');
+  const [customRoleTitle, setCustomRoleTitle] = useState<string>('');
+  const [customDepartment, setCustomDepartment] = useState<string>('');
+  const [department, setDepartment] = useState<Department | string>(Department.FISHERY);
   const [role, setRole] = useState<Role>(Role.STAFF);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,6 +65,44 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handlePresetRoleChange = (presetId: string) => {
+    setSelectedPresetRole(presetId);
+    if (presetId === 'FISHERY_STAFF') {
+      setRole(Role.STAFF);
+      setDepartment(Department.FISHERY);
+    } else if (presetId === 'FISHERY_MANAGER') {
+      setRole(Role.MANAGER);
+      setDepartment(Department.FISHERY);
+    } else if (presetId === 'HATCHERY_MANAGER') {
+      setRole(Role.HATCHERY_MANAGER);
+      setDepartment(Department.FISHERY);
+    } else if (presetId === 'POULTRY_STAFF') {
+      setRole(Role.STAFF);
+      setDepartment(Department.POULTRY);
+    } else if (presetId === 'POULTRY_MANAGER') {
+      setRole(Role.MANAGER);
+      setDepartment(Department.POULTRY);
+    } else if (presetId === 'CATTLE_STAFF') {
+      setRole(Role.STAFF);
+      setDepartment(Department.CATTLE);
+    } else if (presetId === 'CATTLE_MANAGER') {
+      setRole(Role.MANAGER);
+      setDepartment(Department.CATTLE);
+    } else if (presetId === 'PIGGERY_STAFF') {
+      setRole(Role.STAFF);
+      setDepartment(Department.PIGS);
+    } else if (presetId === 'PIGGERY_MANAGER') {
+      setRole(Role.MANAGER);
+      setDepartment(Department.PIGS);
+    } else if (presetId === 'EXECUTIVE_DIRECTOR') {
+      setRole(Role.EXECUTIVE_DIRECTOR);
+      setDepartment(Department.ADMIN);
+    } else if (presetId === 'OTHERS') {
+      setRole(Role.STAFF);
+      setDepartment(Department.OTHERS);
+    }
+  };
+
   const handleUseDefaultPassword = () => {
     setPassword('123456');
     setConfirmPassword('123456');
@@ -72,6 +114,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setFullName('');
     setEmail('');
     setPhone('');
+    setSelectedPresetRole('FISHERY_STAFF');
+    setCustomRoleTitle('');
+    setCustomDepartment('');
+    setDepartment(Department.FISHERY);
+    setRole(Role.STAFF);
     setPassword('');
     setConfirmPassword('');
     setCustomNotes('');
@@ -114,6 +161,31 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     if (!role) {
       setError('Please select an account role.');
       return;
+    }
+
+    // 4b. Custom role validation
+    let resolvedPosition = '';
+    let resolvedDept = department;
+
+    if (selectedPresetRole === 'FISHERY_STAFF') resolvedPosition = 'Fishery Staff';
+    else if (selectedPresetRole === 'FISHERY_MANAGER') resolvedPosition = 'Fishery Manager';
+    else if (selectedPresetRole === 'HATCHERY_MANAGER') resolvedPosition = 'Hatchery Manager';
+    else if (selectedPresetRole === 'POULTRY_STAFF') resolvedPosition = 'Poultry Staff';
+    else if (selectedPresetRole === 'POULTRY_MANAGER') resolvedPosition = 'Poultry Manager';
+    else if (selectedPresetRole === 'CATTLE_STAFF') resolvedPosition = 'Cattle Staff';
+    else if (selectedPresetRole === 'CATTLE_MANAGER') resolvedPosition = 'Cattle Manager';
+    else if (selectedPresetRole === 'PIGGERY_STAFF') resolvedPosition = 'Piggery Staff';
+    else if (selectedPresetRole === 'PIGGERY_MANAGER') resolvedPosition = 'Piggery Manager';
+    else if (selectedPresetRole === 'EXECUTIVE_DIRECTOR') resolvedPosition = 'Executive Director';
+    else if (selectedPresetRole === 'OTHERS') {
+      if (!customRoleTitle.trim()) {
+        setError('Please type in the custom role / position title.');
+        return;
+      }
+      resolvedPosition = customRoleTitle.trim();
+      if (customDepartment.trim()) {
+        resolvedDept = customDepartment.trim();
+      }
     }
 
     // 5. Password length check (min 6 chars to support standard 123456 passwords)
@@ -168,7 +240,9 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         email: cleanEmail,
         phone: cleanPhone,
         role: role,
-        department: department,
+        department: resolvedDept,
+        position: resolvedPosition,
+        customRoleTitle: selectedPresetRole === 'OTHERS' ? customRoleTitle.trim() : undefined,
         status: 'active',
         password: cleanPass,
         profilePicture: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=059669&color=fff`,
@@ -384,57 +458,116 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               </div>
             </div>
 
-            {/* Department & Role Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Department *
-                </label>
-                <div className="relative">
-                  <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <select
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value as Department)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all cursor-pointer font-medium"
-                  >
-                    <option value={Department.FISHERY}>Fishery</option>
-                    <option value={Department.POULTRY}>Poultry</option>
-                    <option value={Department.PIGGERY}>Piggery</option>
-                    <option value={Department.CROPS}>Crops & Horticulture</option>
-                    <option value={Department.FEED_MILL}>Feed Mill</option>
-                    <option value={Department.SECURITY}>Security</option>
-                    <option value={Department.MAINTENANCE}>Maintenance & Engineering</option>
-                    <option value={Department.STORE}>Store & Logistics</option>
-                    <option value={Department.ACCOUNTING}>Accounting & Finance</option>
-                    <option value={Department.ADMIN}>Administration & HR</option>
-                  </select>
+            {/* Categorized Role & Department Selection */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Assigned Role (Categorized by Department) *
+                  </label>
+                  <div className="relative">
+                    <Shield className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
+                    <select
+                      value={selectedPresetRole}
+                      onChange={(e) => handlePresetRoleChange(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all cursor-pointer font-bold"
+                    >
+                      <optgroup label="🐟 Fishery Department">
+                        <option value="FISHERY_STAFF">Fishery Staff</option>
+                        <option value="FISHERY_MANAGER">Fishery Manager</option>
+                        <option value="HATCHERY_MANAGER">Hatchery Manager</option>
+                      </optgroup>
+                      <optgroup label="🐔 Poultry Department">
+                        <option value="POULTRY_STAFF">Poultry Staff</option>
+                        <option value="POULTRY_MANAGER">Poultry Manager</option>
+                      </optgroup>
+                      <optgroup label="🐂 Cattle Department">
+                        <option value="CATTLE_STAFF">Cattle Staff</option>
+                        <option value="CATTLE_MANAGER">Cattle Manager</option>
+                      </optgroup>
+                      <optgroup label="🐖 Piggery Department">
+                        <option value="PIGGERY_STAFF">Piggery Staff</option>
+                        <option value="PIGGERY_MANAGER">Piggery Manager</option>
+                      </optgroup>
+                      <optgroup label="🏛️ Administration & Executive">
+                        <option value="EXECUTIVE_DIRECTOR">Executive Director</option>
+                      </optgroup>
+                      <optgroup label="✨ Others">
+                        <option value="OTHERS">Others – (Type-in Field)</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Department / Division *
+                  </label>
+                  <div className="relative">
+                    <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <select
+                      disabled={selectedPresetRole !== 'OTHERS'}
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value as Department)}
+                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none transition-all font-bold ${
+                        selectedPresetRole !== 'OTHERS'
+                          ? 'bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed'
+                          : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-slate-900 cursor-pointer'
+                      }`}
+                    >
+                      <option value={Department.FISHERY}>Fishery Department</option>
+                      <option value={Department.POULTRY}>Poultry Department</option>
+                      <option value={Department.PIGS}>Piggery Department</option>
+                      <option value={Department.CATTLE}>Cattle Department</option>
+                      <option value={Department.ADMIN}>Administration & HR</option>
+                      <option value={Department.CROPS}>Crops & Horticulture</option>
+                      <option value={Department.FEED_MILL}>Feed Mill</option>
+                      <option value={Department.SECURITY}>Security</option>
+                      <option value={Department.MAINTENANCE}>Maintenance & Engineering</option>
+                      <option value={Department.STORE}>Store & Logistics</option>
+                      <option value={Department.ACCOUNTING}>Accounting & Finance</option>
+                      <option value={Department.OTHERS}>Others (Custom Unit)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Role *
-                </label>
-                <div className="relative">
-                  <Shield className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <select
-                    value={role}
-                    onChange={(e) => {
-                      const newRole = e.target.value as Role;
-                      setRole(newRole);
-                      if (newRole === Role.HATCHERY_MANAGER) {
-                        setDepartment(Department.FISHERY);
-                      }
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition-all cursor-pointer font-medium"
-                  >
-                    <option value={Role.STAFF}>Staff Member</option>
-                    <option value={Role.HATCHERY_MANAGER}>Hatchery Manager</option>
-                    <option value={Role.MANAGER}>Sector Manager</option>
-                    <option value={Role.EXECUTIVE_DIRECTOR}>Executive Director</option>
-                  </select>
+              {/* Conditional Type-In Field for "Others" */}
+              {selectedPresetRole === 'OTHERS' && (
+                <div className="bg-emerald-50/70 border-2 border-emerald-300/80 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                  <div className="flex items-center space-x-2 text-emerald-950 font-black text-xs">
+                    <Edit3 className="w-4 h-4 text-emerald-700" />
+                    <span>Others: Specify Custom Role & Department Information</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-black uppercase text-emerald-900 mb-1">
+                        Type-in Role / Position Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customRoleTitle}
+                        onChange={(e) => setCustomRoleTitle(e.target.value)}
+                        placeholder="e.g. Farm Agronomist, Head Veterinarian, Feed Specialist"
+                        className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 placeholder-slate-400 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-black uppercase text-emerald-900 mb-1">
+                        Custom Department / Unit Name
+                      </label>
+                      <input
+                        type="text"
+                        value={customDepartment}
+                        onChange={(e) => setCustomDepartment(e.target.value)}
+                        placeholder="e.g. Crop Plantation / Veterinary Clinic"
+                        className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 placeholder-slate-400 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Password Section */}
