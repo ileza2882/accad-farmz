@@ -681,7 +681,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="text-base font-black text-slate-900 uppercase tracking-tight group-hover:text-emerald-700 transition-colors">
-                            Batch Record #{originalIndex + 1}: <span className="text-emerald-700">{batch.batchNumber} Batch</span>
+                            Batch Record: <span className="text-emerald-700">{batch.batchNumber ? (batch.batchNumber.toLowerCase().includes('batch') ? batch.batchNumber : `Batch ${batch.batchNumber}`) : `Batch ${originalIndex + 1}`}</span>
                           </h4>
 
                           {isApprovedChange && (
@@ -809,43 +809,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         </div>
                       </div>
 
-                      {/* 2. Batch Number */}
+                      {/* 2. Hatchery Date */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
                             <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">2</span>
-                            <span>Batch Number</span>
-                          </label>
-                          {renderRowActionButton(originalIndex, 'Batch Number', 'batchNumber')}
-                        </div>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3.5 text-slate-400">
-                            <Hash className="w-4 h-4" />
-                          </span>
-                          <select
-                            disabled={Boolean(batch.lockedRows?.batchNumber)}
-                            value={batch.batchNumber}
-                            onChange={(e) => handleFieldChange(originalIndex, 'batchNumber', e.target.value)}
-                            className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs font-black outline-none transition-all cursor-pointer ${
-                              batch.lockedRows?.batchNumber
-                                ? 'bg-slate-100/90 border-slate-200 text-slate-700 cursor-not-allowed select-text font-bold' 
-                                : 'bg-slate-50/60 focus:bg-white border-slate-200 focus:border-emerald-500 text-slate-900'
-                            }`}
-                          >
-                            {BATCH_NUMBER_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt} Batch
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* 3. Hatchery Date */}
-                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
                             <span>Hatchery Date</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Hatchery Date', 'hatcheryDate')}
@@ -863,11 +831,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         />
                       </div>
 
-                      {/* 4. First Date of Feeding */}
+                      {/* 3. First Date of Feeding */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">4</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
                             <span>First Date of Feeding</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'First Date of Feeding', 'firstDateOfFeeding')}
@@ -885,11 +853,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         />
                       </div>
 
-                      {/* 5. Date of Transfer to Grow-Out */}
+                      {/* 4. Date of Transfer to Grow-Out */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">5</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">4</span>
                             <span>Date of Transfer to Grow-Out</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Date of Transfer to Grow-Out', 'dateOfTransferToGrowOut')}
@@ -907,11 +875,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         />
                       </div>
 
-                      {/* 6. Total Number of Transferred Fingerlings */}
+                      {/* 5. Total Number of Transferred Fingerlings */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">6</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">5</span>
                             <span>Total Number of Transferred Fingerlings</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Total Number of Transferred Fingerlings', 'totalTransferredFingerlings')}
@@ -936,11 +904,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         </div>
                       </div>
 
-                      {/* 7. Average Weight of Fingerlings Transferred */}
+                      {/* 6. Average Weight of Fingerlings Transferred */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">7</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">6</span>
                             <span>Average Weight of Fingerlings Transferred</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Average Weight of Fingerlings Transferred', 'averageWeightTransferred')}
@@ -969,11 +937,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         </div>
                       </div>
 
-                      {/* 8. Age of Fingerlings Transferred */}
+                      {/* 7. Age of Fingerlings Transferred */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">8</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">7</span>
                             <span>Age of Fingerlings Transferred</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Age of Fingerlings Transferred', 'ageOfFingerlingsTransferred')}
@@ -992,11 +960,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         />
                       </div>
 
-                      {/* 9. Health Status of Fingerlings Transferred */}
+                      {/* 8. Health Status of Fingerlings Transferred */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">9</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">8</span>
                             <span>Health Status of Fingerlings Transferred</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Health Status of Fingerlings Transferred', 'healthStatusTransferred')}
@@ -1022,11 +990,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         </div>
                       </div>
 
-                      {/* 10. Destinated Pond of Fingerlings Transferred */}
+                      {/* 9. Destinated Pond of Fingerlings Transferred */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">10</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">9</span>
                             <span>Destinated Pond of Fingerlings Transferred</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Destinated Pond of Fingerlings Transferred', 'destinatedPondTransferred')}
@@ -1050,11 +1018,11 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         </div>
                       </div>
 
-                      {/* 11. Remarks */}
+                      {/* 10. Remarks */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 space-y-2 focus-within:border-emerald-500 transition-colors shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <label className="text-[11px] font-black uppercase text-slate-700 flex items-center space-x-1.5">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">11</span>
+                            <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center">10</span>
                             <span>Batch Remarks & Growth Observations</span>
                           </label>
                           {renderRowActionButton(originalIndex, 'Batch Remarks', 'remarks')}
@@ -1138,7 +1106,7 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h5 className="text-sm font-black text-slate-900 uppercase">
-                              Batch Record #{originalIndex + 1}: {batch.batchNumber} Batch
+                              Batch Record: {batch.batchNumber ? (batch.batchNumber.toLowerCase().includes('batch') ? batch.batchNumber : `Batch ${batch.batchNumber}`) : `Batch ${originalIndex + 1}`}
                             </h5>
                             <span className="inline-flex items-center space-x-1 bg-slate-800 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                               <Lock className="w-3 h-3 text-amber-300" />

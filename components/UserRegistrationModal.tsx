@@ -50,6 +50,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [phone, setPhone] = useState('');
   const [department, setDepartment] = useState<Department>(Department.FISHERY);
   const [selectedRoleType, setSelectedRoleType] = useState<string>('STAFF');
+  const [tempPassword, setTempPassword] = useState('Accad2026!');
+  const [showPassword, setShowPassword] = useState(false);
   const [customNotes, setCustomNotes] = useState('');
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   
@@ -58,6 +60,16 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let generated = 'Accad';
+    for (let i = 0; i < 4; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    generated += '!';
+    setTempPassword(generated);
+  };
 
   const handleDepartmentChange = (newDept: Department) => {
     setDepartment(newDept);
@@ -72,6 +84,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setFullName('');
     setEmail('');
     setPhone('');
+    setTempPassword('Accad2026!');
+    setShowPassword(false);
     setDepartment(Department.FISHERY);
     setSelectedRoleType('STAFF');
     setCustomNotes('');
@@ -87,11 +101,16 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     const cleanName = fullName.trim();
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
-    const defaultPassword = 'Password123!';
+    const cleanPassword = tempPassword.trim();
 
     // 1. Empty field validation
     if (!cleanName || !cleanEmail || !cleanPhone) {
       setError('All required fields marked with * must be filled.');
+      return;
+    }
+
+    if (!cleanPassword || cleanPassword.length < 6) {
+      setError('Temporary password must be at least 6 characters long.');
       return;
     }
 
@@ -166,7 +185,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         department: department,
         position: resolvedPosition,
         status: 'active',
-        password: defaultPassword,
+        password: cleanPassword,
         profilePicture: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&background=059669&color=fff`,
         createdAt: Date.now()
       };
@@ -178,7 +197,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         currentEd?.fullName || 'Executive Director',
         currentEd?.email || 'info@accadfarms.com',
         'USER_REGISTERED',
-        `Registered user ${created.fullName} (${created.email}) with role ${created.role} in ${created.department}`
+        `Registered user ${created.fullName} (${created.email}) with role ${created.role} in ${created.department} (Temporary password set by ED)`
       );
 
       // In-App Notification for new user
@@ -186,7 +205,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         userId: created.id,
         userEmail: created.email,
         title: 'Account Created',
-        message: `Account created by ED with role: ${created.role}. Password: ${created.password || '123456'}`,
+        message: `Account created by ED with role: ${created.role}. Temporary password assigned.`,
         type: 'info'
       });
 
@@ -421,6 +440,48 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Temporary Password Configuration (Set by ED) */}
+            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-black uppercase tracking-wider text-emerald-950 flex items-center space-x-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Temporary Password (Set by ED) *</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="text-[10px] font-black uppercase text-emerald-800 hover:text-emerald-950 bg-white hover:bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span>Generate Strong</span>
+                </button>
+              </div>
+
+              <div className="relative flex items-center">
+                <Lock className="w-4 h-4 text-emerald-700 absolute left-3.5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={tempPassword}
+                  onChange={(e) => setTempPassword(e.target.value)}
+                  placeholder="Enter temporary password (min 6 chars)"
+                  className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 text-slate-900 rounded-xl pl-10 pr-10 py-2.5 text-xs font-mono font-bold outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-emerald-800 font-medium leading-relaxed">
+                The user will use this temporary passcode to log in for the first time and can subsequently change their password in their User Profile.
+              </p>
+            </div>
+
 
             {/* Optional Custom Notes / Additional Words from ED */}
             <div className="space-y-1.5 pt-2 border-t border-slate-100">

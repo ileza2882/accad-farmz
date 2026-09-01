@@ -51,6 +51,14 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
       if (!reportId || reportId === 'new') {
         // Create brand new report
         const newId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const allReports = await getReports();
+        const existingHatcheryReports = allReports.filter(r =>
+          r.department === Department.FISHERY &&
+          (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+        );
+        const nextBatchNum = existingHatcheryReports.length + 1;
+        const nextBatchName = `Batch ${nextBatchNum}`;
+
         const initialReport: Report = {
           id: newId,
           userId: user?.id || 'hatchery_user',
@@ -59,7 +67,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
           department: Department.FISHERY,
           inventoryType: InventoryType.HATCHERY,
           section: FisherySection.HATCHERY,
-          title: 'Hatchery Log - 1st Batch',
+          title: `Hatchery Log - ${nextBatchName}`,
           content: 'Hatchery Section single-form ledger record.',
           timestamp: Date.now(),
           status: ReportStatus.PENDING_MANAGER,
@@ -68,7 +76,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
             batches: [
               {
                 sourceOfBroodstock: 'Outside the Farm',
-                batchNumber: '1st',
+                batchNumber: nextBatchName,
                 hatcheryDate: '',
                 firstDateOfFeeding: '',
                 dateOfTransferToGrowOut: '',
@@ -95,6 +103,13 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
           setReport(found);
         } else {
           // If not found in DB, instantiate fallback report
+          const existingHatcheryReports = allReports.filter(r =>
+            r.department === Department.FISHERY &&
+            (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+          );
+          const nextBatchNum = existingHatcheryReports.length + 1;
+          const nextBatchName = `Batch ${nextBatchNum}`;
+
           const fallbackReport: Report = {
             id: reportId,
             userId: user?.id || 'hatchery_user',
@@ -103,7 +118,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
             department: Department.FISHERY,
             inventoryType: InventoryType.HATCHERY,
             section: FisherySection.HATCHERY,
-            title: `Hatchery Log - ${reportId}`,
+            title: `Hatchery Log - ${nextBatchName}`,
             content: 'Hatchery Section single-form ledger record.',
             timestamp: Date.now(),
             status: ReportStatus.PENDING_MANAGER,
@@ -112,7 +127,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
               batches: [
                 {
                   sourceOfBroodstock: 'Outside the Farm',
-                  batchNumber: '1st',
+                  batchNumber: nextBatchName,
                   hatcheryDate: '',
                   firstDateOfFeeding: '',
                   dateOfTransferToGrowOut: '',
@@ -132,8 +147,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
         }
       }
     } catch (err: any) {
-      console.error('Error loading report:', err);
-      alert('Error loading hatchery report: ' + err.message);
+      console.error('Error loading hatchery report:', err);
     } finally {
       setLoading(false);
     }
@@ -263,8 +277,8 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
         r.department === Department.FISHERY &&
         (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
       );
-      const nextBatchIndex = existingHatcheryReports.length;
-      const nextBatchName = BATCH_NUMBER_OPTIONS[nextBatchIndex] || `${nextBatchIndex + 1}th`;
+      const nextBatchNum = existingHatcheryReports.length + 1;
+      const nextBatchName = `Batch ${nextBatchNum}`;
 
       const initialReport: Report = {
         id: newId,
@@ -274,7 +288,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
         department: Department.FISHERY,
         inventoryType: InventoryType.HATCHERY,
         section: FisherySection.HATCHERY,
-        title: `Hatchery Log - ${nextBatchName} Batch`,
+        title: `Hatchery Log - ${nextBatchName}`,
         content: 'Hatchery Section single-form ledger record.',
         timestamp: Date.now(),
         status: ReportStatus.PENDING_MANAGER,

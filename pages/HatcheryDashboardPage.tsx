@@ -64,6 +64,14 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
     setCreatingNew(true);
     try {
       const newReportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const allReports = await getReports();
+      const existingHatcheryReports = allReports.filter(r =>
+        r.department === Department.FISHERY &&
+        (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+      );
+      const nextBatchNum = existingHatcheryReports.length + 1;
+      const nextBatchName = `Batch ${nextBatchNum}`;
+
       const newReport: Report = {
         id: newReportId,
         userId: user?.id || 'hatchery_user',
@@ -72,7 +80,7 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
         department: Department.FISHERY,
         inventoryType: InventoryType.HATCHERY,
         section: FisherySection.HATCHERY,
-        title: 'New Hatchery Log',
+        title: `Hatchery Log - ${nextBatchName}`,
         content: 'New hatchery batch record.',
         timestamp: Date.now(),
         status: 'pending_manager' as any,
@@ -81,7 +89,7 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
           batches: [
             {
               sourceOfBroodstock: 'Outside the Farm',
-              batchNumber: '1st',
+              batchNumber: nextBatchName,
               hatcheryDate: '',
               firstDateOfFeeding: '',
               dateOfTransferToGrowOut: '',
