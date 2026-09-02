@@ -315,11 +315,14 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
       };
 
       await createReport(initialReport);
-      setReport(initialReport);
-      navigate(`/hatchery/form/${newId}`);
+      const targetUrl = `${window.location.origin}${window.location.pathname}#/hatchery/form/${newId}`;
+      window.open(targetUrl, '_blank');
+      setFeedbackMsg(`Created ${nextBatchName} in a new tab!`);
+      setTimeout(() => setFeedbackMsg(null), 3500);
     } catch (err: any) {
-      console.error('Error creating new log:', err);
-      navigate('/hatchery/form/new');
+      console.error('Error creating new log in new tab:', err);
+      const fallbackUrl = `${window.location.origin}${window.location.pathname}#/hatchery/form/new`;
+      window.open(fallbackUrl, '_blank');
     } finally {
       setLoading(false);
     }

@@ -282,10 +282,12 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       };
 
       await createReport(newReport);
-      navigate(`/hatchery/form/${newId}`);
+      const targetUrl = `${window.location.origin}${window.location.pathname}#/hatchery/form/${newId}`;
+      window.open(targetUrl, '_blank');
     } catch (err: any) {
       console.error('Error creating new log:', err);
-      navigate('/hatchery/form/new');
+      const fallbackUrl = `${window.location.origin}${window.location.pathname}#/hatchery/form/new`;
+      window.open(fallbackUrl, '_blank');
     } finally {
       setIsCreatingNewLog(false);
     }
