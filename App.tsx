@@ -92,9 +92,9 @@ const App: React.FC = () => {
             <Route 
               path="/hatchery/dashboard" 
               element={
-                currentUser && (currentUser.role === Role.HATCHERY_MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
+                currentUser
                   ? <HatcheryDashboardPage user={currentUser} />
-                  : <Navigate to="/hatchery" replace />
+                  : <Navigate to="/login" replace />
               } 
             />
 
@@ -102,9 +102,9 @@ const App: React.FC = () => {
             <Route 
               path="/hatchery/form/:reportId" 
               element={
-                currentUser && (currentUser.role === Role.HATCHERY_MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
+                currentUser
                   ? <HatcheryFormPage user={currentUser} />
-                  : <Navigate to="/hatchery" replace />
+                  : <Navigate to="/login" replace />
               } 
             />
 

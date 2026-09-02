@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FisheryHatcheryFormData, 
   FisheryHatcheryBatchData, 
   getHatcheryBatchStage, 
   BATCH_NUMBER_OPTIONS, 
-  BROODSTOCK_SOURCE_OPTIONS 
+  BROODSTOCK_SOURCE_OPTIONS,
+  Report,
+  ReportStatus,
+  Department,
+  InventoryType,
+  FisherySection
 } from '../types';
+import { getReports, createReport } from '../lib/insforge';
+import { getComputerName } from '../lib/exportUtils';
 import { 
   Plus, 
   Trash2, 
@@ -47,6 +55,7 @@ interface FisheryHatcheryFormProps {
   reportId?: string;
   currentUser?: { fullName: string; email: string };
   onCancel?: () => void;
+  onAddNewLog?: () => Promise<void> | void;
   onSubmit: (data: FisheryHatcheryFormData, isDraft?: boolean) => void;
   onSaveSingleRow?: (batchIndex: number, batch: FisheryHatcheryBatchData, allBatches: FisheryHatcheryBatchData[]) => Promise<void>;
   onRequestChange?: (batchIndex: number, batch: FisheryHatcheryBatchData, reason: string) => Promise<void>;
@@ -191,11 +200,15 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   reportId,
   currentUser,
   onCancel, 
+  onAddNewLog,
   onSubmit, 
   onSaveSingleRow,
   onRequestChange,
   isSubmitting 
 }) => {
+  const navigate = useNavigate();
+  const [isCreatingNewLog, setIsCreatingNewLog] = useState(false);
+
   const [batches, setBatches] = useState<FisheryHatcheryBatchData[]>(() => {
     return cleanInitialBatches(initialData?.batches);
   });
@@ -209,6 +222,74 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
   const [collapsedBatches, setCollapsedBatches] = useState<Record<number, boolean>>({});
   const [isArchiveExpanded, setIsArchiveExpanded] = useState<boolean>(true);
   const [allExpanded, setAllExpanded] = useState<boolean>(true);
+
+  const handleAddNewLogClick = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isCreatingNewLog) return;
+    setIsCreatingNewLog(true);
+
+    try {
+      if (onAddNewLog) {
+        await onAddNewLog();
+        return;
+      }
+
+      // Universal fallback: create new report and navigate directly to its dedicated page
+      const allReports = await getReports();
+      const existingHatcheryReports = allReports.filter(r =>
+        r.department === Department.FISHERY &&
+        (r.inventoryType === InventoryType.HATCHERY || r.section === FisherySection.HATCHERY || r.formData?.batches)
+      );
+      const nextBatchNum = existingHatcheryReports.length + 1;
+      const nextBatchName = `Batch ${nextBatchNum}`;
+      const newId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+      const newReport: Report = {
+        id: newId,
+        userId: currentUser?.email || 'hatchery_user',
+        email: currentUser?.email || 'hatchery@accadfarms.com',
+        fullName: currentUser?.fullName || 'Hatchery Manager',
+        department: Department.FISHERY,
+        inventoryType: InventoryType.HATCHERY,
+        section: FisherySection.HATCHERY,
+        title: `Hatchery Log - ${nextBatchName}`,
+        content: 'Hatchery Section single-form ledger record.',
+        timestamp: Date.now(),
+        status: ReportStatus.PENDING_MANAGER,
+        computerName: getComputerName(),
+        formData: {
+          batches: [
+            {
+              sourceOfBroodstock: 'Outside the Farm',
+              batchNumber: nextBatchName,
+              hatcheryDate: '',
+              firstDateOfFeeding: '',
+              dateOfTransferToGrowOut: '',
+              totalTransferredFingerlings: '',
+              averageWeightTransferred: '',
+              ageOfFingerlingsTransferred: '',
+              healthStatusTransferred: 'Good',
+              destinatedPondTransferred: '',
+              remarks: '',
+              isLocked: false,
+              lockedRows: {}
+            }
+          ]
+        }
+      };
+
+      await createReport(newReport);
+      navigate(`/hatchery/form/${newId}`);
+    } catch (err: any) {
+      console.error('Error creating new log:', err);
+      navigate('/hatchery/form/new');
+    } finally {
+      setIsCreatingNewLog(false);
+    }
+  };
 
   // Confirmation modal state for individual row or batch save
   const [confirmModal, setConfirmModal] = useState<{
@@ -600,18 +681,17 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={() => {
-                if (onAddNewLog) {
-                  onAddNewLog();
-                } else {
-                  window.location.hash = '#/hatchery/form/new';
-                }
-              }}
-              className="inline-flex items-center space-x-1.5 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-xs active:scale-95"
+              onClick={handleAddNewLogClick}
+              disabled={isCreatingNewLog}
+              className="inline-flex items-center space-x-1.5 text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black border border-emerald-300 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
               title="Start a new hatchery log on a separate page"
             >
-              <Plus className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Add New Log</span>
+              {isCreatingNewLog ? (
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-700 animate-spin" />
+              ) : (
+                <Plus className="w-3.5 h-3.5 text-emerald-700" />
+              )}
+              <span>{isCreatingNewLog ? 'Creating Log...' : 'Add New Log'}</span>
             </button>
           </div>
         </div>
@@ -632,17 +712,16 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (onAddNewLog) {
-                  onAddNewLog();
-                } else {
-                  window.location.hash = '#/hatchery/form/new';
-                }
-              }}
-              className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer active:scale-95"
+              onClick={handleAddNewLogClick}
+              disabled={isCreatingNewLog}
+              className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              <Plus className="w-4 h-4" />
-              <span>Add New Log</span>
+              {isCreatingNewLog ? (
+                <RefreshCw className="w-4 h-4 text-white animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              <span>{isCreatingNewLog ? 'Creating Log...' : 'Add New Log'}</span>
             </button>
           </div>
         ) : (

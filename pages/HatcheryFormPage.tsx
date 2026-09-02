@@ -38,10 +38,10 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Guard: Must be Hatchery Manager or Executive Director
+  // Guard: User must be authenticated
   useEffect(() => {
-    if (!user || (user.role !== Role.HATCHERY_MANAGER && user.role !== Role.EXECUTIVE_DIRECTOR)) {
-      navigate('/hatchery', { replace: true });
+    if (!user) {
+      navigate('/login', { replace: true });
     }
   }, [user, navigate]);
 
@@ -399,6 +399,7 @@ export const HatcheryFormPage: React.FC<HatcheryFormPageProps> = ({ user }) => {
           <div className="space-y-6">
             {/* The single hatchery form component */}
             <FisheryHatcheryForm
+              key={report.id}
               initialData={report.formData as FisheryHatcheryFormData}
               reportId={report.id}
               currentUser={{ fullName: user.fullName, email: user.email }}
