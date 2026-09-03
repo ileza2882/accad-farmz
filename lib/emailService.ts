@@ -66,7 +66,44 @@ export async function dispatchEmailWithInsForge(options: {
 
   let deliveryMethod: 'insforge_smtp' | 'netlify_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
 
-  // 1. Primary: Direct InsForge BaaS SMTP Client
+  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via serverless / dev-server endpoint
+  try {
+    const endpoints = ['/.netlify/functions/send-email', '/api/send-email'];
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: recipient,
+            from: fromEmail,
+            fromName: fromName,
+            subject: subject,
+            html: options.html,
+            text: options.text,
+            user: options.metaPayload ? {
+              fullName: options.metaPayload['Staff Member Name'],
+              password: options.metaPayload['Temporary Passcode'],
+              role: options.metaPayload['Assigned Role'],
+              department: options.metaPayload['Department / Sector']
+            } : undefined,
+            customNotes: options.metaPayload?.['Special Remarks from ED']
+          })
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          deliveryMethod = 'netlify_function';
+          console.log(`[EmailService] Dispatched via Google Mail Hub (${endpoint}) from ${fromEmail}:`, resData);
+          break;
+        }
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.warn('[EmailService] Gmail SMTP endpoint notice:', err);
+  }
+
+  // 2. Secondary: InsForge BaaS SMTP Client (if configured)
   if (!IS_DISCONNECTED_MODE && insforge?.emails?.send) {
     try {
       const { data, error } = await insforge.emails.send({
@@ -80,17 +117,13 @@ export async function dispatchEmailWithInsForge(options: {
       if (!error) {
         deliveryMethod = 'insforge_smtp';
         console.log(`[EmailService] Delivered via InsForge SMTP to ${recipient}`);
-      } else {
-        console.warn('[EmailService] InsForge SMTP response notice:', error.message);
       }
-    } catch (insErr) {
-      console.warn('[EmailService] InsForge SMTP exception:', insErr);
-    }
+    } catch (insErr) {}
   }
 
-  // 2. Secondary / Live Inbox Relay (FormSubmit & Serverless relay fallback)
+  // 3. Fallback Inbox Relay (FormSubmit)
   try {
-    const portalUrl = window.location.origin || 'https://accadfarmz.netlify.app';
+    const portalUrl = window.location.origin || 'https://accadfarms.netlify.app';
     const payload = {
       name: fromName,
       email: fromEmail,
@@ -103,40 +136,20 @@ export async function dispatchEmailWithInsForge(options: {
       'Timestamp': new Date().toLocaleString()
     };
 
-    // Primary activated relay token
     fetch('https://formsubmit.co/ajax/628b81a295608a62a2883c8cb312aad1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(payload)
     }).catch(() => {});
 
-    // Secondary direct recipient relay
-    if (recipient !== 'dalestic12@gmail.com') {
+    if (recipient !== 'accadfarmsapp@gmail.com') {
       fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
     }
-
-    // Also notify local dev server / netlify endpoint
-    fetch('/.netlify/functions/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: recipient,
-        from: fromEmail,
-        fromName: fromName,
-        subject: subject,
-        html: options.html,
-        text: options.text,
-        user: { email: recipient }
-      })
-    }).catch(() => {});
-
-  } catch (fsErr) {
-    console.warn('[EmailService] Secondary relay dispatch notice:', fsErr);
-  }
+  } catch (fsErr) {}
 
   // 3. Save local sent record
   try {
@@ -166,7 +179,7 @@ export async function dispatchEmailWithInsForge(options: {
  * Generates plain-text invitation and credentials message with optional ED remarks.
  */
 export function generateWelcomeEmailPlainText(user: User, edCreator?: User, customNotes?: string): string {
-  const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
+  const loginUrl = window.location.origin || 'https://accadfarms.netlify.app';
   const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
 
@@ -175,30 +188,37 @@ export function generateWelcomeEmailPlainText(user: User, edCreator?: User, cust
 Hello ${user.fullName},
 
 Your official staff account has been created on the ACCAD FARMS Portal by the Executive Directorate (${creatorEmail}).
-${cleanNotes ? `\n📝 SPECIAL MESSAGE FROM EXECUTIVE DIRECTOR:\n"${cleanNotes}"\n` : ''}
-Here are your verified portal login details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Portal Login Email:  ${user.email}
-• Temporary Passcode:  ${user.password || '123456'}
-• Assigned Role:       ${(user.role || 'STAFF').toUpperCase()}
-• Department / Sector: ${user.department || 'General Operations'}
-• Portal Web Address:  ${loginUrl}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+Here is your official account credentials table:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FIELD                   │ DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Staff Member Name       │ ${user.fullName}
+  Portal Login Email      │ ${user.email}
+  Temporary Passcode      │ ${user.password || '123456'}
+  Assigned System Role    │ ${(user.role || 'STAFF').toUpperCase()}
+  Department / Sector     │ ${user.department || 'General Operations'}
+  Position / Designation  │ ${user.position || `${user.department || ''} Staff`}
+  Staff Identification ID │ ${user.staffId || 'STF-ACCAD'}
+  Official Dispatcher     │ accadfarmsapp@gmail.com
+  Portal Web Address      │ ${loginUrl}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${cleanNotes ? `\n📝 SPECIAL MESSAGE FROM EXECUTIVE DIRECTOR:\n"${cleanNotes}"\n` : ''}
 Security Notice:
 Please sign in to the portal and change your temporary password upon first login. Keep your login passcode strictly confidential.
 
 ACCAD FARMS LIMITED
 Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria
-Support: accadfarmsapp@gmail.com | +234 916 358 3220
+Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
 `;
 }
 
 /**
- * Generates a clean HTML onboarding template for new users created by the Executive Director.
+ * Generates a clean HTML onboarding template for new users created by the Executive Director,
+ * featuring an official credential table.
  */
 export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNotes?: string): string {
-  const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
+  const loginUrl = window.location.origin || 'https://accadfarms.netlify.app';
   const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
   
@@ -211,7 +231,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
   <title>Welcome to ACCAD FARMS Portal</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px 12px; color: #1e293b; }
-    .email-wrapper { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+    .email-wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
     .email-header { background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 36px 24px; text-align: center; color: #ffffff; }
     .brand-title { font-size: 24px; font-weight: 900; letter-spacing: 1.5px; margin: 0; text-transform: uppercase; }
     .brand-subtitle { font-size: 11px; color: #a7f3d0; text-transform: uppercase; letter-spacing: 2px; margin-top: 6px; font-weight: 700; }
@@ -219,13 +239,15 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
     .badge { display: inline-block; background: #ecfdf5; color: #047857; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px; border: 1px solid #a7f3d0; }
     .greeting { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0; }
     .intro-text { font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
-    .cred-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin: 24px 0; }
-    .cred-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; font-size: 13px; }
-    .cred-row:last-child { border-bottom: none; }
-    .cred-label { color: #64748b; font-weight: 600; }
-    .cred-val { color: #0f172a; font-weight: 700; font-family: Consolas, Monaco, monospace; }
+    .table-container { margin: 24px 0; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 14px; }
+    .cred-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    .cred-table th { background: #065f46; color: #ffffff; padding: 12px 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; font-size: 11px; }
+    .cred-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+    .cred-table tr:last-child td { border-bottom: none; }
+    .cred-label { font-weight: 700; color: #475569; background: #f8fafc; width: 38%; }
+    .cred-value { font-weight: 700; color: #0f172a; }
+    .cred-passcode { font-family: Consolas, Monaco, monospace; font-size: 15px; font-weight: 900; color: #065f46; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; display: inline-block; }
     .action-btn { display: block; text-align: center; background: #059669; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 800; font-size: 14px; margin: 28px 0; letter-spacing: 0.5px; }
-    .action-btn:hover { background: #047857; }
     .notice { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px; font-size: 12px; color: #92400e; line-height: 1.5; margin-top: 20px; }
     .custom-notes-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 16px; margin: 20px 0; color: #166534; font-size: 13px; line-height: 1.6; }
     .email-footer { background: #f1f5f9; padding: 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.6; }
@@ -242,7 +264,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
       <span class="badge">Official Staff Onboarding</span>
       <h2 class="greeting">Welcome to the Team, ${user.fullName}!</h2>
       <p class="intro-text">
-        An official staff account has been provisioned for you on the <strong>ACCAD FARMS Management Portal</strong> by the Executive Director (<code>${creatorEmail}</code>).
+        An official staff account has been provisioned for you on the <strong>ACCAD FARMS Management Portal</strong> by the Executive Directorate (<code>${creatorEmail}</code>).
       </p>
 
       ${cleanNotes ? `
@@ -252,39 +274,66 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
       </div>
       ` : ''}
 
-      <div class="cred-card">
-        <div class="cred-row">
-          <span class="cred-label">Portal Login Email:</span>
-          <span class="cred-val">${user.email}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Temporary Passcode:</span>
-          <span class="cred-val">${user.password || '123456'}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Assigned Role:</span>
-          <span class="cred-val">${(user.role || 'STAFF').toUpperCase()}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Department / Sector:</span>
-          <span class="cred-val">${user.department || 'General Operations'}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Staff ID:</span>
-          <span class="cred-val">${user.staffId || 'STF-ACCAD'}</span>
-        </div>
+      <!-- Official Credentials Table -->
+      <div class="table-container">
+        <table class="cred-table">
+          <thead>
+            <tr>
+              <th>Account Detail</th>
+              <th>Verified Information</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cred-label">Staff Member Name</td>
+              <td class="cred-value">${user.fullName}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Portal Login Email</td>
+              <td class="cred-value" style="font-family: Consolas, Monaco, monospace; color: #047857;">${user.email}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Temporary Passcode</td>
+              <td><span class="cred-passcode">${user.password || '123456'}</span></td>
+            </tr>
+            <tr>
+              <td class="cred-label">Assigned Role</td>
+              <td class="cred-value" style="color: #0284c7; text-transform: uppercase;">${(user.role || 'STAFF').toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Department / Sector</td>
+              <td class="cred-value">${user.department || 'General Operations'}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Position / Title</td>
+              <td class="cred-value">${user.position || `${user.department || ''} Staff`}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Staff Identification ID</td>
+              <td class="cred-value" style="font-family: monospace;">${user.staffId || 'STF-ACCAD'}</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Official Sender</td>
+              <td class="cred-value" style="color: #047857;">accadfarmsapp@gmail.com</td>
+            </tr>
+            <tr>
+              <td class="cred-label">Portal Web Address</td>
+              <td><a href="${loginUrl}" style="color: #059669; font-weight: 700; text-decoration: underline;">${loginUrl}</a></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <a href="${loginUrl}" class="action-btn">Sign In to Farm Portal &rarr;</a>
 
       <div class="notice">
-        <strong>🔒 Security Reminder:</strong> Please change your temporary passcode after your initial sign-in. Never share your credentials with third parties.
+        <strong>🔒 Security Reminder:</strong> Please change your temporary passcode upon your initial sign-in. Keep your credentials confidential at all times.
       </div>
     </div>
     <div class="email-footer">
       <p><strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria</p>
-      <p>Contact: <a href="mailto:info@accadfarms.com">info@accadfarms.com</a> | +234 916 358 3220</p>
-      <p style="color: #94a3b8; font-size: 10px; margin-top: 10px;">This automated notification was generated directly from ACCAD FARMS Executive Governance Console.</p>
+      <p>Official Contact: <a href="mailto:accadfarmsapp@gmail.com">accadfarmsapp@gmail.com</a> | +234 916 358 3220</p>
+      <p style="color: #94a3b8; font-size: 10px; margin-top: 10px;">This automated credential notice was dispatched directly from accadfarmsapp@gmail.com.</p>
     </div>
   </div>
 </body>

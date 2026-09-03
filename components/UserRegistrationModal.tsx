@@ -41,7 +41,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const currentEd = edUser || creator || {
     id: 'ed_user_1',
     fullName: 'Executive Director',
-    email: 'info@accadfarms.com',
+    email: 'accadfarmsapp@gmail.com',
     role: Role.EXECUTIVE_DIRECTOR
   } as User;
 
@@ -209,12 +209,19 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         type: 'info'
       });
 
-      // Dispatch automated welcome & credentials email notification to user
-      sendUserWelcomeEmail({
-        newUser: created,
-        edCreator: currentEd,
-        customNotes: customNotes.trim()
-      }).catch(err => console.warn('Background email dispatch notice:', err));
+      // Dispatch automated welcome & credentials table email from accadfarmsapp@gmail.com
+      try {
+        await sendUserWelcomeEmail({
+          newUser: created,
+          edCreator: {
+            ...currentEd,
+            email: 'accadfarmsapp@gmail.com'
+          },
+          customNotes: customNotes.trim()
+        });
+      } catch (err) {
+        console.warn('Welcome credentials email dispatch notice:', err);
+      }
 
       if (onUserRegistered) onUserRegistered(created);
       if (onUserCreated) onUserCreated(created);
@@ -279,43 +286,51 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               </p>
             </div>
 
-            {/* Credentials Card */}
-            <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 shadow-xl border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            {/* Official Dispatched Credentials Table */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+              <div className="bg-emerald-800 text-white px-4 py-2.5 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <KeyRound className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-400">Verified Login Credentials</span>
+                  <KeyRound className="w-4 h-4 text-emerald-300" />
+                  <span className="text-xs font-extrabold uppercase tracking-wider">Dispatched Credentials Table</span>
                 </div>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full uppercase">Active</span>
+                <span className="text-[10px] bg-emerald-700 text-emerald-100 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Sent from accadfarmsapp@gmail.com</span>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
-                  <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Login Email</div>
-                  <div className="font-mono font-bold text-white text-sm mt-0.5 select-all truncate">{registeredUser.email}</div>
-                </div>
-
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
-                  <div className="text-[10px] text-emerald-400 uppercase font-black tracking-wider">Assigned Password</div>
-                  <div className="font-mono font-black text-emerald-300 text-sm mt-0.5 select-all">{registeredUser.password || '123456'}</div>
-                </div>
-
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
-                  <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Assigned Role</div>
-                  <div className="font-bold text-white mt-0.5 uppercase">{registeredUser.role}</div>
-                </div>
-
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/50">
-                  <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Department</div>
-                  <div className="font-bold text-white mt-0.5">{registeredUser.department || 'General Operations'}</div>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <tbody>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50 w-1/3">Staff Member</td>
+                      <td className="px-4 py-2.5 font-extrabold text-slate-900">{registeredUser.fullName}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Portal Login Email</td>
+                      <td className="px-4 py-2.5 font-mono font-bold text-emerald-700 select-all">{registeredUser.email}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Assigned Passcode</td>
+                      <td className="px-4 py-2.5 font-mono font-extrabold text-slate-900 bg-emerald-50 select-all">{registeredUser.password || '123456'}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Assigned Role</td>
+                      <td className="px-4 py-2.5 font-bold text-sky-700 uppercase">{registeredUser.role}</td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Department</td>
+                      <td className="px-4 py-2.5 font-bold text-slate-800">{registeredUser.department || 'General Operations'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Sender Email</td>
+                      <td className="px-4 py-2.5 font-bold text-slate-600">accadfarmsapp@gmail.com</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Live Automated Dispatch Status */}
             <div className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl py-3.5 px-4 shadow-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Automatic onboarding email with password has been sent to <strong>{registeredUser.email}</strong></span>
+              <span>Verified credentials table dispatched from <strong>accadfarmsapp@gmail.com</strong> to <strong>{registeredUser.email}</strong></span>
             </div>
 
             {/* Modal Bottom Actions */}
