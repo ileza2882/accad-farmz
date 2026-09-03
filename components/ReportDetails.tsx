@@ -474,7 +474,16 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                     <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center">
                       {pIdx + 1}
                     </span>
-                    <h4 className="text-base font-black text-slate-900 uppercase">{pond.pondNo} ({pond.batch})</h4>
+                    <div>
+                      <h4 className="text-base font-black text-slate-900 uppercase">
+                        {pond.pondNo} {pond.batch ? `(${pond.batch})` : ''}
+                      </h4>
+                      {pond.date && (
+                        <p className="text-[11px] text-slate-500 font-bold">
+                          Record Date: {pond.date}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <span className="text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">
                     Mortality: {pond.mortality || 0} Fish
@@ -521,6 +530,13 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                     <span className="text-slate-500">Feeding Response: </span>
                     <span className="text-emerald-700 uppercase font-black">{pond.feedingResponse || 'Active'}</span>
                   </div>
+
+                  {pond.notes && (
+                    <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs font-medium text-emerald-950">
+                      <span className="text-[10px] font-black uppercase text-emerald-800 block mb-0.5">Pond Observations</span>
+                      {pond.notes}
+                    </div>
+                  )}
 
                   {pond.pondPhoto && (
                     <div className="w-full">

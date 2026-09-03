@@ -207,10 +207,12 @@ export const MACHINE_LABELS: Record<string, string> = {
 
 export interface FisheryLivestockPondData {
   pondNo: string;
+  date?: string;
   pondSizeSqm: number | string;
   quantityOfFish: number | string;
   batch: string;
-  waterCondition: 'Clear' | 'Unclear';
+  waterCondition: 'Clear' | 'Unclear' | string;
+  notes?: string;
   waterChangedToday: {
     hasChanged: boolean;
     times?: number | string;

@@ -403,6 +403,7 @@ export function exportLogToPDF(report: Report): void {
             .join('; ');
 
           const pondRows = [
+            ...(pond.date ? [['Record Date', pond.date]] : []),
             ['Pond Identifier & Batch', `${pond.pondNo} (${pond.batch})`],
             ['Pond Size', `${pond.pondSizeSqm} SQM`],
             ['Fish Quantity Count', `${pond.quantityOfFish} Fish`],
@@ -411,6 +412,7 @@ export function exportLogToPDF(report: Report): void {
             ['Feeding Records Summary', feedingSummary || 'N/A'],
             ['Fish Feeding Response', pond.feedingResponse || 'Active'],
             ['Mortality Count', `${pond.mortality || 0} Fish`],
+            ...(pond.notes ? [['Pond Observations', pond.notes]] : []),
             ['Pond Photo Attachment', pond.pondPhoto ? 'YES (Photo Attached in System)' : 'NO photo attached']
           ];
 

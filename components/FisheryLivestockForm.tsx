@@ -8,15 +8,14 @@ import {
   RefreshCw, 
   Waves,
   Droplets,
-  ChevronDown,
-  ChevronUp,
-  ChevronsUpDown,
   Fish,
   Sparkles,
   Send,
   Building2,
-  FileCheck,
-  Scale
+  Calendar,
+  Layers,
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 
 interface FisheryLivestockFormProps {
@@ -31,23 +30,23 @@ interface FisheryLivestockFormProps {
 const BRANDS = ["Blue Crown", "Ecofloat", "Aqualis", "Alpha", "Coppen", "Skretting"];
 const SIZES = ["0.2mm", "0.3mm", "0.5mm", "0.8mm", "1.2mm", "1.5mm", "2mm", "3mm", "4mm", "6mm", "9mm"];
 
-// Preset standard 14 ponds for Grow-Out
-const createDefaultGrowOutPonds = (): FisheryLivestockPondData[] => {
-  return Array.from({ length: 14 }, (_, i) => ({
-    pondNo: `Pond ${i + 1}`,
-    pondSizeSqm: '',
-    quantityOfFish: '',
-    batch: `Batch ${String.fromCharCode(65 + (i % 6))}`, // Batch A, B, C...
-    waterCondition: 'Clear',
-    waterChangedToday: { hasChanged: false, times: '' },
-    feedingRecords: {
-      items: [{ type: 'Branded', size: '2mm', brand: 'Blue Crown', quantityKg: '' }]
-    },
-    feedingResponse: 'Active',
-    mortality: '0',
-    pondPhoto: ''
-  }));
-};
+// Create single initial pond without automatic names
+const createInitialPond = (index: number = 0): FisheryLivestockPondData => ({
+  pondNo: '',
+  date: new Date().toISOString().split('T')[0],
+  pondSizeSqm: '',
+  quantityOfFish: '',
+  batch: '',
+  waterCondition: 'Clear',
+  notes: '',
+  waterChangedToday: { hasChanged: false, times: '' },
+  feedingRecords: {
+    items: [{ type: 'Branded', size: '2mm', brand: 'Blue Crown', quantityKg: '' }]
+  },
+  feedingResponse: 'Active',
+  mortality: '0',
+  pondPhoto: ''
+});
 
 export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({ 
   initialData, 
@@ -59,11 +58,11 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
     if (initialData?.ponds && initialData.ponds.length > 0) {
       return initialData.ponds;
     }
-    return createDefaultGrowOutPonds();
+    return [createInitialPond(0)];
   });
 
+  const [activePondIndex, setActivePondIndex] = useState(0);
   const [generalNotes, setGeneralNotes] = useState(initialData?.generalNotes || '');
-  const [activePondFilter, setActivePondFilter] = useState<'ALL' | 'ACTIVE_STOCK' | 'MORTALITY'>('ALL');
 
   useEffect(() => {
     if (initialData?.ponds && initialData.ponds.length > 0) {
@@ -74,7 +73,14 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
     }
   }, [initialData]);
 
-  // Field Updates
+  // Ensure activePondIndex is always within bounds
+  useEffect(() => {
+    if (activePondIndex >= ponds.length && ponds.length > 0) {
+      setActivePondIndex(ponds.length - 1);
+    }
+  }, [ponds.length, activePondIndex]);
+
+  // Field Updates for a specific pond
   const handlePondChange = (index: number, field: keyof FisheryLivestockPondData, value: any) => {
     setPonds(prev => {
       const updated = [...prev];
@@ -145,49 +151,39 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
     }
   };
 
+  // User can add a pond at any time
   const handleAddPond = () => {
-    setPonds(prev => [
-      ...prev,
-      {
-        pondNo: `Pond ${prev.length + 1}`,
-        pondSizeSqm: '',
-        quantityOfFish: '',
-        batch: `Batch ${String.fromCharCode(65 + (prev.length % 6))}`,
-        waterCondition: 'Clear',
-        waterChangedToday: { hasChanged: false, times: '' },
-        feedingRecords: {
-          items: [{ type: 'Branded', size: '2mm', brand: 'Blue Crown', quantityKg: '' }]
-        },
-        feedingResponse: 'Active',
-        mortality: '0',
-        pondPhoto: ''
-      }
-    ]);
+    const newPond = createInitialPond(ponds.length);
+    setPonds(prev => [...prev, newPond]);
+    setActivePondIndex(ponds.length);
   };
 
   const handleRemovePond = (index: number) => {
     if (ponds.length <= 1) return;
-    if (window.confirm(`Are you sure you want to remove ${ponds[index].pondNo}?`)) {
+    const pondLabel = ponds[index].pondNo?.trim() || `Pond ${index + 1}`;
+    if (window.confirm(`Are you sure you want to remove ${pondLabel}?`)) {
       setPonds(prev => prev.filter((_, idx) => idx !== index));
+      setActivePondIndex(prev => (prev >= index ? Math.max(0, prev - 1) : prev));
     }
   };
 
-  // Whole Form Submission Handler (Grow-Out treated as complete preset view)
+  // Form Submission
   const handleSubmitAll = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verify each pond has at least name or index
+    const finalizedPonds = ponds.map((p, idx) => ({
+      ...p,
+      pondNo: p.pondNo?.trim() || `Pond ${idx + 1}`
+    }));
+
     onSubmit({
-      ponds,
+      ponds: finalizedPonds,
       generalNotes
     });
-    const allCollapsed: Record<number, boolean> = {};
-    ponds.forEach((_, idx) => {
-      allCollapsed[idx] = true;
-    });
-    setCollapsedPonds(allCollapsed);
-    setAllExpanded(false);
   };
 
-  // Total summary calculations
+  // Total summary calculations across all entered ponds
   const totalFish = ponds.reduce((sum, p) => sum + (Number(p.quantityOfFish) || 0), 0);
   const totalMortality = ponds.reduce((sum, p) => sum + (Number(p.mortality) || 0), 0);
   let totalFeedKg = 0;
@@ -197,21 +193,25 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
     });
   });
 
+  const currentPond = ponds[activePondIndex] || ponds[0] || createInitialPond(0);
+  const currentFishCount = Number(currentPond.quantityOfFish) || 0;
+  const currentMortality = Number(currentPond.mortality) || 0;
+
   return (
     <form onSubmit={handleSubmitAll} className="space-y-6">
       
-      {/* Grow-Out Preset View Header */}
-      <div className="bg-emerald-900 text-white p-5 sm:p-7 rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
+      {/* Grow-Out Livestock Facility Header Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white p-5 sm:p-7 rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden border border-emerald-800/40">
         <div className="space-y-1 relative z-10">
-          <div className="inline-flex items-center space-x-2 bg-emerald-800/80 border border-emerald-700 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
+          <div className="inline-flex items-center space-x-2 bg-emerald-900/80 border border-emerald-700/80 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
             <Waves className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Grow-Out Section &bull; Static Preset View</span>
+            <span>Grow-Out Section &bull; Livestock Facility</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight">
-            Grow-Out Livestock Facility (Ponds 1 – 14)
+            Grow-Out Livestock Facility
           </h3>
           <p className="text-xs text-emerald-200 font-medium max-w-2xl">
-            This section is treated as a complete, unified view. Enter daily metrics for all ponds and submit the complete report together.
+            Record and track precision pond metrics, feed allocation, and daily livestock tracking.
           </p>
         </div>
 
@@ -220,7 +220,7 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
           <button
             type="button"
             onClick={handleAddPond}
-            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-950/30 active:scale-95"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-950/30 active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Add Pond</span>
@@ -232,8 +232,8 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
           <span className="text-[10px] font-black uppercase text-slate-400">Total Ponds</span>
-          <div className="text-xl font-black text-slate-900">{ponds.length} Ponds</div>
-          <p className="text-[10px] text-emerald-700 font-bold">Preset Facility View</p>
+          <div className="text-xl font-black text-slate-900">{ponds.length} {ponds.length === 1 ? 'Pond' : 'Ponds'}</div>
+          <p className="text-[10px] text-emerald-700 font-bold">Facility Active Log</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
@@ -255,315 +255,465 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
         </div>
       </div>
 
-      {/* Ponds List */}
-      <div className="space-y-6">
-        {ponds.map((pond, pondIndex) => {
-          const fishCount = Number(pond.quantityOfFish) || 0;
-          const mortalityCount = Number(pond.mortality) || 0;
+      {/* Pond Selector Navigation Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
+            <Fish className="w-4 h-4 text-emerald-600" />
+            <span>Pond Records ({ponds.length}) &bull; Select to View / Edit</span>
+          </span>
+          <button
+            type="button"
+            onClick={handleAddPond}
+            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1 cursor-pointer active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Add New Pond</span>
+          </button>
+        </div>
 
-          return (
-            <div 
-              key={pondIndex} 
-              className="bg-white rounded-3xl border border-slate-200 shadow-sm transition-all overflow-hidden"
-            >
-              {/* Pond Header */}
-              <div className="p-4 sm:p-5 flex items-center justify-between gap-3 bg-slate-50/80 border-b border-slate-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm border border-emerald-200">
-                    {pondIndex + 1}
-                  </div>
+        {/* Pond Pills Switcher */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+          {ponds.map((p, idx) => {
+            const isActive = idx === activePondIndex;
+            const displayName = p.pondNo?.trim() || `Pond ${idx + 1}`;
+            const fishCount = Number(p.quantityOfFish) || 0;
+            const mort = Number(p.mortality) || 0;
+
+            return (
+              <div
+                key={idx}
+                className={`flex items-center rounded-xl border transition-all shrink-0 ${
+                  isActive
+                    ? 'bg-emerald-50/90 border-emerald-500 shadow-sm ring-2 ring-emerald-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:bg-white'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActivePondIndex(idx)}
+                  className="px-3.5 py-2 text-left cursor-pointer flex items-center space-x-2.5"
+                >
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black transition-colors ${
+                    isActive ? 'bg-emerald-700 text-white shadow-xs' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {idx + 1}
+                  </span>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-tight">
-                        {pond.pondNo || `Pond ${pondIndex + 1}`}
-                      </h4>
-                      {pond.batch && (
-                        <span className="text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
-                          {pond.batch}
-                        </span>
-                      )}
+                    <div className={`text-xs font-black uppercase tracking-tight truncate max-w-[120px] ${
+                      isActive ? 'text-emerald-950 font-black' : 'text-slate-800'
+                    }`}>
+                      {displayName}
                     </div>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      {fishCount > 0 ? `${fishCount.toLocaleString()} Fish` : 'No fish count entered'} &bull; Water: <strong>{pond.waterCondition}</strong> &bull; Response: <strong>{pond.feedingResponse}</strong>
-                    </p>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      {p.date ? p.date : 'No date'} &bull; {fishCount > 0 ? `${fishCount.toLocaleString()} fish` : '0 fish'}
+                    </div>
                   </div>
+                </button>
+
+                {ponds.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemovePond(idx);
+                    }}
+                    className="p-1.5 mr-1 text-slate-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                    title={`Delete ${displayName}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ===== ACTIVE POND FORM (ONE FORM AT A TIME) ===== */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden space-y-6">
+        
+        {/* Form Title & Context Header */}
+        <div className="p-4 sm:p-5 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-emerald-50/40 border-b border-slate-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+              {activePondIndex + 1}
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h4 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+                  {currentPond.pondNo?.trim() || `Pond #${activePondIndex + 1}`}
+                </h4>
+                {currentPond.date && (
+                  <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-emerald-600" />
+                    <span>{currentPond.date}</span>
+                  </span>
+                )}
+                {currentPond.batch && (
+                  <span className="text-[10px] font-extrabold uppercase bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md">
+                    {currentPond.batch}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Active Form &bull; Editing Pond {activePondIndex + 1} of {ponds.length}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {currentMortality > 0 && (
+              <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                {currentMortality} Mortality
+              </span>
+            )}
+            {ponds.length > 1 && (
+              <button
+                type="button"
+                onClick={() => handleRemovePond(activePondIndex)}
+                className="px-3 py-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1"
+                title="Delete this pond"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remove</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Pond Form Inputs */}
+        <div className="p-5 sm:p-7 space-y-6">
+          
+          {/* Row 1: Date, Pond Name, Batch, Pond Size */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                Record Date *
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  required
+                  value={currentPond.date || new Date().toISOString().split('T')[0]}
+                  onChange={(e) => handlePondChange(activePondIndex, 'date', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                Pond Name / Number *
+              </label>
+              <input
+                type="text"
+                required
+                value={currentPond.pondNo}
+                onChange={(e) => handlePondChange(activePondIndex, 'pondNo', e.target.value)}
+                placeholder="e.g. Pond 1, Concrete Pond A, Nursery Tank"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                Stock Batch / ID *
+              </label>
+              <input
+                type="text"
+                required
+                value={currentPond.batch}
+                onChange={(e) => handlePondChange(activePondIndex, 'batch', e.target.value)}
+                placeholder="e.g. Batch 2026-A, Fingerling Intake"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+                Pond Size (SQM)
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={currentPond.pondSizeSqm}
+                onChange={(e) => handlePondChange(activePondIndex, 'pondSizeSqm', e.target.value)}
+                placeholder="e.g. 50"
+                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Fish Quantity & Mortality */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-200">
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-700 mb-1">
+                Quantity of Fish (Live Count) *
+              </label>
+              <input
+                type="number"
+                required
+                value={currentPond.quantityOfFish}
+                onChange={(e) => handlePondChange(activePondIndex, 'quantityOfFish', e.target.value)}
+                placeholder="e.g. 5000"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-700 mb-1">
+                Daily Mortality Count
+              </label>
+              <input
+                type="number"
+                value={currentPond.mortality}
+                onChange={(e) => handlePondChange(activePondIndex, 'mortality', e.target.value)}
+                placeholder="0"
+                className="w-full bg-white border border-slate-200 focus:border-rose-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Water Conditions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">Water Condition</label>
+              <select
+                value={currentPond.waterCondition}
+                onChange={(e) => handlePondChange(activePondIndex, 'waterCondition', e.target.value)}
+                className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer"
+              >
+                <option value="Clear">Clear</option>
+                <option value="Unclear">Unclear</option>
+                <option value="Greenish">Greenish</option>
+                <option value="Aerated">Aerated</option>
+                <option value="Brownish">Brownish</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">Water Changed Today?</label>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleWaterChangedToday(activePondIndex, true, currentPond.waterChangedToday.times || '1')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                    currentPond.waterChangedToday.hasChanged ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleWaterChangedToday(activePondIndex, false, '')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                    !currentPond.waterChangedToday.hasChanged ? 'bg-slate-800 text-white border-slate-800 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {currentPond.waterChangedToday.hasChanged && (
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">How Many Times?</label>
+                <input
+                  type="number"
+                  value={currentPond.waterChangedToday.times}
+                  onChange={(e) => handleWaterChangedToday(activePondIndex, true, e.target.value)}
+                  placeholder="e.g. 1"
+                  className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Row 4: Feeding Records */}
+          <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider">
+                Feed Administered Today for {currentPond.pondNo?.trim() || `Pond #${activePondIndex + 1}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => addFeedItem(activePondIndex)}
+                className="text-emerald-700 hover:text-emerald-800 text-[11px] font-black flex items-center space-x-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Feed Type</span>
+              </button>
+            </div>
+
+            {currentPond.feedingRecords.items.map((feed, feedIdx) => (
+              <div key={feedIdx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Feed Type</label>
+                  <select
+                    value={feed.type}
+                    onChange={(e) => handleFeedItemChange(activePondIndex, feedIdx, 'type', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
+                  >
+                    <option value="Branded">Branded</option>
+                    <option value="Farm-produced">Farm-produced</option>
+                  </select>
                 </div>
 
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Pellet Size</label>
+                  <select
+                    value={feed.size}
+                    onChange={(e) => handleFeedItemChange(activePondIndex, feedIdx, 'size', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
+                  >
+                    {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {feed.type === 'Branded' && (
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Brand</label>
+                    <select
+                      value={feed.brand || 'Blue Crown'}
+                      onChange={(e) => handleFeedItemChange(activePondIndex, feedIdx, 'brand', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
+                    >
+                      {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                )}
+
                 <div className="flex items-center space-x-2">
-                  {mortalityCount > 0 && (
-                    <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
-                      {mortalityCount} Mortality
-                    </span>
-                  )}
-                  {ponds.length > 1 && (
+                  <div className="flex-1">
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Quantity (KG)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={feed.quantityKg}
+                      onChange={(e) => handleFeedItemChange(activePondIndex, feedIdx, 'quantityKg', e.target.value)}
+                      placeholder="e.g. 15"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
+                    />
+                  </div>
+                  {currentPond.feedingRecords.items.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => handleRemovePond(pondIndex)}
-                      className="text-slate-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors cursor-pointer"
-                      title="Delete this pond"
+                      onClick={() => removeFeedItem(activePondIndex, feedIdx)}
+                      className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg mt-3.5 cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Pond Form Inputs */}
-              <div className="p-5 sm:p-7 space-y-5">
-                  
-                  {/* Row 1: Basic Pond Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Number / Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={pond.pondNo}
-                        onChange={(e) => handlePondChange(pondIndex, 'pondNo', e.target.value)}
-                        placeholder="e.g. Pond 1"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Size (SQM)</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={pond.pondSizeSqm}
-                        onChange={(e) => handlePondChange(pondIndex, 'pondSizeSqm', e.target.value)}
-                        placeholder="e.g. 50"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Quantity of Fish *</label>
-                      <input
-                        type="number"
-                        required
-                        value={pond.quantityOfFish}
-                        onChange={(e) => handlePondChange(pondIndex, 'quantityOfFish', e.target.value)}
-                        placeholder="e.g. 5000"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Stock Batch *</label>
-                      <input
-                        type="text"
-                        required
-                        value={pond.batch}
-                        onChange={(e) => handlePondChange(pondIndex, 'batch', e.target.value)}
-                        placeholder="e.g. Batch A"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3 py-2 text-xs font-bold outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Water Conditions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">Water Condition</label>
-                      <select
-                        value={pond.waterCondition}
-                        onChange={(e) => handlePondChange(pondIndex, 'waterCondition', e.target.value)}
-                        className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer"
-                      >
-                        <option value="Clear">Clear</option>
-                        <option value="Unclear">Unclear</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">Water Changed Today?</label>
-                      <div className="flex space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => handleWaterChangedToday(pondIndex, true, pond.waterChangedToday.times || '1')}
-                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                            pond.waterChangedToday.hasChanged ? 'bg-emerald-700 text-white border-emerald-700' : 'bg-white text-slate-700 border-slate-200'
-                          }`}
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleWaterChangedToday(pondIndex, false, '')}
-                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                            !pond.waterChangedToday.hasChanged ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-200'
-                          }`}
-                        >
-                          No
-                        </button>
-                      </div>
-                    </div>
-
-                    {pond.waterChangedToday.hasChanged && (
-                      <div>
-                        <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">How Many Times?</label>
-                        <input
-                          type="number"
-                          value={pond.waterChangedToday.times}
-                          onChange={(e) => handleWaterChangedToday(pondIndex, true, e.target.value)}
-                          placeholder="e.g. 1"
-                          className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Row 3: Feeding Records */}
-                  <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider">
-                        Feed Administered (Today)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => addFeedItem(pondIndex)}
-                        className="text-emerald-700 hover:text-emerald-800 text-[11px] font-black flex items-center space-x-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Feed Type</span>
-                      </button>
-                    </div>
-
-                    {pond.feedingRecords.items.map((feed, feedIdx) => (
-                      <div key={feedIdx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200">
-                        <div>
-                          <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Feed Type</label>
-                          <select
-                            value={feed.type}
-                            onChange={(e) => handleFeedItemChange(pondIndex, feedIdx, 'type', e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
-                          >
-                            <option value="Branded">Branded</option>
-                            <option value="Farm-produced">Farm-produced</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Pellet Size</label>
-                          <select
-                            value={feed.size}
-                            onChange={(e) => handleFeedItemChange(pondIndex, feedIdx, 'size', e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
-                          >
-                            {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-
-                        {feed.type === 'Branded' && (
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Brand</label>
-                            <select
-                              value={feed.brand || 'Blue Crown'}
-                              onChange={(e) => handleFeedItemChange(pondIndex, feedIdx, 'brand', e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
-                            >
-                              {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                          </div>
-                        )}
-
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-1">
-                            <label className="block text-[9px] font-bold text-slate-400 uppercase mb-0.5">Quantity (KG)</label>
-                            <input
-                              type="number"
-                              step="any"
-                              value={feed.quantityKg}
-                              onChange={(e) => handleFeedItemChange(pondIndex, feedIdx, 'quantityKg', e.target.value)}
-                              placeholder="e.g. 15"
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold"
-                            />
-                          </div>
-                          {pond.feedingRecords.items.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeFeedItem(pondIndex, feedIdx)}
-                              className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg mt-3.5"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Row 4: Feeding Response & Mortality */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feeding Response</label>
-                      <select
-                        value={pond.feedingResponse}
-                        onChange={(e) => handlePondChange(pondIndex, 'feedingResponse', e.target.value)}
-                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                          pond.feedingResponse === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
-                          pond.feedingResponse === 'Slow' ? 'bg-amber-50 text-amber-800 border-amber-300' :
-                          'bg-rose-50 text-rose-800 border-rose-300'
-                        }`}
-                      >
-                        <option value="Active">Active Feeding</option>
-                        <option value="Slow">Slow Feeding</option>
-                        <option value="Poor">Poor / No Feeding</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Mortality (Fish Count)</label>
-                      <input
-                        type="number"
-                        value={pond.mortality}
-                        onChange={(e) => handlePondChange(pondIndex, 'mortality', e.target.value)}
-                        placeholder="0"
-                        className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-rose-500 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Photo Attachment</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handlePhotoUpload(pondIndex, e)}
-                        className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700"
-                      />
-                      {pond.pondPhoto && (
-                        <div className="mt-2">
-                          <img src={pond.pondPhoto} alt="Pond preview" className="w-24 h-16 object-cover rounded-xl border border-slate-200" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                </div>
+          {/* Row 5: Feeding Response & Photo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feeding Response</label>
+              <select
+                value={currentPond.feedingResponse}
+                onChange={(e) => handlePondChange(activePondIndex, 'feedingResponse', e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
+                  currentPond.feedingResponse === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                  currentPond.feedingResponse === 'Slow' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                  'bg-rose-50 text-rose-800 border-rose-300'
+                }`}
+              >
+                <option value="Active">Active Feeding</option>
+                <option value="Slow">Slow Feeding</option>
+                <option value="Poor">Poor / No Feeding</option>
+              </select>
             </div>
-          );
-        })}
+
+            <div>
+              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Photo Attachment</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handlePhotoUpload(activePondIndex, e)}
+                className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 cursor-pointer"
+              />
+              {currentPond.pondPhoto && (
+                <div className="mt-2">
+                  <img src={currentPond.pondPhoto} alt="Pond preview" className="w-24 h-16 object-cover rounded-xl border border-slate-200" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 6: Pond Specific Notes */}
+          <div>
+            <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
+              Pond Observations / Specific Remarks
+            </label>
+            <input
+              type="text"
+              value={currentPond.notes || ''}
+              onChange={(e) => handlePondChange(activePondIndex, 'notes', e.target.value)}
+              placeholder="e.g. Sampling net test conducted, fish active, water level topped up"
+              className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs font-medium outline-none transition-all"
+            />
+          </div>
+
+        </div>
+
+        {/* Bottom Navigation for Ponds */}
+        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              disabled={activePondIndex === 0}
+              onClick={() => setActivePondIndex(prev => Math.max(0, prev - 1))}
+              className="px-4 py-2 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 rounded-xl text-xs font-black uppercase text-slate-700 transition-all cursor-pointer active:scale-95"
+            >
+              &larr; Previous Pond
+            </button>
+            <button
+              type="button"
+              disabled={activePondIndex >= ponds.length - 1}
+              onClick={() => setActivePondIndex(prev => Math.min(ponds.length - 1, prev + 1))}
+              className="px-4 py-2 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200 rounded-xl text-xs font-black uppercase text-slate-700 transition-all cursor-pointer active:scale-95"
+            >
+              Next Pond &rarr;
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={handleAddPond}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Another Pond</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      {/* General Notes */}
+      {/* General Notes for the Entire Report */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 space-y-2 shadow-sm">
-        <label className="block text-xs font-bold uppercase text-slate-700">Grow-Out General Observations & Operational Notes</label>
+        <label className="block text-xs font-bold uppercase text-slate-700">Grow-Out General Facility Remarks & Shift Notes</label>
         <textarea
           rows={3}
           value={generalNotes}
           onChange={(e) => setGeneralNotes(e.target.value)}
-          placeholder="Record any general facility remarks, water treatments, mortality causes, or harvesting schedule notes..."
+          placeholder="Record overall facility remarks, water treatments, aeration logs, or harvesting schedule notes across all ponds..."
           className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl p-4 text-xs font-medium outline-none transition-all"
         />
       </div>
 
-      {/* Whole Form Submit Action */}
+      {/* Final Submit Action Bar */}
       <div className="p-6 bg-slate-900 text-white rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="space-y-0.5">
           <h4 className="text-sm font-black uppercase">Submit Grow-Out Livestock Report</h4>
           <p className="text-xs text-slate-400">
-            Submits complete data for all {ponds.length} ponds ({totalFish.toLocaleString()} fish, {totalFeedKg.toFixed(1)} kg feed) for manager vetting.
+            Submits complete data for all {ponds.length} {ponds.length === 1 ? 'pond' : 'ponds'} ({totalFish.toLocaleString()} fish, {totalFeedKg.toFixed(1)} kg feed) for manager vetting.
           </p>
         </div>
 
