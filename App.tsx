@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Homepage } from './pages/Homepage';
 import { LoginPage } from './pages/LoginPage';
+import { ExecutiveLoginPage } from './pages/ExecutiveLoginPage';
 import { StaffDashboard } from './pages/StaffDashboard';
 import { ManagerDashboard } from './pages/ManagerDashboard';
 import { ExecutiveDashboard } from './pages/ExecutiveDashboard';
@@ -12,17 +13,8 @@ import { HatcheryFormPage } from './pages/HatcheryFormPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Header } from './components/Header';
-import { User, Role, Department } from './types';
+import { User, Role } from './types';
 import { getUsers, updateUser } from './lib/insforge';
-
-const DEFAULT_STAFF_USER: User = {
-  id: 'usr_staff_1',
-  fullName: 'David Ileza (Staff)',
-  email: 'staff@accadfarms.com',
-  role: Role.STAFF,
-  department: Department.FISHERY,
-  status: 'active'
-};
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -33,6 +25,14 @@ const App: React.FC = () => {
       return null;
     }
   });
+
+  // Handle direct URL navigation like app URL/ed
+  useEffect(() => {
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+    if (path === '/ed' && !window.location.hash.includes('/ed')) {
+      window.location.hash = '#/ed';
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -72,8 +72,18 @@ const App: React.FC = () => {
 
         <main className="flex-grow">
           <Routes>
-            {/* Public Homepage with Direct Executive Director Login & Section Navigation */}
+            {/* Public Homepage */}
             <Route path="/" element={<Homepage user={currentUser} onLoginSuccess={setCurrentUser} />} />
+
+            {/* Dedicated Executive Director Route (URL ONLY: app URL/ed) */}
+            <Route 
+              path="/ed" 
+              element={
+                currentUser && currentUser.role === Role.EXECUTIVE_DIRECTOR
+                  ? <ExecutiveDashboard user={currentUser} />
+                  : <ExecutiveLoginPage user={currentUser} onLoginSuccess={setCurrentUser} />
+              } 
+            />
 
             {/* Dedicated Fishery Department Hub (Grow-Out & Hatchery Gateway) */}
             <Route path="/fishery" element={<FisheryDepartmentPage user={currentUser} onLoginSuccess={setCurrentUser} />} />
@@ -113,7 +123,7 @@ const App: React.FC = () => {
               path="/login" 
               element={
                 currentUser ? (
-                  currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
+                  currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/ed" replace /> :
                   currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/hatchery/dashboard" replace /> :
                   currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                   <Navigate to="/staff" replace />
@@ -128,18 +138,20 @@ const App: React.FC = () => {
               path="/dashboard" 
               element={
                 !currentUser ? <Navigate to="/login" replace /> :
-                currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/admin" replace /> :
+                currentUser.role === Role.EXECUTIVE_DIRECTOR ? <Navigate to="/ed" replace /> :
                 currentUser.role === Role.HATCHERY_MANAGER ? <Navigate to="/hatchery/dashboard" replace /> :
                 currentUser.role === Role.MANAGER ? <Navigate to="/manager" replace /> :
                 <Navigate to="/staff" replace />
               } 
             />
 
-            {/* Staff Dashboard */}
+            {/* Staff Dashboard (Strict DB Login required) */}
             <Route 
               path="/staff" 
               element={
-                <StaffDashboard user={currentUser || DEFAULT_STAFF_USER} />
+                currentUser
+                  ? <StaffDashboard user={currentUser} />
+                  : <Navigate to="/login" replace />
               } 
             />
 
@@ -153,19 +165,15 @@ const App: React.FC = () => {
               } 
             />
 
-            {/* Executive Director / Admin Dashboard */}
+            {/* Redirect /admin and /executive to /ed */}
             <Route 
               path="/admin" 
-              element={
-                currentUser && currentUser.role === Role.EXECUTIVE_DIRECTOR
-                  ? <ExecutiveDashboard user={currentUser} />
-                  : <Navigate to="/login" replace />
-              } 
+              element={<Navigate to="/ed" replace />} 
             />
 
             <Route 
               path="/executive" 
-              element={<Navigate to="/admin" replace />} 
+              element={<Navigate to="/ed" replace />} 
             />
 
             {/* Notifications Page */}

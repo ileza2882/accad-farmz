@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest, FisheryHatcheryBatchData, FisheryLivestockPondData } from '../types';
-import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest } from '../lib/insforge';
+import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest, updateUser } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
 import { ReportDetails } from '../components/ReportDetails';
@@ -32,6 +32,7 @@ import {
   Clock, 
   CheckCircle2, 
   AlertTriangle, 
+  AlertCircle, 
   RefreshCw, 
   Eye, 
   Check, 
@@ -55,7 +56,11 @@ import {
   Search,
   ExternalLink,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  Package,
+  KeyRound,
+  Lock,
+  EyeOff
 } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
@@ -69,8 +74,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   const [hatcheryChangeRequests, setHatcheryChangeRequests] = useState<HatcheryChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [activeTab, setActiveTab] = useState<'all_logs' | 'approvals' | 'manager_hub' | 'staff_entry' | 'users' | 'analytics' | 'audit'>('all_logs');
+  const [activeTab, setActiveTab] = useState<'all_logs' | 'approvals' | 'manager_hub' | 'staff_entry' | 'users' | 'analytics' | 'audit' | 'security'>('all_logs');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+  // ED Password Change State
+  const [edCurrentPassword, setEdCurrentPassword] = useState('');
+  const [edNewPassword, setEdNewPassword] = useState('');
+  const [edConfirmNewPassword, setEdConfirmNewPassword] = useState('');
+  const [showEdPassword, setShowEdPassword] = useState(false);
+  const [edPasswordMessage, setEdPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   // Department & Log Type Organization State for ED Central Dashboard
   const [selectedDashboardDept, setSelectedDashboardDept] = useState<string>('ALL');
@@ -116,6 +129,44 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleEDPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEdPasswordMessage(null);
+
+    if (!edNewPassword || edNewPassword.length < 6) {
+      setEdPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    if (edNewPassword !== edConfirmNewPassword) {
+      setEdPasswordMessage({ type: 'error', text: 'New passwords do not match. Please re-type.' });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      await updateUser('info@accadfarms.com', { password: edNewPassword });
+      user.password = edNewPassword;
+
+      await createAuditLog(
+        user.fullName,
+        user.email,
+        'ED_PASSWORD_CHANGED',
+        `Executive Director password updated and synced with database.`
+      );
+
+      setEdPasswordMessage({ type: 'success', text: 'Executive Director password successfully updated in the database!' });
+      setEdCurrentPassword('');
+      setEdNewPassword('');
+      setEdConfirmNewPassword('');
+      await loadData();
+    } catch (err: any) {
+      setEdPasswordMessage({ type: 'error', text: err.message || 'Failed to update password in database.' });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
 
   const handleReviewChangeRequest = async (requestId: string, approve: boolean) => {
     setIsActionProcessing(true);
@@ -710,6 +761,18 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         >
           <Clock className="w-4 h-4" />
           <span>Audit Trail ({auditLogsList.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`flex items-center space-x-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shrink-0 transition-all active:scale-95 cursor-pointer ${
+            activeTab === 'security'
+              ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-900/20'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 text-emerald-400" />
+          <span>Security & Password</span>
         </button>
 
       </div>
@@ -1342,21 +1405,78 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Inventory / Section Type</label>
-              <select
-                value={selectedInvType}
-                onChange={(e) => setSelectedInvType(e.target.value as InventoryType)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none cursor-pointer"
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              Grow-Out Operational Forms (Select to Switch)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200">
+              {/* Form 1: Asset Inventory */}
+              <button
+                type="button"
+                onClick={() => setSelectedInvType(InventoryType.ASSET)}
+                className={`p-3.5 sm:p-4 rounded-xl border text-left transition-all flex items-start space-x-3 cursor-pointer active:scale-[0.99] ${
+                  selectedInvType === InventoryType.ASSET
+                    ? 'bg-white border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
+                    : 'bg-transparent border-transparent hover:bg-white/60 text-slate-600'
+                }`}
               >
-                <optgroup label="Grow-Out Section">
-                  <option value={InventoryType.ASSET}>Asset Inventory (Feeds & Machines)</option>
-                  <option value={InventoryType.LIVESTOCK}>Livestock Inventory (Ponds & Fish)</option>
-                </optgroup>
-                <optgroup label="Hatchery Section">
-                  <option value={InventoryType.HATCHERY}>Hatchery Record (Fingerling Transfers)</option>
-                </optgroup>
-              </select>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  selectedInvType === InventoryType.ASSET ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  <Package className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs font-black uppercase tracking-tight truncate ${
+                    selectedInvType === InventoryType.ASSET ? 'text-emerald-950 font-black' : 'text-slate-800'
+                  }`}>
+                    1. Asset Inventory (Feeds & Machines)
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium mt-0.5 line-clamp-1">
+                    Feed inventory, machinery health & equipment maintenance
+                  </div>
+                  {selectedInvType === InventoryType.ASSET && (
+                    <span className="inline-flex items-center space-x-1 mt-1.5 text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      <span>Active Form</span>
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Form 2: Livestock Inventory */}
+              <button
+                type="button"
+                onClick={() => setSelectedInvType(InventoryType.LIVESTOCK)}
+                className={`p-3.5 sm:p-4 rounded-xl border text-left transition-all flex items-start space-x-3 cursor-pointer active:scale-[0.99] ${
+                  selectedInvType === InventoryType.LIVESTOCK
+                    ? 'bg-white border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
+                    : 'bg-transparent border-transparent hover:bg-white/60 text-slate-600'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  selectedInvType === InventoryType.LIVESTOCK ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  <Fish className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs font-black uppercase tracking-tight truncate ${
+                    selectedInvType === InventoryType.LIVESTOCK ? 'text-emerald-950 font-black' : 'text-slate-800'
+                  }`}>
+                    2. Livestock Inventory (Ponds & Fish)
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium mt-0.5 line-clamp-1">
+                    Commercial fish stock, pond batches, and daily mortality
+                  </div>
+                  {selectedInvType === InventoryType.LIVESTOCK && (
+                    <span className="inline-flex items-center space-x-1 mt-1.5 text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      <span>Active Form</span>
+                    </span>
+                  )}
+                </div>
+              </button>
             </div>
           </div>
 
@@ -1557,6 +1677,127 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== TAB 7: SECURITY & PASSWORD MANAGEMENT ===== */}
+      {activeTab === 'security' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                    Executive Director Password & Security
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Change your master executive credentials and sync securely to the central InsForge database.
+                  </p>
+                </div>
+              </div>
+
+              <div className="inline-flex items-center space-x-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black uppercase px-3 py-1.5 rounded-full">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Active Master Security</span>
+              </div>
+            </div>
+
+            {edPasswordMessage && (
+              <div className={`p-4 rounded-2xl flex items-start space-x-3 text-xs font-bold ${
+                edPasswordMessage.type === 'success'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-700'
+              }`}>
+                {edPasswordMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <span>{edPasswordMessage.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleEDPasswordChange} className="max-w-xl space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  New ED Password (Min 6 characters)
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type={showEdPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={edNewPassword}
+                    onChange={(e) => setEdNewPassword(e.target.value)}
+                    placeholder="Enter new strong password"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-2xl pl-10 pr-12 py-3 text-xs font-bold text-slate-900 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEdPassword(!showEdPassword)}
+                    className="absolute right-3.5 top-3 p-0.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showEdPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type={showEdPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={edConfirmNewPassword}
+                    onChange={(e) => setEdConfirmNewPassword(e.target.value)}
+                    placeholder="Re-type new password"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-2xl pl-10 pr-12 py-3 text-xs font-bold text-slate-900 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingPassword || !edNewPassword}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-black px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingPassword ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Syncing Password to Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>Save & Sync ED Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <div className="pt-4 border-t border-slate-100 bg-slate-50/60 p-4 rounded-2xl">
+              <div className="flex items-center space-x-2 text-slate-800 text-xs font-black uppercase">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Executive Governance & Database Sync Rules</span>
+              </div>
+              <ul className="text-[11px] text-slate-500 font-medium list-disc pl-5 mt-2 space-y-1">
+                <li>Initial default password was set to <strong>123456</strong>. Updating here writes immediately to table <code>public.users</code> on InsForge BaaS.</li>
+                <li>All user logins across ACCAD Farms must be created by the Executive Director only.</li>
+                <li>No button in the application leads to the ED Dashboard except via direct URL <code>/ed</code>.</li>
+              </ul>
+            </div>
           </div>
         </div>
       )}

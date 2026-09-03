@@ -68,6 +68,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
     return '/staff';
   };
 
+  const isHomepage = location.pathname === '/';
+  const isEDDashboard = location.pathname === '/ed' || location.pathname === '/admin' || (user?.role === Role.EXECUTIVE_DIRECTOR && location.pathname !== '/');
+
   const navLinkClass = (path: string, exact = true) => {
     const isActive = exact ? location.pathname === path : location.pathname.startsWith(path);
     return `flex items-center space-x-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border ${
@@ -106,129 +109,168 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-2 lg:space-x-3">
-          
-          <Link to="/" className={navLinkClass('/')}>
-            <Home className="w-4 h-4 text-emerald-600" />
-            <span>Home</span>
-          </Link>
+        {!isHomepage && (
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-3">
+            {isEDDashboard ? (
+              /* ED Dashboard: ONLY Notifications button and Logout button */
+              <div className="flex items-center space-x-3">
+                <Link
+                  to="/notifications"
+                  className={`relative ${navLinkClass('/notifications')}`}
+                  title="Notifications"
+                >
+                  <Bell className="w-4 h-4 text-slate-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
 
-          {user ? (
-            <>
-              <Link to={getDashboardPath()} className={navLinkClass(getDashboardPath())}>
-                <LayoutDashboard className="w-4 h-4 text-slate-600" />
-                <span className="hidden lg:inline">Dashboard</span>
-              </Link>
+                <button
+                  onClick={() => { onLogout(); navigate('/'); }}
+                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                  title="Sign out of Executive account"
+                >
+                  <LogOut className="w-4 h-4 text-rose-600" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : user ? (
+              /* Regular logged in user navigation */
+              <>
+                <Link to="/" className={navLinkClass('/')}>
+                  <Home className="w-4 h-4 text-emerald-600" />
+                  <span>Home</span>
+                </Link>
 
+                <Link to={getDashboardPath()} className={navLinkClass(getDashboardPath())}>
+                  <LayoutDashboard className="w-4 h-4 text-slate-600" />
+                  <span className="hidden lg:inline">Dashboard</span>
+                </Link>
+
+                <Link
+                  to="/notifications"
+                  className={`relative ${navLinkClass('/notifications')}`}
+                  title="Notifications"
+                >
+                  <Bell className="w-4 h-4 text-slate-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+
+                <Link to="/profile" className={navLinkClass('/profile')}>
+                  <UserIcon className="w-4 h-4 text-slate-600" />
+                  <span className="hidden lg:inline">{user.fullName.split(' ')[0]}</span>
+                </Link>
+
+                {/* Role Switcher for Staff / Manager testing */}
+                <div className="border-l border-slate-200 pl-2 lg:pl-3">
+                  <select
+                    value={user.role}
+                    onChange={(e) => {
+                      const newRole = e.target.value as Role;
+                      if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
+                    }}
+                    className={`text-[10px] font-extrabold uppercase px-2 py-1.5 rounded-xl border outline-none cursor-pointer transition-all shadow-sm ${
+                      user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200' :
+                      'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                    }`}
+                    title="Switch user role"
+                  >
+                    <option value={Role.STAFF}>Role: Staff</option>
+                    <option value={Role.MANAGER}>Role: Manager</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => { onLogout(); navigate('/'); }}
+                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                  title="Sign out of account"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden lg:inline">Logout</span>
+                </button>
+              </>
+            ) : (
+              /* Public navigation (Strictly NO button leading to ED Dashboard or ED Login) */
+              <div className="flex items-center space-x-2">
+                <Link
+                  to="/login"
+                  className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 border border-emerald-500 shadow-sm"
+                  title="Staff & Manager Portal Login"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-white" />
+                  <span>Portal Login</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile: Notification Bell + Hamburger (Hidden on homepage) */}
+        {!isHomepage && (
+          <div className="flex md:hidden items-center space-x-2">
+            {user && (
               <Link
                 to="/notifications"
-                className={`relative ${navLinkClass('/notifications')}`}
+                className="relative p-2 rounded-xl border border-slate-200 bg-white"
                 title="Notifications"
               >
                 <Bell className="w-4 h-4 text-slate-600" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </Link>
-
-              <Link to="/profile" className={navLinkClass('/profile')}>
-                <UserIcon className="w-4 h-4 text-slate-600" />
-                <span className="hidden lg:inline">{user.fullName.split(' ')[0]}</span>
-              </Link>
-
-              {/* Role Switcher */}
-              <div className="border-l border-slate-200 pl-2 lg:pl-3">
-                <select
-                  value={user.role}
-                  onChange={(e) => {
-                    const newRole = e.target.value as Role;
-                    if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
-                  }}
-                  className={`text-[10px] font-extrabold uppercase px-2 py-1.5 rounded-xl border outline-none cursor-pointer transition-all shadow-sm ${
-                    user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-slate-900 text-white border-slate-800' :
-                    user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200' :
-                    'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                  }`}
-                  title="Switch user role and redirect dashboard"
-                >
-                  <option value={Role.STAFF}>Role: Staff</option>
-                  <option value={Role.MANAGER}>Role: Manager</option>
-                  <option value={Role.EXECUTIVE_DIRECTOR}>Role: Admin (ED)</option>
-                </select>
-              </div>
-
-              <button
-                onClick={() => { onLogout(); navigate('/'); }}
-                className="flex items-center space-x-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
-                title="Sign out of account"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden lg:inline">Logout</span>
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Link
-                to="/login"
-                className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 border border-slate-300"
-                title="Staff & Manager Portal Login"
-              >
-                <LogIn className="w-3.5 h-3.5 text-slate-600" />
-                <span>Portal Login</span>
-              </Link>
-
-              <Link
-                to="/?ed_login=true"
-                className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 border border-emerald-500"
-                title="Executive Director Governance Portal"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-100" />
-                <span>Executive Director Login</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile: Notification Bell + Hamburger */}
-        <div className="flex md:hidden items-center space-x-2">
-          {user && (
-            <Link
-              to="/notifications"
-              className="relative p-2 rounded-xl border border-slate-200 bg-white"
-              title="Notifications"
+            )}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+              aria-label="Toggle menu"
             >
-              <Bell className="w-4 h-4 text-slate-600" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-            aria-label="Toggle menu"
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
-          </button>
-        </div>
+              {isMobileMenuOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Mobile Slide-Down Menu */}
-      {isMobileMenuOpen && (
+      {/* Mobile Slide-Down Menu (Not on homepage) */}
+      {!isHomepage && isMobileMenuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white shadow-lg animate-fadeIn">
           <div className="px-4 py-4 space-y-2">
-            
-            <Link to="/" className={`w-full ${navLinkClass('/')}`}>
-              <Home className="w-4 h-4 text-emerald-600" />
-              <span>Home</span>
-            </Link>
-
-            {user ? (
+            {isEDDashboard ? (
+              /* Mobile ED Dashboard: Notifications and Logout only */
               <>
+                <Link to="/notifications" className={`w-full ${navLinkClass('/notifications')}`}>
+                  <Bell className="w-4 h-4 text-slate-600" />
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="ml-auto bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+
+                <button
+                  onClick={() => { onLogout(); navigate('/'); }}
+                  className="w-full flex items-center justify-center space-x-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-4 py-3 rounded-xl text-xs font-bold transition-all active:scale-95 mt-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : user ? (
+              <>
+                <Link to="/" className={`w-full ${navLinkClass('/')}`}>
+                  <Home className="w-4 h-4 text-emerald-600" />
+                  <span>Home</span>
+                </Link>
+
                 <Link to={getDashboardPath()} className={`w-full ${navLinkClass(getDashboardPath())}`}>
                   <LayoutDashboard className="w-4 h-4 text-slate-600" />
                   <span>Dashboard</span>
@@ -249,27 +291,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                   <span>{user.fullName}</span>
                 </Link>
 
-                {/* Mobile Role Switcher */}
-                <div className="pt-2 border-t border-slate-100">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 px-1">Switch Role</label>
-                  <select
-                    value={user.role}
-                    onChange={(e) => {
-                      const newRole = e.target.value as Role;
-                      if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
-                    }}
-                    className={`w-full text-xs font-extrabold uppercase px-3 py-2.5 rounded-xl border outline-none cursor-pointer transition-all ${
-                      user.role === Role.EXECUTIVE_DIRECTOR ? 'bg-slate-900 text-white border-slate-800' :
-                      user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
-                      'bg-emerald-50 text-emerald-800 border-emerald-300'
-                    }`}
-                  >
-                    <option value={Role.STAFF}>Staff</option>
-                    <option value={Role.MANAGER}>Manager</option>
-                    <option value={Role.EXECUTIVE_DIRECTOR}>Admin (ED)</option>
-                  </select>
-                </div>
-
                 {/* Mobile Logout */}
                 <button
                   onClick={() => { onLogout(); navigate('/'); }}
@@ -283,18 +304,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
               <div className="space-y-2 pt-2">
                 <Link
                   to="/login"
-                  className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
+                  className="w-full flex items-center justify-center space-x-2 bg-emerald-600 text-white border border-emerald-700 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
                 >
-                  <LogIn className="w-4 h-4 text-slate-600" />
-                  <span>Portal Login (Staff / Manager)</span>
-                </Link>
-
-                <Link
-                  to="/?ed_login=true"
-                  className="w-full flex items-center justify-center space-x-2 bg-emerald-600 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 border border-emerald-500"
-                >
-                  <ShieldCheck className="w-4 h-4 text-emerald-100" />
-                  <span>Executive Director Login</span>
+                  <LogIn className="w-4 h-4 text-white" />
+                  <span>Portal Login</span>
                 </Link>
               </div>
             )}

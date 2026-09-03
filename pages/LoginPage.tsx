@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getUserByEmail } from '../lib/insforge';
 import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase, Egg } from 'lucide-react';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
 interface LoginPageProps {
   onLoginSuccess: (user: User) => void;
@@ -14,6 +15,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,9 +185,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsForgotOpen(true)}
+                className="text-[11px] font-extrabold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
+              >
+                Forgot Password?
+              </button>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -216,33 +227,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         </form>
 
-        {/* Executive Director Notice */}
-        <div className="mt-6 pt-5 border-t border-slate-100 text-center space-y-2">
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-1.5">
-            <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Executive Director Access</span>
-            </div>
-            <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-              The Executive Director portal is located directly on the central Homepage.
-            </p>
-            <Link
-              to="/"
-              className="inline-flex items-center space-x-1 text-[11px] font-black text-emerald-700 hover:text-emerald-900 underline pt-0.5"
-            >
-              <span>Go to Executive Director Homepage Entrance →</span>
-            </Link>
-          </div>
-
-          <div>
-            <Link to="/" className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 pt-2">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Homepage</span>
-            </Link>
-          </div>
+        <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+          <Link to="/" className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-700">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Return to Homepage</span>
+          </Link>
         </div>
 
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotOpen}
+        onClose={() => setIsForgotOpen(false)}
+        initialEmail={email}
+      />
     </div>
   );
 };

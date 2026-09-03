@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
 interface HatcheryLoginPageProps {
   user: User | null;
@@ -29,6 +30,7 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   // If already logged in as Hatchery Manager or ED, redirect to dashboard
   React.useEffect(() => {
@@ -172,9 +174,18 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotOpen(true)}
+                    className="text-[11px] font-bold text-teal-700 hover:text-teal-900 hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
@@ -224,7 +235,7 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
                   onClick={() => navigate('/login')}
                   className="font-black text-emerald-700 hover:underline cursor-pointer"
                 >
-                  Sign in as Executive Director or Staff
+                  Sign in to Staff / Manager Portal
                 </button>
               </p>
             </div>
@@ -236,6 +247,12 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
           ACCAD Farms Aquaculture Management System
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotOpen}
+        onClose={() => setIsForgotOpen(false)}
+        initialEmail={email}
+      />
     </div>
   );
 };
