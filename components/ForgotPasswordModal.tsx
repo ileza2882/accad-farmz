@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getUserByEmail, updateUser, createNotification, createAuditLog } from '../lib/insforge';
+import { sendPasswordResetRequestEmail } from '../lib/emailService';
 import { Role } from '../types';
 import { 
   KeyRound, 
@@ -82,11 +83,21 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       // Staff / Manager Flow: Dispatch request to Executive Director
       await createNotification({
         userId: 'ed_user_1',
-        userEmail: 'info@accadfarms.com',
+        userEmail: 'accadfarmsapp@gmail.com',
         title: `URGENT: Password Reset Request from ${user.fullName}`,
         message: `${user.fullName} (${user.email}, ${user.role} - ${user.department || 'General'}) has requested a password reset. Note: "${note.trim() || 'Please reset my password.'}"`,
         type: 'warning'
       });
+
+      // Dispatch real email to accadfarmsapp@gmail.com
+      try {
+        await sendPasswordResetRequestEmail({
+          user,
+          note: note.trim()
+        });
+      } catch (emailErr) {
+        console.warn('Email dispatch notice:', emailErr);
+      }
 
       await createAuditLog(
         user.fullName,
@@ -95,7 +106,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         `User ${user.fullName} (${user.email}) requested a password reset from Executive Director. Reason: ${note.trim() || 'Not specified'}`
       );
 
-      setSuccessMessage(`Password reset request sent to the Executive Director! The ED has received a high-priority notification and will update your credentials in the database.`);
+      setSuccessMessage(`Password reset request sent to the Executive Director! An email notification has been dispatched to accadfarmsapp@gmail.com.`);
       setStep('success');
     } catch (err: any) {
       setError(err.message || 'Failed to submit password reset request. Please check database connection.');

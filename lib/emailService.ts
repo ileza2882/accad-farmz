@@ -48,9 +48,9 @@ export async function dispatchEmailWithInsForge(options: {
 }): Promise<EmailDispatchResult> {
   const recipient = options.to.trim().toLowerCase();
   const subject = options.subject;
-  const fromName = options.fromName || 'ACCAD FARMS Hub';
-  const fromEmail = options.fromEmail || 'info@accadfarms.com';
-  const replyTo = options.replyTo || 'info@accadfarms.com';
+  const fromName = options.fromName || 'ACCAD FARMS';
+  const fromEmail = options.fromEmail || 'accadfarmsapp@gmail.com';
+  const replyTo = options.replyTo || 'accadfarmsapp@gmail.com';
 
   if (!isValidEmailAddress(recipient)) {
     console.warn(`[EmailService] Invalid recipient email address: "${recipient}". Skipping dispatch.`);
@@ -167,7 +167,7 @@ export async function dispatchEmailWithInsForge(options: {
  */
 export function generateWelcomeEmailPlainText(user: User, edCreator?: User, customNotes?: string): string {
   const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
-  const creatorEmail = edCreator?.email || 'info@accadfarms.com';
+  const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
 
   return `🌾 ACCAD FARMS - Official Personnel Credentials Notification
@@ -190,7 +190,7 @@ Please sign in to the portal and change your temporary password upon first login
 
 ACCAD FARMS LIMITED
 Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria
-Support: info@accadfarms.com | +234 916 358 3220
+Support: accadfarmsapp@gmail.com | +234 916 358 3220
 `;
 }
 
@@ -199,7 +199,7 @@ Support: info@accadfarms.com | +234 916 358 3220
  */
 export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNotes?: string): string {
   const loginUrl = window.location.origin || 'https://accadfarmz.netlify.app';
-  const creatorEmail = edCreator?.email || 'info@accadfarms.com';
+  const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
   
   return `
@@ -323,8 +323,8 @@ export async function sendUserWelcomeEmail(params: {
     html: htmlContent,
     text: plainText,
     fromName: 'ACCAD FARMS Executive Hub',
-    fromEmail: edCreator?.email || 'info@accadfarms.com',
-    replyTo: 'info@accadfarms.com',
+    fromEmail: 'accadfarmsapp@gmail.com',
+    replyTo: 'accadfarmsapp@gmail.com',
     metaPayload
   });
 
@@ -334,7 +334,7 @@ export async function sendUserWelcomeEmail(params: {
       userId: newUser.id,
       userEmail: newUser.email,
       title: 'Official Welcome & Credentials Email',
-      message: `Welcome email notification dispatched via InsForge SMTP to ${newUser.email} with temporary login credentials. Password: ${newUser.password || '123456'}`,
+      message: `Welcome email notification dispatched via Gmail to ${newUser.email} with temporary login credentials. Password: ${newUser.password || '123456'}`,
       type: 'info'
     });
   } catch (e) {}
@@ -343,9 +343,9 @@ export async function sendUserWelcomeEmail(params: {
   try {
     await createAuditLog(
       edCreator?.fullName || 'Executive Director',
-      edCreator?.email || 'info@accadfarms.com',
-      'EMAIL_DISPATCHED_INSFORGE',
-      `Sent welcome and credentials email notification via InsForge SMTP to ${newUser.fullName} (${newUser.email})`
+      edCreator?.email || 'accadfarmsapp@gmail.com',
+      'EMAIL_DISPATCHED_GMAIL',
+      `Sent welcome and credentials email notification via accadfarmsapp@gmail.com to ${newUser.fullName} (${newUser.email})`
     );
   } catch (e) {}
 
@@ -356,7 +356,7 @@ export async function sendUserWelcomeEmail(params: {
  * Dispatches an automated email notification when a new farm log is submitted.
  */
 export async function sendReportSubmittedEmail(report: Report, submitterUser?: User): Promise<EmailDispatchResult> {
-  const recipient = 'info@accadfarms.com';
+  const recipient = 'accadfarmsapp@gmail.com';
   const submitterName = submitterUser?.fullName || report.fullName || report.email;
   const subject = `[ACCAD FARMS] New ${report.department} Report Submitted - ${report.title}`;
 
@@ -447,7 +447,7 @@ export async function sendChangeRequestEmail(
   changeReq: HatcheryChangeRequest,
   requesterUser?: User
 ): Promise<EmailDispatchResult> {
-  const recipient = 'info@accadfarms.com';
+  const recipient = 'accadfarmsapp@gmail.com';
   const requesterName = requesterUser?.fullName || changeReq.requestedBy;
   const subject = `[ACCAD FARMS] Urgent: Hatchery Batch Unlock Requested - ${changeReq.batchNumber}`;
 
@@ -462,7 +462,7 @@ export async function sendChangeRequestEmail(
         <p style="margin: 8px 0 0 0; color: #92400e;"><strong>Reason for Modification:</strong> "${changeReq.reason}"</p>
       </div>
 
-      <a href="https://accadfarmz.netlify.app" style="display: inline-block; background: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold;">Open ED Portal to Review & Approve</a>
+      <a href="https://accadfarms.netlify.app" style="display: inline-block; background: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold;">Open ED Portal to Review & Approve</a>
     </div>
   `;
 
@@ -473,6 +473,7 @@ export async function sendChangeRequestEmail(
     subject,
     html,
     text,
+    fromEmail: 'accadfarmsapp@gmail.com',
     metaPayload: {
       'Batch Number': changeReq.batchNumber,
       'Requester': requesterName,
@@ -481,3 +482,54 @@ export async function sendChangeRequestEmail(
     }
   });
 }
+
+/**
+ * Dispatches an automated email notification to the Executive Director when a user requests a password reset.
+ */
+export async function sendPasswordResetRequestEmail(params: {
+  user: User;
+  note?: string;
+}): Promise<EmailDispatchResult> {
+  const recipient = 'accadfarmsapp@gmail.com';
+  const subject = `[ACCAD FARMS] URGENT: Password Reset Request from ${params.user.fullName}`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
+      <h2 style="color: #047857; margin-top: 0;">🔑 Password Reset Request</h2>
+      <p>A staff member has submitted an official password reset request through the portal:</p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px; color: #64748b; font-weight: bold;">User Name:</td><td style="padding: 8px; font-weight: bold;">${params.user.fullName}</td></tr>
+        <tr><td style="padding: 8px; color: #64748b; font-weight: bold;">Login Email:</td><td style="padding: 8px; font-weight: bold; color: #047857;">${params.user.email}</td></tr>
+        <tr><td style="padding: 8px; color: #64748b; font-weight: bold;">Assigned Role:</td><td style="padding: 8px;">${params.user.role}</td></tr>
+        <tr><td style="padding: 8px; color: #64748b; font-weight: bold;">Department:</td><td style="padding: 8px;">${params.user.department || 'General Operations'}</td></tr>
+        ${params.note ? `<tr><td style="padding: 8px; color: #64748b; font-weight: bold;">Staff Note:</td><td style="padding: 8px; color: #0f172a; font-style: italic;">"${params.note}"</td></tr>` : ''}
+        <tr><td style="padding: 8px; color: #64748b; font-weight: bold;">Timestamp:</td><td style="padding: 8px;">${new Date().toLocaleString()}</td></tr>
+      </table>
+
+      <p style="font-size: 13px; color: #475569; line-height: 1.5;">
+        You can securely update this user's password directly from the <strong>User Management</strong> tab in the Executive Director portal.
+      </p>
+
+      <a href="https://accadfarms.netlify.app/#/ed" style="display: inline-block; background: #059669; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; margin-top: 12px;">Open Executive Director Portal</a>
+    </div>
+  `;
+
+  const text = `Password reset request from ${params.user.fullName} (${params.user.email}). Role: ${params.user.role}. Note: ${params.note || 'None'}. Review at https://accadfarms.netlify.app/#/ed`;
+
+  return await dispatchEmailWithInsForge({
+    to: recipient,
+    subject,
+    html,
+    text,
+    fromEmail: 'accadfarmsapp@gmail.com',
+    fromName: 'ACCAD FARMS Security Hub',
+    metaPayload: {
+      'User Name': params.user.fullName,
+      'User Email': params.user.email,
+      'User Role': params.user.role,
+      'Staff Note': params.note || 'None'
+    }
+  });
+}
+

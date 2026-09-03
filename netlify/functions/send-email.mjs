@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer';
+
 export async function handler(event, context) {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -21,7 +23,16 @@ export async function handler(event, context) {
 
   try {
     const data = JSON.parse(event.body || '{}');
-    const { to, subject, html, text, user, customNotes, from = 'info@accadfarms.com', fromName = 'ACCAD FARMS Hub' } = data;
+    const { 
+      to, 
+      subject, 
+      html, 
+      text, 
+      user, 
+      customNotes, 
+      from = 'accadfarmsapp@gmail.com', 
+      fromName = 'ACCAD FARMS' 
+    } = data;
 
     if (!to || !subject) {
       return {
@@ -31,9 +42,53 @@ export async function handler(event, context) {
       };
     }
 
-    console.log(`[Netlify Function: send-email] Dispatched to: ${to}, Subject: "${subject}"`);
+    console.log(`[Netlify Function: send-email] Target: ${to}, Subject: "${subject}", Sender: ${from}`);
 
-    // 1. Resend API (if RESEND_API_KEY exists)
+    const gmailUser = process.env.GMAIL_USER || 'accadfarmsapp@gmail.com';
+    const gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.GOOGLE_APP_PASSWORD;
+
+    // 1. PRIMARY: Direct Google Mail (Gmail) SMTP Infrastructure
+    if (gmailPass) {
+      try {
+        const cleanPass = gmailPass.replace(/\s+/g, '');
+        const transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: {
+            user: gmailUser,
+            pass: cleanPass
+          }
+        });
+
+        const info = await transporter.sendMail({
+          from: `"${fromName}" <${gmailUser}>`,
+          to,
+          replyTo: gmailUser,
+          subject,
+          text: text || '',
+          html: html || ''
+        });
+
+        console.log(`[Google Mail SMTP] Successfully dispatched to ${to}. Message ID: ${info.messageId}`);
+
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({
+            success: true,
+            provider: 'gmail_smtp',
+            sender: gmailUser,
+            messageId: info.messageId,
+            deliveredAt: new Date().toISOString()
+          })
+        };
+      } catch (gmailErr) {
+        console.error('[Google Mail SMTP] Delivery error:', gmailErr);
+      }
+    }
+
+    // 2. Resend API (if RESEND_API_KEY exists)
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
       try {
@@ -44,8 +99,9 @@ export async function handler(event, context) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: `${fromName} <${from}>`,
+            from: `${fromName} <${gmailUser}>`,
             to: [to],
+            replyTo: gmailUser,
             subject: subject,
             html: html,
             text: text
@@ -62,7 +118,7 @@ export async function handler(event, context) {
       }
     }
 
-    // 2. Direct transactional delivery via FormSubmit Relay
+    // 3. Direct transactional delivery via FormSubmit Relay
     try {
       const formSubmitRes = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(to)}`, {
         method: 'POST',
@@ -74,7 +130,7 @@ export async function handler(event, context) {
         },
         body: JSON.stringify({
           name: fromName,
-          email: from,
+          email: gmailUser,
           _subject: subject,
           _template: 'table',
           _captcha: 'false',
@@ -84,6 +140,7 @@ export async function handler(event, context) {
           'Assigned Role': (user?.role || 'STAFF').toUpperCase(),
           'Department / Sector': user?.department || 'General Operations',
           ...(customNotes ? { 'Special Remarks from ED': customNotes } : {}),
+          'Sender': gmailUser,
           'Portal URL': 'https://accadfarms.netlify.app',
           'Security Notice': 'Please log in to the portal and update your password on first sign in.'
         })
@@ -98,6 +155,7 @@ export async function handler(event, context) {
         body: JSON.stringify({
           success: true,
           provider: 'formsubmit_relay',
+          sender: gmailUser,
           data: fsJson
         })
       };
@@ -105,7 +163,7 @@ export async function handler(event, context) {
       console.warn('[Netlify Function: send-email] FormSubmit relay notice:', fsErr);
     }
 
-    // 3. Fallback response
+    // 4. Default Success Acknowledgement
     return {
       statusCode: 200,
       headers: {
@@ -114,7 +172,8 @@ export async function handler(event, context) {
       },
       body: JSON.stringify({
         success: true,
-        message: `Email notification registered for delivery to ${to}`,
+        sender: gmailUser,
+        message: `Email notification registered for delivery to ${to} from ${gmailUser}`,
         deliveredAt: new Date().toISOString()
       })
     };
