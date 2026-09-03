@@ -3,16 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getNotifications } from '../lib/insforge';
 import { 
-  Home, 
-  LayoutDashboard, 
   Bell, 
   User as UserIcon, 
   LogOut, 
   LogIn,
-  ShieldCheck,
-  Briefcase,
-  Menu,
-  X
+  Menu, 
+  X 
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -139,16 +135,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
             ) : user ? (
               /* Regular logged in user navigation */
               <>
-                <Link to="/" className={navLinkClass('/')}>
-                  <Home className="w-4 h-4 text-emerald-600" />
-                  <span>Home</span>
-                </Link>
-
-                <Link to={getDashboardPath()} className={navLinkClass(getDashboardPath())}>
-                  <LayoutDashboard className="w-4 h-4 text-slate-600" />
-                  <span className="hidden lg:inline">Dashboard</span>
-                </Link>
-
                 <Link
                   to="/notifications"
                   className={`relative ${navLinkClass('/notifications')}`}
@@ -162,33 +148,14 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
                   )}
                 </Link>
 
-                <Link to="/profile" className={navLinkClass('/profile')}>
+                <Link to="/profile" className={navLinkClass('/profile')} title="My Profile">
                   <UserIcon className="w-4 h-4 text-slate-600" />
                   <span className="hidden lg:inline">{user.fullName.split(' ')[0]}</span>
                 </Link>
 
-                {/* Role Switcher for Staff / Manager testing */}
-                <div className="border-l border-slate-200 pl-2 lg:pl-3">
-                  <select
-                    value={user.role}
-                    onChange={(e) => {
-                      const newRole = e.target.value as Role;
-                      if (newRole !== user.role && onRoleSwitch) onRoleSwitch(newRole);
-                    }}
-                    className={`text-[10px] font-extrabold uppercase px-2 py-1.5 rounded-xl border outline-none cursor-pointer transition-all shadow-sm ${
-                      user.role === Role.MANAGER ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200' :
-                      'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                    }`}
-                    title="Switch user role"
-                  >
-                    <option value={Role.STAFF}>Role: Staff</option>
-                    <option value={Role.MANAGER}>Role: Manager</option>
-                  </select>
-                </div>
-
                 <button
                   onClick={() => { onLogout(); navigate('/'); }}
-                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
                   title="Sign out of account"
                 >
                   <LogOut className="w-4 h-4" />
@@ -266,16 +233,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
               </>
             ) : user ? (
               <>
-                <Link to="/" className={`w-full ${navLinkClass('/')}`}>
-                  <Home className="w-4 h-4 text-emerald-600" />
-                  <span>Home</span>
-                </Link>
-
-                <Link to={getDashboardPath()} className={`w-full ${navLinkClass(getDashboardPath())}`}>
-                  <LayoutDashboard className="w-4 h-4 text-slate-600" />
-                  <span>Dashboard</span>
-                </Link>
-
                 <Link to="/notifications" className={`w-full ${navLinkClass('/notifications')}`}>
                   <Bell className="w-4 h-4 text-slate-600" />
                   <span>Notifications</span>
