@@ -121,36 +121,6 @@ export async function dispatchEmailWithInsForge(options: {
     } catch (insErr) {}
   }
 
-  // 3. Fallback Inbox Relay (FormSubmit)
-  try {
-    const portalUrl = window.location.origin || 'https://accadfarms.netlify.app';
-    const payload = {
-      name: fromName,
-      email: fromEmail,
-      _subject: subject,
-      _template: 'table',
-      _captcha: 'false',
-      'Recipient': recipient,
-      'Portal URL': portalUrl,
-      ...(options.metaPayload || {}),
-      'Timestamp': new Date().toLocaleString()
-    };
-
-    fetch('https://formsubmit.co/ajax/628b81a295608a62a2883c8cb312aad1', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(() => {});
-
-    if (recipient !== 'accadfarmsapp@gmail.com') {
-      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    }
-  } catch (fsErr) {}
-
   // 3. Save local sent record
   try {
     const existing = JSON.parse(localStorage.getItem('accad_sent_emails') || '[]');
@@ -160,7 +130,7 @@ export async function dispatchEmailWithInsForge(options: {
       timestamp: Date.now(),
       status: 'SENT',
       deliveryMethod,
-      provider: 'InsForge SMTP'
+      provider: 'Google Mail (accadfarmsapp@gmail.com)'
     });
     localStorage.setItem('accad_sent_emails', JSON.stringify(existing.slice(0, 50)));
   } catch (e) {}
