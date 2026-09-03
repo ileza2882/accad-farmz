@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Role } from '../types';
 import { updateUser } from '../lib/insforge';
-import { User as UserIcon, Mail, Phone, Building, Shield, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, Building, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ProfilePageProps {
   user: User;
@@ -115,47 +115,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUserUpdated })
         </div>
       </div>
 
-      {/* Role Switching Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center space-x-2 text-slate-900 font-extrabold">
-          <Shield className="w-5 h-5 text-emerald-600" />
-          <h3 className="text-base font-extrabold">Switch Active Account Role</h3>
-        </div>
-        <p className="text-xs text-slate-500 font-medium">
-          Switch your operational role to change permissions and access the corresponding dashboard. Role updates are persisted to the database.
-        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[Role.STAFF, Role.HATCHERY_MANAGER, Role.MANAGER, Role.EXECUTIVE_DIRECTOR].map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={async () => {
-                if (user.role !== r) {
-                  const updated = { ...user, role: r };
-                  await updateUser(user.email, { role: r });
-                  onUserUpdated(updated);
-                }
-              }}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                user.role === r
-                  ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-sm font-black'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold'
-              }`}
-            >
-              <div className="text-xs uppercase font-black">
-                {r === Role.EXECUTIVE_DIRECTOR ? 'Admin (ED)' : r === Role.HATCHERY_MANAGER ? 'Hatchery Mgr' : r}
-              </div>
-              <div className="text-[10px] text-slate-500 font-normal mt-1">
-                {r === Role.EXECUTIVE_DIRECTOR ? 'Executive governance & full control' :
-                 r === Role.HATCHERY_MANAGER ? 'Hatchery batches, incubation & transfers' :
-                 r === Role.MANAGER ? 'Vetting & sector management' :
-                 'Daily log entries & submissions'}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Change Password Card */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
