@@ -333,6 +333,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
               <span>Verified credentials table dispatched from <strong>accadfarmsapp@gmail.com</strong> to <strong>{registeredUser.email}</strong></span>
             </div>
 
+            {/* Delivery Tip */}
+            <p className="text-[11px] text-center text-slate-500">
+              💡 If the email is not in their primary inbox, please advise them to check their <strong>Spam</strong> or <strong>Promotions</strong> folder.
+            </p>
+
             {/* Modal Bottom Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
               <button

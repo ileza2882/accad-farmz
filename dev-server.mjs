@@ -203,16 +203,22 @@ const server = http.createServer((req, res) => {
                 from: `"${parsed.fromName || 'ACCAD FARMS'}" <${gmailUser}>`,
                 to: parsed.to,
                 replyTo: gmailUser,
+                envelope: {
+                  from: gmailUser,
+                  to: parsed.to
+                },
                 subject: parsed.subject,
                 text: parsed.text || '',
-                html: parsed.html || ''
+                html: parsed.html || '',
+                date: new Date()
               });
 
               console.log(`\n📧 [Google Mail SMTP] Live email dispatched via smtp.gmail.com!`);
               console.log(`   To: ${parsed.to}`);
               console.log(`   From: ${gmailUser}`);
               console.log(`   Subject: "${parsed.subject}"`);
-              console.log(`   Message ID: ${info.messageId}\n`);
+              console.log(`   Message ID: ${info.messageId}`);
+              console.log(`   Server Response: ${info.response}\n`);
 
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({

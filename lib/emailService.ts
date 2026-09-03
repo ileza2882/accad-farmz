@@ -321,7 +321,7 @@ export async function sendUserWelcomeEmail(params: {
 }): Promise<EmailDispatchResult> {
   const { newUser, edCreator, customNotes } = params;
   const recipient = newUser.email.trim().toLowerCase();
-  const subject = `Welcome to ACCAD FARMS Portal - Your Staff Credentials (${newUser.fullName})`;
+  const subject = `ACCAD FARMS Portal - Welcome & Account Details (${newUser.fullName})`;
 
   const htmlContent = generateWelcomeEmailHtml(newUser, edCreator, customNotes);
   const plainText = generateWelcomeEmailPlainText(newUser, edCreator, customNotes);
