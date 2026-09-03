@@ -66,28 +66,26 @@ fs.writeFileSync(
 console.log('\n🚀 Step 2: Deploying to Cloudflare Pages...');
 console.log('Project: accadfarms');
 
-const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const args = ['wrangler', 'pages', 'deploy', 'dist', '--project-name', 'accadfarms', '--commit-dirty=true'];
+try {
+  const deployCmd = process.platform === 'win32'
+    ? 'cmd.exe /c npx.cmd wrangler pages deploy dist --project-name accadfarms --commit-dirty=true'
+    : 'npx wrangler pages deploy dist --project-name accadfarms --commit-dirty=true';
 
-const child = spawn(npxCmd, args, {
-  cwd: root,
-  stdio: 'inherit',
-  env: process.env,
-  shell: true
-});
+  execSync(deployCmd, {
+    cwd: root,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN,
+      CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID
+    }
+  });
 
-child.on('exit', (code) => {
-  if (code === 0) {
-    console.log('\n=====================================================');
-    console.log('🎉 Cloudflare Pages Deployment Succeeded!');
-    console.log('🌐 Live Application: https://accadfarms.pages.dev');
-    console.log('=====================================================\n');
-  } else {
-    console.log('\n⚠️ Deployment command exited with code:', code);
-    console.log('💡 If authentication is required, run:');
-    console.log('   npx wrangler login');
-    console.log('   (Sign in with accadfarmsapp@gmail.com)');
-    console.log('Or set CLOUDFLARE_API_TOKEN in .env\n');
-  }
-  process.exit(code || 0);
-});
+  console.log('\n=====================================================');
+  console.log('🎉 Cloudflare Pages Deployment Succeeded!');
+  console.log('🌐 Live Application: https://accadfarms.pages.dev');
+  console.log('=====================================================\n');
+} catch (deployErr) {
+  console.error('\n⚠️ Deployment failed:', deployErr.message);
+  process.exit(1);
+}
