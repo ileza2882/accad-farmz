@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "deploy": "node deploy-to-cloudflare.mjs",
     "deploy:cloudflare": "node deploy-to-cloudflare.mjs",
     "pages:login": "wrangler login",
     "pages:deploy": "wrangler pages deploy dist --project-name accadfarms --commit-dirty=true"

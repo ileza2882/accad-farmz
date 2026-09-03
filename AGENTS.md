@@ -139,4 +139,4 @@ Payments currently has TypeScript SDK docs only. Use the Payments API reference 
 
 ## Deployment Guidelines
 - Always commit and push changes to GitHub (`origin main`) after completing work on every prompt.
-- Always deploy to Netlify production (`node deploy-to-netlify.mjs`) after completing work on every prompt.
+- Always deploy to Cloudflare Pages (`node deploy-to-cloudflare.mjs`) after completing work on every prompt.

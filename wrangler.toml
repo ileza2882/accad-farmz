@@ -5,6 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 GMAIL_USER = "accadfarmsapp@gmail.com"
+GMAIL_APP_PASSWORD = "seumhhdlsjbznmme"
 VITE_INSFORGE_PROJECT_NAME = "accadfarmz"
 VITE_INSFORGE_URL = "https://imf45qwi.us-east.insforge.app"
 VITE_INSFORGE_API_KEY = "ik_56a71ca7e6aa4249545fc5bd8f983c38"

@@ -7,7 +7,7 @@ export interface EmailDispatchResult {
   subject: string;
   message: string;
   timestamp: number;
-  deliveryMethod: 'insforge_smtp' | 'netlify_function' | 'in_app_dispatch' | 'simulated';
+  deliveryMethod: 'gmail_smtp' | 'edge_function' | 'in_app_dispatch' | 'simulated';
 }
 
 /**
@@ -34,7 +34,7 @@ export function isValidEmailAddress(email: string): boolean {
 }
 
 /**
- * Core Universal Mail Dispatcher using InsForge SMTP as primary delivery route
+ * Core Universal Mail Dispatcher using Google Mail SMTP Hub
  */
 export async function dispatchEmailWithInsForge(options: {
   to: string;
@@ -64,11 +64,11 @@ export async function dispatchEmailWithInsForge(options: {
     };
   }
 
-  let deliveryMethod: 'insforge_smtp' | 'netlify_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
+  let deliveryMethod: 'gmail_smtp' | 'edge_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
 
-  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via serverless / dev-server endpoint
+  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via /api/send-email edge endpoint
   try {
-    const endpoints = ['/.netlify/functions/send-email', '/api/send-email'];
+    const endpoints = ['/api/send-email'];
     for (const endpoint of endpoints) {
       try {
         const res = await fetch(endpoint, {
@@ -93,7 +93,7 @@ export async function dispatchEmailWithInsForge(options: {
 
         if (res.ok) {
           const resData = await res.json();
-          deliveryMethod = 'netlify_function';
+          deliveryMethod = 'gmail_smtp';
           console.log(`[EmailService] Dispatched via Google Mail Hub (${endpoint}) from ${fromEmail}:`, resData);
           break;
         }
