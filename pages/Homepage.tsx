@@ -7,7 +7,11 @@ import {
   Sparkles, 
   X, 
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  Layers,
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 
 interface HomepageProps {
@@ -135,7 +139,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
                 <div
                   className="inline-flex items-center space-x-1.5 text-xs font-extrabold text-emerald-700 group-hover:text-emerald-800 uppercase tracking-wider group-hover:translate-x-1 transition-transform"
                 >
-                  <span>{isED ? 'Fetch Department Reports' : 'Access Node Log'}</span>
+                  <span>Access Department Node</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -155,7 +159,7 @@ export const Homepage: React.FC<HomepageProps> = ({ user, onLoginSuccess }) => {
               </div>
               <h4 className="text-base font-extrabold text-slate-900">Executive Central Governance</h4>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                Dedicated Executive Director portal on the homepage. Direct access to reports, unlock approvals, audit trails, and multi-sector farm data.
+                Centralized operational registry with immutable logs, batch unlocking, real-time audit trails, and multi-sector farm data.
               </p>
             </div>
 
