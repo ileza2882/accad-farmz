@@ -1,0 +1,11 @@
+name = "accadfarms"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+GMAIL_USER = "accadfarmsapp@gmail.com"
+VITE_INSFORGE_PROJECT_NAME = "accadfarmz"
+VITE_INSFORGE_URL = "https://imf45qwi.us-east.insforge.app"
+VITE_INSFORGE_API_KEY = "ik_56a71ca7e6aa4249545fc5bd8f983c38"
+VITE_DISCONNECT_DATABASE = "false"

@@ -7,7 +7,10 @@
     "dev": "node dev-server.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "deploy:cloudflare": "node deploy-to-cloudflare.mjs",
+    "pages:login": "wrangler login",
+    "pages:deploy": "wrangler pages deploy dist --project-name accadfarms --commit-dirty=true"
   },
   "dependencies": {
     "@esbuild/win32-x64": "^0.25.12",
@@ -33,7 +36,8 @@
     "@vitejs/plugin-react": "^5.0.0",
     "adm-zip": "^0.6.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wrangler": "^4.129.0"
   },
   "allowScripts": {
     "esbuild@0.25.12": true
