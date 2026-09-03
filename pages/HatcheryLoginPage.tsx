@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getUserByEmail } from '../lib/insforge';
 import { 
-  Egg, 
   Mail, 
   Lock, 
   LogIn, 
@@ -115,8 +114,13 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTMwVjBoLTJ2NEgzNHpNNiAzNHYySDR2LTJoMnptMC0zMFYwSDR2NGgyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
             
             <div className="relative">
-              <div className="w-16 h-16 bg-teal-800/60 border-2 border-teal-500/40 rounded-2xl flex items-center justify-center mx-auto shadow-lg backdrop-blur-sm">
-                <Egg className="w-8 h-8 text-teal-200" />
+              <div className="w-20 h-20 bg-white rounded-3xl p-2.5 border-2 border-teal-400/40 flex items-center justify-center mx-auto shadow-xl shadow-teal-950/50 mb-3 overflow-hidden">
+                <img 
+                  src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
+                  alt="ACCAD Logo" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               
               <div className="inline-flex items-center space-x-1.5 bg-teal-700/50 border border-teal-500/30 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase text-teal-200 mt-3">
@@ -226,19 +230,7 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
               </button>
             </form>
 
-            {/* Alternative login link */}
-            <div className="text-center pt-2 border-t border-slate-100">
-              <p className="text-[11px] text-slate-500 font-medium">
-                Not a Hatchery Manager?{' '}
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="font-black text-emerald-700 hover:underline cursor-pointer"
-                >
-                  Sign in to Staff / Manager Portal
-                </button>
-              </p>
-            </div>
+
           </div>
         </div>
 

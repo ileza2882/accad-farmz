@@ -12,8 +12,7 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
-  HelpCircle,
-  Crown
+  HelpCircle
 } from 'lucide-react';
 import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
@@ -112,8 +111,13 @@ export const ExecutiveLoginPage: React.FC<ExecutiveLoginPageProps> = ({ user, on
           
           {/* Card Header */}
           <div className="p-8 text-center border-b border-slate-800 relative bg-gradient-to-b from-emerald-950/40 to-transparent">
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/50 mb-4 border border-emerald-400/30">
-              <Crown className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 bg-white rounded-3xl p-2.5 border-2 border-emerald-400/40 flex items-center justify-center mx-auto shadow-xl shadow-emerald-950/60 mb-4 overflow-hidden">
+              <img 
+                src="https://drive.google.com/thumbnail?id=1nd5mC1tE5UndX4SDWqJFREo2wlCZHlSH&sz=w1000" 
+                alt="ACCAD Logo" 
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
             </div>
 
             <div className="inline-flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase text-emerald-300 mb-2">
