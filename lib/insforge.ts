@@ -217,10 +217,16 @@ export async function getUsers(): Promise<User[]> {
     for (const u of resultUsers) {
       const key = u.email.toLowerCase().trim();
       const idKey = u.id.toLowerCase().trim();
-      if (!deletedIds.has(key) && !deletedIds.has(idKey)) {
-        userMap.set(key, u);
-      }
+      // Directly add all active database users
+      userMap.set(key, u);
+      // Synchronize: Clear from deletedIds because this user actively exists in DB
+      deletedIds.delete(key);
+      deletedIds.delete(idKey);
     }
+    // Save synchronized deleted list
+    try {
+      localStorage.setItem('accad_deleted_user_ids', JSON.stringify(Array.from(deletedIds)));
+    } catch (e) {}
   } else {
     // Fallback only if offline/disconnected
     const localList = getLocalUsers();
@@ -252,18 +258,7 @@ export async function verifyDatabaseAuthorization(emailOrId: string): Promise<Us
   if (!emailOrId) return null;
   const normalized = emailOrId.toLowerCase().trim();
 
-  // Check if locally registered as deactivated/deleted
-  try {
-    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
-    if (deletedRaw) {
-      const parsed: string[] = JSON.parse(deletedRaw);
-      if (parsed.some(id => id.toLowerCase().trim() === normalized)) {
-        return null;
-      }
-    }
-  } catch (e) {}
-
-  // 1. Direct Live Query to InsForge Database
+  // 1. Direct Live Query to InsForge Database (Authoritative)
   if (!IS_DISCONNECTED_MODE) {
     try {
       const { data, error } = await insforge.database
@@ -271,7 +266,7 @@ export async function verifyDatabaseAuthorization(emailOrId: string): Promise<Us
         .select('*')
         .or(`email.eq.${normalized},id.eq.${emailOrId},originalId.eq.${emailOrId}`);
 
-      if (!error && data && Array.isArray(data) && data.length > 0) {
+      if (!error && data && Array.isArray(data)) {
         const dbUser = data.find((u: any) => 
           u.email?.toLowerCase().trim() === normalized || 
           u.id?.toLowerCase().trim() === normalized ||
@@ -279,12 +274,22 @@ export async function verifyDatabaseAuthorization(emailOrId: string): Promise<Us
         );
 
         if (!dbUser) {
-          return null; // Not found in database
+          return null; // Not found in database -> unauthorized!
         }
 
         if (dbUser.status === 'inactive') {
           return null; // Explicitly deactivated in database
         }
+
+        // Clean from local deleted blacklist if present
+        try {
+          const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
+          if (deletedRaw) {
+            const parsed: string[] = JSON.parse(deletedRaw);
+            const filtered = parsed.filter(id => id.toLowerCase().trim() !== normalized && id !== dbUser.id);
+            localStorage.setItem('accad_deleted_user_ids', JSON.stringify(filtered));
+          }
+        } catch (e) {}
 
         const formattedUser: User = {
           id: dbUser.originalId || dbUser.id,
@@ -302,16 +307,23 @@ export async function verifyDatabaseAuthorization(emailOrId: string): Promise<Us
         };
 
         return formattedUser;
-      } else if (!error && data && data.length === 0) {
-        // User was deleted from InsForge DB!
-        return null;
       }
     } catch (dbErr) {
       console.warn('[InsForge] verifyDatabaseAuthorization database error:', dbErr);
     }
   }
 
-  // 2. Fallback check across verified user registry
+  // 2. Offline Fallback check (only if database unreachable)
+  try {
+    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
+    if (deletedRaw) {
+      const parsed: string[] = JSON.parse(deletedRaw);
+      if (parsed.some(id => id.toLowerCase().trim() === normalized)) {
+        return null;
+      }
+    }
+  } catch (e) {}
+
   const all = await getUsers();
   const matched = all.find(u => 
     u.email.toLowerCase().trim() === normalized || 
@@ -324,6 +336,7 @@ export async function verifyDatabaseAuthorization(emailOrId: string): Promise<Us
 
   return null;
 }
+
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   return verifyDatabaseAuthorization(email);
@@ -382,8 +395,13 @@ export async function createUser(user: User): Promise<User> {
         .insert([payload])
         .select();
 
-      if (error) console.error('InsForge createUser error:', error);
-      else if (data && data[0]) {
+      if (error) {
+        console.warn('InsForge createUser insert notice (attempting update sync):', error);
+        await insforge.database
+          .from('users')
+          .update(payload)
+          .eq('email', payload.email);
+      } else if (data && data[0]) {
         user.id = data[0].originalId || data[0].id;
       }
     } catch (e) {
