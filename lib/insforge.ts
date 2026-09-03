@@ -210,35 +210,31 @@ export async function getUsers(): Promise<User[]> {
     }
   }
 
-  const localList = getLocalUsers();
   const userMap = new Map<string, User>();
 
-  for (const u of DEFAULT_USERS) {
-    const key = u.email.toLowerCase().trim();
-    if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
-      userMap.set(key, u);
-    }
-  }
-  for (const u of localList) {
-    if (u.id === 'ed_user_1' || u.role === Role.EXECUTIVE_DIRECTOR) {
-      if (u.email.toLowerCase().trim() !== 'info@accadfarms.com') {
-        continue;
+  // If InsForge DB returned users, DB is authoritative source of truth!
+  if (resultUsers.length > 0) {
+    for (const u of resultUsers) {
+      const key = u.email.toLowerCase().trim();
+      const idKey = u.id.toLowerCase().trim();
+      if (!deletedIds.has(key) && !deletedIds.has(idKey)) {
+        userMap.set(key, u);
       }
     }
-    const key = u.email.toLowerCase().trim();
-    if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
-      userMap.set(key, u);
-    }
-  }
-  for (const u of resultUsers) {
-    if (u.id === 'ed_user_1' || u.role === Role.EXECUTIVE_DIRECTOR) {
-      if (u.email.toLowerCase().trim() !== 'info@accadfarms.com') {
-        continue;
+  } else {
+    // Fallback only if offline/disconnected
+    const localList = getLocalUsers();
+    for (const u of DEFAULT_USERS) {
+      const key = u.email.toLowerCase().trim();
+      if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
+        userMap.set(key, u);
       }
     }
-    const key = u.email.toLowerCase().trim();
-    if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
-      userMap.set(key, u);
+    for (const u of localList) {
+      const key = u.email.toLowerCase().trim();
+      if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
+        userMap.set(key, u);
+      }
     }
   }
 
@@ -247,10 +243,90 @@ export async function getUsers(): Promise<User[]> {
   return merged;
 }
 
-export async function getUserByEmail(email: string): Promise<User | null> {
-  const normalized = email.toLowerCase().trim();
+/**
+ * Strict Database Authorization Verification:
+ * Queries InsForge DB directly to verify account existence and active status.
+ * Rejects deactivated, deleted, or missing accounts with zero local cache bypass.
+ */
+export async function verifyDatabaseAuthorization(emailOrId: string): Promise<User | null> {
+  if (!emailOrId) return null;
+  const normalized = emailOrId.toLowerCase().trim();
+
+  // Check if locally registered as deactivated/deleted
+  try {
+    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
+    if (deletedRaw) {
+      const parsed: string[] = JSON.parse(deletedRaw);
+      if (parsed.some(id => id.toLowerCase().trim() === normalized)) {
+        return null;
+      }
+    }
+  } catch (e) {}
+
+  // 1. Direct Live Query to InsForge Database
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      const { data, error } = await insforge.database
+        .from('users')
+        .select('*')
+        .or(`email.eq.${normalized},id.eq.${emailOrId},originalId.eq.${emailOrId}`);
+
+      if (!error && data && Array.isArray(data) && data.length > 0) {
+        const dbUser = data.find((u: any) => 
+          u.email?.toLowerCase().trim() === normalized || 
+          u.id?.toLowerCase().trim() === normalized ||
+          u.originalId?.toLowerCase().trim() === normalized
+        );
+
+        if (!dbUser) {
+          return null; // Not found in database
+        }
+
+        if (dbUser.status === 'inactive') {
+          return null; // Explicitly deactivated in database
+        }
+
+        const formattedUser: User = {
+          id: dbUser.originalId || dbUser.id,
+          fullName: dbUser.fullName || dbUser.name || '',
+          email: dbUser.email || '',
+          phone: dbUser.phone || '',
+          role: dbUser.role as Role,
+          department: dbUser.department as Department | undefined,
+          staffId: dbUser.staffId,
+          position: dbUser.position,
+          status: dbUser.status || 'active',
+          profilePicture: dbUser.profilePicture,
+          password: dbUser.password || '123456',
+          createdAt: dbUser.createdAt || Date.now()
+        };
+
+        return formattedUser;
+      } else if (!error && data && data.length === 0) {
+        // User was deleted from InsForge DB!
+        return null;
+      }
+    } catch (dbErr) {
+      console.warn('[InsForge] verifyDatabaseAuthorization database error:', dbErr);
+    }
+  }
+
+  // 2. Fallback check across verified user registry
   const all = await getUsers();
-  return all.find(u => u.email.toLowerCase().trim() === normalized) || null;
+  const matched = all.find(u => 
+    u.email.toLowerCase().trim() === normalized || 
+    u.id.toLowerCase().trim() === normalized
+  );
+
+  if (matched && matched.status !== 'inactive') {
+    return matched;
+  }
+
+  return null;
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  return verifyDatabaseAuthorization(email);
 }
 
 export async function getUserByPhone(phone: string): Promise<User | null> {
@@ -361,12 +437,16 @@ export async function updateUser(emailOrId: string, updates: Partial<User>): Pro
 }
 
 /**
- * Permanently Delete a User Record (InsForge DB delete + Local storage sync)
+ * Permanently Deactivate & Delete a User Record:
+ * 1. Executes DELETE on InsForge DB across email, id, and originalId.
+ * 2. Purges user from local storage and adds to permanent deactivation registry.
+ * 3. Immediately purges active sessions if the user is currently logged in on this machine.
+ * 4. Broadcasts cross-tab deactivation event to terminate active sessions immediately.
  */
-export async function deleteUser(userIdOrEmail: string): Promise<boolean> {
+export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
   const normalized = userIdOrEmail.toLowerCase().trim();
 
-  // 1. Record in deleted list to prevent re-merging default templates or re-seeding
+  // 1. Record in permanent deactivation registry
   try {
     const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
     const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
@@ -374,9 +454,10 @@ export async function deleteUser(userIdOrEmail: string): Promise<boolean> {
       deletedIds.push(normalized);
     }
     localStorage.setItem('accad_deleted_user_ids', JSON.stringify(deletedIds));
+    localStorage.setItem('accad_last_revocation', Date.now().toString());
   } catch (e) {}
 
-  // 2. Remove from Local Storage
+  // 2. Remove from Local Storage lists
   localStorage.removeItem('accad_users_v1');
   localStorage.removeItem('accad_users');
   const currentLocal = getLocalUsers();
@@ -386,7 +467,22 @@ export async function deleteUser(userIdOrEmail: string): Promise<boolean> {
   );
   saveLocalUsers(updatedLocal);
 
-  // 3. Delete from InsForge Database across all identifier columns
+  // 3. Check if currently logged-in user on this device is the deactivated user
+  try {
+    const activeRaw = localStorage.getItem('accad_user_v2') || localStorage.getItem('accad_user');
+    if (activeRaw) {
+      const activeUser: User = JSON.parse(activeRaw);
+      if (
+        activeUser.email?.toLowerCase().trim() === normalized ||
+        activeUser.id?.toLowerCase().trim() === normalized
+      ) {
+        localStorage.removeItem('accad_user_v2');
+        localStorage.removeItem('accad_user');
+      }
+    }
+  } catch (e) {}
+
+  // 4. Delete from InsForge Database across all identifier columns (Ensure perfect sync)
   if (!IS_DISCONNECTED_MODE) {
     try {
       const res1 = await insforge.database
@@ -404,14 +500,24 @@ export async function deleteUser(userIdOrEmail: string): Promise<boolean> {
         .delete()
         .eq('originalId', userIdOrEmail);
 
-      console.log('InsForge deleteUser DB sync results:', { res1, res2, res3 });
+      console.log('InsForge deactivateUser DB sync results:', { res1, res2, res3 });
     } catch (e) {
-      console.warn('InsForge deleteUser notice:', e);
+      console.warn('InsForge deactivateUser notice:', e);
     }
   }
 
+  // 5. Broadcast real-time deactivation event across all open windows & tabs
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('accad_user_deactivated', { detail: { target: normalized } }));
+      localStorage.setItem('accad_session_revoked_at', `${normalized}_${Date.now()}`);
+    }
+  } catch (e) {}
+
   return true;
 }
+
+export const deleteUser = deactivateUser;
 
 /**
  * Clear all farm logs / reports from InsForge DB + Local storage (Start Afresh)

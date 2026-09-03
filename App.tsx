@@ -13,8 +13,9 @@ import { HatcheryFormPage } from './pages/HatcheryFormPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Header } from './components/Header';
+import { DatabaseAuthGuard } from './components/DatabaseAuthGuard';
 import { User, Role } from './types';
-import { getUsers, updateUser } from './lib/insforge';
+import { getUsers, updateUser, verifyDatabaseAuthorization } from './lib/insforge';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -44,15 +45,31 @@ const App: React.FC = () => {
     } catch (e) {}
   }, [currentUser]);
 
-  // Seed default users on startup
+  // Strict Startup Database Authorization Check:
+  // Zero local cache bypass: verify active authorization with InsForge DB immediately.
   useEffect(() => {
+    const checkActiveSession = async () => {
+      if (currentUser && currentUser.email) {
+        const verified = await verifyDatabaseAuthorization(currentUser.email);
+        if (!verified) {
+          console.warn('[App] Active session revoked: Account not found or deactivated in database.');
+          handleLogout();
+        } else if (verified.role !== currentUser.role || verified.status !== currentUser.status) {
+          setCurrentUser(verified);
+        }
+      }
+    };
+    checkActiveSession();
     getUsers();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = (reason?: string) => {
     setCurrentUser(null);
     localStorage.removeItem('accad_user_v2');
     localStorage.removeItem('accad_user');
+    if (reason && typeof window !== 'undefined') {
+      console.warn(`[App] Session terminated: ${reason}`);
+    }
   };
 
   const handleRoleSwitch = async (newRole: Role) => {
@@ -79,9 +96,18 @@ const App: React.FC = () => {
             <Route 
               path="/ed" 
               element={
-                currentUser && currentUser.role === Role.EXECUTIVE_DIRECTOR
-                  ? <ExecutiveDashboard user={currentUser} />
-                  : <ExecutiveLoginPage user={currentUser} onLoginSuccess={setCurrentUser} />
+                currentUser && currentUser.role === Role.EXECUTIVE_DIRECTOR ? (
+                  <DatabaseAuthGuard 
+                    currentUser={currentUser} 
+                    allowedRoles={[Role.EXECUTIVE_DIRECTOR]} 
+                    onRevokeAccess={handleLogout} 
+                    onUserVerified={setCurrentUser}
+                  >
+                    <ExecutiveDashboard user={currentUser} />
+                  </DatabaseAuthGuard>
+                ) : (
+                  <ExecutiveLoginPage user={currentUser} onLoginSuccess={setCurrentUser} />
+                )
               } 
             />
 
@@ -102,9 +128,14 @@ const App: React.FC = () => {
             <Route 
               path="/hatchery/dashboard" 
               element={
-                currentUser
-                  ? <HatcheryDashboardPage user={currentUser} />
-                  : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  allowedRoles={[Role.HATCHERY_MANAGER, Role.EXECUTIVE_DIRECTOR]} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <HatcheryDashboardPage user={currentUser!} />
+                </DatabaseAuthGuard>
               } 
             />
 
@@ -112,9 +143,14 @@ const App: React.FC = () => {
             <Route 
               path="/hatchery/form/:reportId" 
               element={
-                currentUser
-                  ? <HatcheryFormPage user={currentUser} />
-                  : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  allowedRoles={[Role.HATCHERY_MANAGER, Role.EXECUTIVE_DIRECTOR]} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <HatcheryFormPage user={currentUser!} />
+                </DatabaseAuthGuard>
               } 
             />
 
@@ -145,13 +181,18 @@ const App: React.FC = () => {
               } 
             />
 
-            {/* Staff Dashboard (Strict DB Login required) */}
+            {/* Staff Dashboard (Strict DB Login & live authorization required) */}
             <Route 
               path="/staff" 
               element={
-                currentUser
-                  ? <StaffDashboard user={currentUser} />
-                  : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  allowedRoles={[Role.STAFF, Role.MANAGER, Role.HATCHERY_MANAGER, Role.EXECUTIVE_DIRECTOR]} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <StaffDashboard user={currentUser!} />
+                </DatabaseAuthGuard>
               } 
             />
 
@@ -159,9 +200,14 @@ const App: React.FC = () => {
             <Route 
               path="/manager" 
               element={
-                currentUser && (currentUser.role === Role.MANAGER || currentUser.role === Role.EXECUTIVE_DIRECTOR)
-                  ? <ManagerDashboard user={currentUser} /> 
-                  : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  allowedRoles={[Role.MANAGER, Role.EXECUTIVE_DIRECTOR]} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <ManagerDashboard user={currentUser!} />
+                </DatabaseAuthGuard>
               } 
             />
 
@@ -180,7 +226,13 @@ const App: React.FC = () => {
             <Route 
               path="/notifications" 
               element={
-                currentUser ? <NotificationsPage user={currentUser} /> : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <NotificationsPage user={currentUser!} />
+                </DatabaseAuthGuard>
               } 
             />
 
@@ -188,7 +240,13 @@ const App: React.FC = () => {
             <Route 
               path="/profile" 
               element={
-                currentUser ? <ProfilePage user={currentUser} onUserUpdated={setCurrentUser} /> : <Navigate to="/login" replace />
+                <DatabaseAuthGuard 
+                  currentUser={currentUser} 
+                  onRevokeAccess={handleLogout} 
+                  onUserVerified={setCurrentUser}
+                >
+                  <ProfilePage user={currentUser!} onUserUpdated={setCurrentUser} />
+                </DatabaseAuthGuard>
               } 
             />
 

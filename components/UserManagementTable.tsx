@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Role, Department } from '../types';
-import { updateUser, deleteUser, createAuditLog, createNotification } from '../lib/insforge';
+import { updateUser, deactivateUser, deleteUser, createAuditLog, createNotification } from '../lib/insforge';
 import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X } from 'lucide-react';
 
 interface UserManagementTableProps {
@@ -66,26 +66,26 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   };
 
   const handleDeleteUser = async (userToDel: User) => {
-    const confirmText = `Are you sure you want to PERMANENTLY DELETE user "${userToDel.fullName}" (${userToDel.email})? This record will be permanently removed from the database.`;
+    const confirmText = `Are you sure you want to DEACTIVATE "${userToDel.fullName}" (${userToDel.email})?\n\nThis account will be automatically and permanently deleted from the InsForge database, and their access to all dashboards will be immediately revoked.`;
     if (!window.confirm(confirmText)) return;
 
     try {
-      await deleteUser(userToDel.email);
-      if (userToDel.id) await deleteUser(userToDel.id);
+      await deactivateUser(userToDel.email);
+      if (userToDel.id) await deactivateUser(userToDel.id);
       
       await createAuditLog(
         edUser.fullName,
         edUser.email,
-        'USER_PERMANENTLY_DELETED',
-        `Permanently deleted user record ${userToDel.fullName} (${userToDel.email})`
+        'USER_DEACTIVATED_AND_PURGED',
+        `Deactivated and purged user record ${userToDel.fullName} (${userToDel.email}) from InsForge database`
       );
 
-      setActionMessage(`User ${userToDel.fullName} permanently deleted from database`);
+      setActionMessage(`Account for ${userToDel.fullName} permanently deactivated and deleted from database`);
       await onUsersUpdated();
 
       setTimeout(() => setActionMessage(null), 3000);
     } catch (e: any) {
-      alert('Failed to delete user: ' + e.message);
+      alert('Failed to deactivate user: ' + e.message);
     }
   };
 

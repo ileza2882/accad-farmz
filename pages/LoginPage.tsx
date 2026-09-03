@@ -32,7 +32,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       const user = await getUserByEmail(email.trim());
 
       if (!user) {
-        setError('Invalid credentials. Please check your email and password.');
+        setError('Access Denied: Account not found or has been deactivated from the database.');
         setIsSubmitting(false);
         return;
       }
