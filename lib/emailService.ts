@@ -87,7 +87,6 @@ export async function dispatchEmailWithInsForge(options: {
     replyTo: replyTo,
     user: options.metaPayload ? {
       fullName: options.metaPayload['Staff Member Name'],
-      password: options.metaPayload['Temporary Passcode'],
       role: options.metaPayload['Assigned Role'],
       department: options.metaPayload['Department / Sector']
     } : undefined,
@@ -230,7 +229,7 @@ Your official staff account has been created on the ACCAD FARMS Management Porta
 Account Details:
 - Staff Member Name: ${user.fullName}
 - Portal Login Email: ${user.email}
-- Temporary Passcode: ${user.password || '123456'}
+- Temporary Passcode: issued separately by the Executive Director (not sent by email for security)
 - Assigned System Role: ${(user.role || 'STAFF').toUpperCase()}
 - Department / Sector: ${user.department || 'General Operations'}
 - Position / Designation: ${user.position || `${user.department || ''} Staff`}
@@ -330,7 +329,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
             </tr>
             <tr>
               <td class="cred-label">Temporary Passcode</td>
-              <td><span class="cred-passcode">${user.password || '123456'}</span></td>
+              <td class="cred-value" style="color:#92400e;">Issued separately by the Executive Director</td>
             </tr>
             <tr>
               <td class="cred-label">Assigned Role</td>
@@ -395,7 +394,7 @@ export async function sendUserWelcomeEmail(params: {
   const metaPayload = {
     'Staff Member Name': newUser.fullName,
     'Portal Login Email': newUser.email,
-    'Temporary Passcode': newUser.password || '123456',
+    'Passcode Delivery': 'Issued separately by the Executive Director',
     'Assigned Role': (newUser.role || 'STAFF').toUpperCase(),
     'Department / Sector': newUser.department || 'General Operations',
     'Staff ID': newUser.staffId || 'STF-ACCAD',
@@ -419,7 +418,7 @@ export async function sendUserWelcomeEmail(params: {
       userId: newUser.id,
       userEmail: newUser.email,
       title: 'Official Welcome & Credentials Email',
-      message: `Welcome email notification dispatched via Gmail to ${newUser.email} with temporary login credentials. Password: ${newUser.password || '123456'}`,
+      message: `Welcome email sent to ${newUser.email}. Your temporary passcode is issued separately by the Executive Director.`,
       type: 'info'
     });
   } catch (e) {}
