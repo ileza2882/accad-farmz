@@ -31,6 +31,7 @@ async function sendViaGmailSMTP(options: {
   subject: string;
   html?: string;
   text?: string;
+  transcript?: string[];
 }): Promise<{ messageId: string; response: string }> {
   const { gmailUser, gmailPass, to, fromName, subject, html, text } = options;
   const cleanPass = gmailPass.replace(/\s+/g, '');
@@ -63,9 +64,14 @@ async function sendViaGmailSMTP(options: {
     return buffer;
   }
 
+  const log = (entry: string) => { if (options.transcript) options.transcript.push(entry); };
+
   async function sendCmd(cmd: string, expectCode?: string): Promise<string> {
     await writer.write(encoder.encode(cmd + '\r\n'));
     const reply = await readReply();
+    const shown = /^[A-Za-z0-9+/=]{12,}$/.test(cmd) ? '<base64 credential>' : cmd.slice(0, 60);
+    log(`> ${shown}` + (cmd.length > 60 ? ` ...(${cmd.length} bytes)` : ''));
+    log(`< ${reply.trim()}`);
     if (expectCode && !reply.startsWith(expectCode)) {
       throw new Error(`SMTP error for command [${cmd.substring(0, 15)}...]: ${reply.trim()}`);
     }
@@ -74,12 +80,15 @@ async function sendViaGmailSMTP(options: {
 
   // 1. Initial 220 greeting from Gmail
   const greeting = await readReply();
+  log(`< ${greeting.trim()}`);
   if (!greeting.startsWith('220')) {
     throw new Error('Invalid SMTP greeting from smtp.gmail.com: ' + greeting.trim());
   }
 
   // 2. EHLO handshake with Gmail
-  await sendCmd('EHLO gmail.com', '250');
+  // Identify honestly. Claiming 'gmail.com' asserts we are Google's own mail host, which is
+  // exactly the kind of mismatch anti-abuse systems penalise.
+  await sendCmd('EHLO accadfarms.pages.dev', '250');
 
   // 3. AUTH LOGIN credentials
   await sendCmd('AUTH LOGIN', '334');
@@ -198,6 +207,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
 
     // Retry transient SMTP failures (handshake drops, throttling) before reporting a hard failure.
     // A new staff member losing their credentials email to a one-off socket blip is not acceptable.
+    const wantTranscript = body.debug === true;
+    const transcript: string[] = [];
     const MAX_SMTP_ATTEMPTS = 3;
     let result: { messageId: string; response: string } | null = null;
     let lastSmtpError: any = null;
@@ -211,7 +222,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
           fromName,
           subject,
           html,
-          text
+          text,
+          transcript: wantTranscript ? transcript : undefined
         });
         break;
       } catch (smtpErr: any) {
@@ -237,7 +249,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
         recipient: recipient,
         messageId: result.messageId,
         deliveredAt: new Date().toISOString(),
-        serverResponse: result.response
+        serverResponse: result.response,
+        ...(wantTranscript ? { transcript } : {})
       }),
       {
         status: 200,
