@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Role, Report, ReportStatus, AuditLog, Department, InventoryType, FisherySection, HatcheryChangeRequest, FisheryHatcheryBatchData, FisheryLivestockPondData } from '../types';
-import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest, updateUser } from '../lib/insforge';
+import { getUsers, getReports, updateReportStatus, getAuditLogs, createNotification, createAuditLog, createReport, clearAllReports, getHatcheryChangeRequests, reviewHatcheryChangeRequest, updateUser, subscribeToUserDirectory } from '../lib/insforge';
 import { UserRegistrationModal } from '../components/UserRegistrationModal';
 import { UserManagementTable } from '../components/UserManagementTable';
 import { ReportDetails } from '../components/ReportDetails';
@@ -128,6 +128,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Keep the staff directory in step with the InsForge database in both directions: users added
+  // or removed straight from the database (or from another device) appear here without a manual
+  // refresh. Polls a cheap fingerprint and only refetches when the directory actually changes.
+  useEffect(() => {
+    const unsubscribe = subscribeToUserDirectory((freshUsers) => {
+      setUsersList(freshUsers);
+    });
+    return unsubscribe;
   }, []);
 
   const handleEDPasswordChange = async (e: React.FormEvent) => {

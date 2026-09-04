@@ -107,11 +107,14 @@ export const Auth: React.FC<AuthProps> = ({ department, onAuthSuccess }) => {
           password,
         };
 
+        // No local fallback here: createUser only resolves once InsForge confirms the row.
+        // Signing someone in on a local-only account would create a ghost user that the
+        // database has never heard of and that vanishes on the next refresh.
         try {
           authenticatedUser = await createUser(newUser);
         } catch (createErr: any) {
-          console.warn('User creation fallback:', createErr);
-          authenticatedUser = newUser;
+          setError(createErr?.message || 'Could not create your account in the database. Please try again.');
+          return;
         }
       }
 

@@ -116,66 +116,78 @@ function getLocalUsers(): User[] {
 }
 
 /**
- * Seed Default Users to InsForge Database if missing
+ * First-run bootstrap ONLY.
+ *
+ * This used to re-insert every missing DEFAULT_USER on each login-page visit, gated only by a
+ * per-browser tombstone list. That silently undid deletions: the ED removed a user on their
+ * laptop, then anyone opening the login page on a device without that tombstone wrote the row
+ * straight back into the database.
+ *
+ * Deletions are now permanent. Seeding happens only when the users table is completely empty
+ * (a brand-new or fully-wiped backend), and only creates the Executive Director account needed
+ * to get in and register everyone else.
  */
 export async function seedInitialUsers(): Promise<void> {
   if (IS_DISCONNECTED_MODE) return;
   try {
-    const deletedIds = new Set<string>();
-    try {
-      const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
-      if (deletedRaw) {
-        const parsed: string[] = JSON.parse(deletedRaw);
-        parsed.forEach(id => deletedIds.add(id.toLowerCase().trim()));
-      }
-    } catch (e) {}
+    const { data: dbUsers, error } = await insforge.database
+      .from('users')
+      .select('id')
+      .limit(1);
 
-    const { data: dbUsers } = await insforge.database.from('users').select('*');
-    const existingEmails = new Set((dbUsers || []).map((u: any) => u.email?.toLowerCase().trim()));
+    // Never seed on a read failure - that would duplicate rows we simply could not see.
+    if (error || !dbUsers || !Array.isArray(dbUsers)) return;
 
-    for (const user of DEFAULT_USERS) {
-      const emailKey = user.email.toLowerCase().trim();
-      const idKey = user.id.toLowerCase().trim();
-      if (deletedIds.has(emailKey) || deletedIds.has(idKey)) {
-        continue; // Skip seeding permanently deleted user records
-      }
+    // The database already holds users: whatever is (or is not) there is the truth.
+    if (dbUsers.length > 0) return;
 
-      // Sync to InsForge Authentication service
-      await insforge.auth.signUp({
-        email: emailKey,
-        password: user.password || '123456',
-        name: user.fullName
-      }).catch(() => {});
+    const bootstrapEd = DEFAULT_USERS.find(u => u.role === Role.EXECUTIVE_DIRECTOR);
+    if (!bootstrapEd) return;
 
-      if (!existingEmails.has(emailKey)) {
-        const payload = {
-          id: user.id,
-          originalId: user.id,
-          fullName: user.fullName,
-          email: emailKey,
-          phone: user.phone || null,
-          role: user.role,
-          department: user.department || null,
-          staffId: user.staffId || null,
-          position: user.position || null,
-          status: user.status || 'active',
-          profilePicture: user.profilePicture || '',
-          password: user.password || '123456',
-          createdAt: user.createdAt || Date.now()
-        };
-        await insforge.database.from('users').insert([payload]);
-      }
-    }
+    console.warn('[InsForge] users table is empty - seeding the bootstrap Executive Director account.');
+
+    await insforge.auth.signUp({
+      email: bootstrapEd.email.toLowerCase().trim(),
+      password: bootstrapEd.password || '123456',
+      name: bootstrapEd.fullName
+    }).catch(() => {});
+
+    await insforge.database.from('users').insert([{
+      id: bootstrapEd.id,
+      originalId: bootstrapEd.id,
+      fullName: bootstrapEd.fullName,
+      email: bootstrapEd.email.toLowerCase().trim(),
+      phone: bootstrapEd.phone || null,
+      role: bootstrapEd.role,
+      department: bootstrapEd.department || null,
+      staffId: bootstrapEd.staffId || null,
+      position: bootstrapEd.position || null,
+      status: bootstrapEd.status || 'active',
+      profilePicture: bootstrapEd.profilePicture || '',
+      password: bootstrapEd.password || '123456',
+      createdAt: bootstrapEd.createdAt || Date.now()
+    }]);
+
+    notifyUserDirectoryChanged();
   } catch (e) {
     console.warn('InsForge seedInitialUsers notice:', e);
   }
 }
 
 /**
- * Get all users with InsForge DB + Local sync
+ * Get all users.
+ *
+ * The InsForge database is the single source of truth. When the query succeeds its result is
+ * returned verbatim - including an empty result, which means the directory really is empty.
+ * Previously an empty (or failed) read fell through to DEFAULT_USERS plus the local cache,
+ * which resurrected phantom staff who no longer existed in the database.
+ *
+ * DEFAULT_USERS and the local cache are now used only when the database is genuinely
+ * unreachable, so an offline device keeps working without inventing accounts.
  */
 export async function getUsers(): Promise<User[]> {
   let resultUsers: User[] = [];
+  let databaseReachable = false;
   const deletedIds = new Set<string>();
 
   try {
@@ -188,8 +200,12 @@ export async function getUsers(): Promise<User[]> {
 
   if (!IS_DISCONNECTED_MODE) {
     try {
-      const { data, error } = await insforge.database.from('users').select('*');
+      const { data, error } = await insforge.database
+        .from('users')
+        .select('id, originalId, fullName, email, phone, role, department, staffId, position, status, profilePicture, password, createdAt')
+        .limit(500);
       if (!error && data && Array.isArray(data)) {
+        databaseReachable = true;
         resultUsers = data.map((u: any) => ({
           id: u.originalId || u.id,
           fullName: u.fullName || u.name || '',
@@ -210,43 +226,33 @@ export async function getUsers(): Promise<User[]> {
     }
   }
 
-  const userMap = new Map<string, User>();
-
-  // If InsForge DB returned users, DB is authoritative source of truth!
-  if (resultUsers.length > 0) {
+  // Database answered: its contents are the truth, empty or not.
+  if (databaseReachable) {
     for (const u of resultUsers) {
-      const key = u.email.toLowerCase().trim();
-      const idKey = u.id.toLowerCase().trim();
-      // Directly add all active database users
-      userMap.set(key, u);
-      // Synchronize: Clear from deletedIds because this user actively exists in DB
-      deletedIds.delete(key);
-      deletedIds.delete(idKey);
+      deletedIds.delete(u.email.toLowerCase().trim());
+      deletedIds.delete(u.id.toLowerCase().trim());
     }
-    // Save synchronized deleted list
     try {
       localStorage.setItem('accad_deleted_user_ids', JSON.stringify(Array.from(deletedIds)));
     } catch (e) {}
-  } else {
-    // Fallback only if offline/disconnected
-    const localList = getLocalUsers();
-    for (const u of DEFAULT_USERS) {
-      const key = u.email.toLowerCase().trim();
-      if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
-        userMap.set(key, u);
-      }
-    }
-    for (const u of localList) {
-      const key = u.email.toLowerCase().trim();
-      if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
-        userMap.set(key, u);
-      }
+
+    saveLocalUsers(resultUsers);
+    return resultUsers;
+  }
+
+  // Database unreachable: fall back to the last known good cache so the app keeps working.
+  const userMap = new Map<string, User>();
+  const localList = getLocalUsers();
+  const seedPool = localList.length > 0 ? localList : DEFAULT_USERS;
+
+  for (const u of seedPool) {
+    const key = u.email.toLowerCase().trim();
+    if (!deletedIds.has(key) && !deletedIds.has(u.id.toLowerCase().trim())) {
+      userMap.set(key, u);
     }
   }
 
-  const merged = Array.from(userMap.values());
-  saveLocalUsers(merged);
-  return merged;
+  return Array.from(userMap.values());
 }
 
 /**
@@ -350,21 +356,40 @@ export async function getUserByPhone(phone: string): Promise<User | null> {
 }
 
 /**
- * Create a new user (InsForge DB insert + Auth + Local sync)
+ * Reads a single user row straight from InsForge. Used to confirm that a write actually
+ * landed, rather than trusting a fire-and-forget call that may have been rejected.
+ */
+async function fetchUserRow(identifier: string): Promise<any | null> {
+  if (IS_DISCONNECTED_MODE) return null;
+  const normalized = identifier.toLowerCase().trim();
+  try {
+    const { data, error } = await insforge.database
+      .from('users')
+      .select('id, originalId, email, status')
+      .or(`email.eq.${normalized},id.eq.${identifier},originalId.eq.${identifier}`)
+      .limit(5);
+
+    if (error || !data || !Array.isArray(data)) return null;
+
+    return data.find((u: any) =>
+      u.email?.toLowerCase().trim() === normalized ||
+      u.id?.toLowerCase().trim() === normalized ||
+      u.originalId?.toLowerCase().trim() === normalized
+    ) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Create a new user. The InsForge database is the single source of truth, so this only
+ * reports success once the row has been read back from the database. A user that could not
+ * be persisted must surface as an error rather than a local-only ghost account that
+ * disappears on the next refresh (and whose welcome email points at a login that fails).
  */
 export async function createUser(user: User): Promise<User> {
   const cleanEmail = user.email.toLowerCase().trim();
   const cleanId = user.id.toLowerCase().trim();
-
-  // Unmark from deleted list if previously marked as deleted
-  try {
-    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
-    if (deletedRaw) {
-      const parsed: string[] = JSON.parse(deletedRaw);
-      const filtered = parsed.filter(id => id !== cleanEmail && id !== cleanId);
-      localStorage.setItem('accad_deleted_user_ids', JSON.stringify(filtered));
-    }
-  } catch (e) {}
 
   const payload = {
     id: user.id,
@@ -383,6 +408,8 @@ export async function createUser(user: User): Promise<User> {
   };
 
   if (!IS_DISCONNECTED_MODE) {
+    let dbError = '';
+
     try {
       await insforge.auth.signUp({
         email: payload.email,
@@ -396,24 +423,50 @@ export async function createUser(user: User): Promise<User> {
         .select();
 
       if (error) {
+        // The row may already exist (re-registering a previously removed address): sync it instead.
         console.warn('InsForge createUser insert notice (attempting update sync):', error);
-        await insforge.database
+        const { error: updateError } = await insforge.database
           .from('users')
           .update(payload)
           .eq('email', payload.email);
+        if (updateError) {
+          dbError = (updateError as any).message || String(updateError);
+        }
       } else if (data && data[0]) {
         user.id = data[0].originalId || data[0].id;
       }
-    } catch (e) {
+    } catch (e: any) {
+      dbError = e?.message || 'InsForge database unreachable';
       console.error('Failed creating user in InsForge:', e);
     }
+
+    // Authoritative confirmation: the account exists only if the database says it does.
+    const confirmed = await fetchUserRow(payload.email);
+    if (!confirmed) {
+      throw new Error(
+        `Could not save ${user.fullName} to the InsForge database${dbError ? ` (${dbError})` : ''}. The account was NOT created - please check the connection and try again.`
+      );
+    }
+    user.id = confirmed.originalId || confirmed.id || user.id;
   }
+
+  // Only once the database holds the record do we clear any stale local tombstone for it.
+  try {
+    const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
+    if (deletedRaw) {
+      const parsed: string[] = JSON.parse(deletedRaw);
+      const filtered = parsed.filter(id => id !== cleanEmail && id !== cleanId && id !== user.id.toLowerCase().trim());
+      localStorage.setItem('accad_deleted_user_ids', JSON.stringify(filtered));
+    }
+  } catch (e) {}
 
   const currentLocal = getLocalUsers();
   const idx = currentLocal.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
   if (idx >= 0) currentLocal[idx] = user;
   else currentLocal.push(user);
   saveLocalUsers(currentLocal);
+
+  notifyUserDirectoryChanged();
 
   return user;
 }
@@ -451,20 +504,45 @@ export async function updateUser(emailOrId: string, updates: Partial<User>): Pro
     }
   }
 
+  notifyUserDirectoryChanged();
+
   return true;
 }
 
 /**
- * Permanently Deactivate & Delete a User Record:
- * 1. Executes DELETE on InsForge DB across email, id, and originalId.
- * 2. Purges user from local storage and adds to permanent deactivation registry.
- * 3. Immediately purges active sessions if the user is currently logged in on this machine.
- * 4. Broadcasts cross-tab deactivation event to terminate active sessions immediately.
+ * Permanently delete a user, keeping the app and the InsForge database in lockstep.
+ *
+ * The database is deleted FIRST and the removal is verified by reading the row back. Only a
+ * confirmed deletion purges local state and records a tombstone. If the database still holds
+ * the record we fail loudly instead of hiding the user locally - otherwise the account would
+ * silently reappear on the next refresh (since the database is the source of truth) and could
+ * still be used to sign in from another device.
  */
 export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
   const normalized = userIdOrEmail.toLowerCase().trim();
 
-  // 1. Record in permanent deactivation registry
+  // 1. Delete from InsForge across every identifier column
+  if (!IS_DISCONNECTED_MODE) {
+    let dbError = '';
+    try {
+      await insforge.database.from('users').delete().eq('email', normalized);
+      await insforge.database.from('users').delete().eq('id', userIdOrEmail);
+      await insforge.database.from('users').delete().eq('originalId', userIdOrEmail);
+    } catch (e: any) {
+      dbError = e?.message || 'InsForge database unreachable';
+      console.warn('InsForge deactivateUser notice:', e);
+    }
+
+    // 2. Verify the record is genuinely gone before touching local state
+    const stillPresent = await fetchUserRow(userIdOrEmail);
+    if (stillPresent) {
+      throw new Error(
+        `Could not remove this account from the InsForge database${dbError ? ` (${dbError})` : ''}. The user still exists and can still sign in - nothing was changed.`
+      );
+    }
+  }
+
+  // 3. Record in the local deactivation registry (offline-mode safety net)
   try {
     const deletedRaw = localStorage.getItem('accad_deleted_user_ids');
     const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
@@ -475,17 +553,17 @@ export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
     localStorage.setItem('accad_last_revocation', Date.now().toString());
   } catch (e) {}
 
-  // 2. Remove from Local Storage lists
+  // 4. Remove from local storage lists
   localStorage.removeItem('accad_users_v1');
   localStorage.removeItem('accad_users');
   const currentLocal = getLocalUsers();
-  const updatedLocal = currentLocal.filter(u => 
-    u.id.toLowerCase().trim() !== normalized && 
+  const updatedLocal = currentLocal.filter(u =>
+    u.id.toLowerCase().trim() !== normalized &&
     u.email.toLowerCase().trim() !== normalized
   );
   saveLocalUsers(updatedLocal);
 
-  // 3. Check if currently logged-in user on this device is the deactivated user
+  // 5. Purge the active session if the deleted user is signed in on this device
   try {
     const activeRaw = localStorage.getItem('accad_user_v2') || localStorage.getItem('accad_user');
     if (activeRaw) {
@@ -500,31 +578,7 @@ export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
     }
   } catch (e) {}
 
-  // 4. Delete from InsForge Database across all identifier columns (Ensure perfect sync)
-  if (!IS_DISCONNECTED_MODE) {
-    try {
-      const res1 = await insforge.database
-        .from('users')
-        .delete()
-        .eq('email', normalized);
-
-      const res2 = await insforge.database
-        .from('users')
-        .delete()
-        .eq('id', userIdOrEmail);
-
-      const res3 = await insforge.database
-        .from('users')
-        .delete()
-        .eq('originalId', userIdOrEmail);
-
-      console.log('InsForge deactivateUser DB sync results:', { res1, res2, res3 });
-    } catch (e) {
-      console.warn('InsForge deactivateUser notice:', e);
-    }
-  }
-
-  // 5. Broadcast real-time deactivation event across all open windows & tabs
+  // 6. Broadcast the removal across all open windows & tabs
   try {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('accad_user_deactivated', { detail: { target: normalized } }));
@@ -532,10 +586,152 @@ export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
     }
   } catch (e) {}
 
+  notifyUserDirectoryChanged();
+
   return true;
 }
 
 export const deleteUser = deactivateUser;
+
+/* ------------------------------------------------------------------------------------------
+ * Live user-directory reconciliation
+ *
+ * Keeps the app and the InsForge database in step in BOTH directions: a user added or removed
+ * straight from the database (or from another device / browser tab) shows up here without a
+ * manual refresh, and local changes broadcast immediately to every open tab.
+ *
+ * Rather than re-downloading the whole table on a timer, this polls a cheap fingerprint of just
+ * four short columns and only fetches full rows when that fingerprint actually moves.
+ * ---------------------------------------------------------------------------------------- */
+
+export const USER_DIRECTORY_CHANGED_EVENT = 'accad_user_directory_changed';
+
+/** Announce a locally-made user change so other tabs and listeners reconcile at once. */
+export function notifyUserDirectoryChanged(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(USER_DIRECTORY_CHANGED_EVENT));
+    localStorage.setItem('accad_user_directory_stamp', Date.now().toString());
+  } catch (e) {}
+}
+
+/**
+ * Cheap change-probe over the users table. Returns a compact fingerprint covering membership
+ * (catches additions and deletions) plus role and status (catches promotions and deactivations).
+ * Returns null when the database cannot be reached, which is deliberately distinct from '' -
+ * the fingerprint of a genuinely empty table.
+ */
+export async function getUserDirectoryFingerprint(): Promise<string | null> {
+  if (IS_DISCONNECTED_MODE) return null;
+  try {
+    const { data, error } = await insforge.database
+      .from('users')
+      .select('id, email, role, status')
+      .limit(500);
+
+    if (error || !data || !Array.isArray(data)) return null;
+
+    return data
+      .map((u: any) => `${u.id}~${(u.email || '').toLowerCase().trim()}~${u.role}~${u.status}`)
+      .sort()
+      .join('|');
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Watches the InsForge users table and invokes onChange with the fresh list whenever the
+ * directory actually differs from what was last seen.
+ *
+ * Polling pauses while the tab is hidden and resumes (with an immediate check) on focus, so an
+ * ED dashboard left open overnight costs nothing.
+ *
+ * Returns an unsubscribe function.
+ */
+export function subscribeToUserDirectory(
+  onChange: (users: User[]) => void,
+  options?: { intervalMs?: number }
+): () => void {
+  const intervalMs = options?.intervalMs ?? 12000;
+  let lastFingerprint: string | null = null;
+  let stopped = false;
+  let inFlight = false;
+
+  const reconcile = async (force = false) => {
+    if (stopped || inFlight) return;
+    if (!force && typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
+    inFlight = true;
+    try {
+      const fingerprint = await getUserDirectoryFingerprint();
+
+      // Database unreachable - hold the last known good state rather than wiping the list.
+      if (fingerprint === null) return;
+
+      // First successful probe just establishes the baseline; the caller already has this data.
+      if (lastFingerprint === null) {
+        lastFingerprint = fingerprint;
+        return;
+      }
+
+      if (fingerprint !== lastFingerprint) {
+        lastFingerprint = fingerprint;
+        const freshUsers = await getUsers();
+        if (!stopped) onChange(freshUsers);
+      }
+    } catch (e) {
+      console.warn('[InsForge] user directory reconcile notice:', e);
+    } finally {
+      inFlight = false;
+    }
+  };
+
+  // Establish the baseline immediately so the first real change is detected promptly.
+  reconcile(true);
+
+  const timer = setInterval(() => reconcile(), intervalMs);
+
+  const handleFocus = () => reconcile(true);
+  const handleVisibility = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') reconcile(true);
+  };
+  const handleLocalChange = () => reconcile(true);
+  const handleStorage = (e: StorageEvent) => {
+    if (
+      e.key === 'accad_user_directory_stamp' ||
+      e.key === 'accad_session_revoked_at' ||
+      e.key === 'accad_deleted_user_ids'
+    ) {
+      reconcile(true);
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(USER_DIRECTORY_CHANGED_EVENT, handleLocalChange);
+    window.addEventListener('accad_user_deactivated', handleLocalChange);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibility);
+    }
+  }
+
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(USER_DIRECTORY_CHANGED_EVENT, handleLocalChange);
+      window.removeEventListener('accad_user_deactivated', handleLocalChange);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibility);
+      }
+    }
+  };
+}
+
 
 /**
  * Clear all farm logs / reports from InsForge DB + Local storage (Start Afresh)
