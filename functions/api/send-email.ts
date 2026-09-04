@@ -112,17 +112,25 @@ async function sendViaGmailSMTP(options: {
     return `=?UTF-8?B?${toBase64(subj)}?=`;
   };
 
-  // 6. Construct RFC 2822 / 2045 multipart email with aligned Gmail domain
+  // 6. Construct the RFC 5322 / 2045 multipart message.
+  //
+  // Deliberately NO Message-ID header: we used to forge one claiming "@gmail.com", a domain
+  // whose mail servers we do not run. A self-assigned Message-ID in someone else's domain is a
+  // recognised spoofing signal and hurts inbox placement. Gmail's submission service assigns a
+  // proper one when the header is absent.
   const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  const messageId = `<${Date.now()}.${Math.random().toString(36).substring(2, 9)}@gmail.com>`;
-  const dateStr = new Date().toUTCString();
+
+  // RFC 5322 wants a numeric zone offset; toUTCString() emits the obsolete "GMT" form.
+  const dateStr = new Date().toUTCString().replace(/GMT$/, '+0000');
+
+  // Escape any quotes in the display name so the From header cannot be broken apart.
+  const safeFromName = fromName.split(String.fromCharCode(34)).join('').split(String.fromCharCode(92)).join('');
 
   const headers = [
-    `From: "${fromName}" <${gmailUser}>`,
+    `From: "${safeFromName}" <${gmailUser}>`,
     `To: <${to}>`,
     `Subject: ${encodeSubject(subject)}`,
     `Date: ${dateStr}`,
-    `Message-ID: ${messageId}`,
     `Reply-To: ${gmailUser}`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`
@@ -163,7 +171,9 @@ async function sendViaGmailSMTP(options: {
     socket.close();
   } catch (e) {}
 
-  return { messageId, response: dataReply.trim() };
+  const serverReply = dataReply.trim();
+  const assignedId = serverReply.split(/s+/).find(t => /^[0-9a-z]{10,}$/i.test(t)) || 'assigned-by-gmail';
+  return { messageId: assignedId, response: serverReply };
 }
 
 export const onRequestPost = async ({ request, env }: { request: Request; env: Env }) => {
