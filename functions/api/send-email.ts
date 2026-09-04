@@ -186,15 +186,36 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
 
     console.log(`[Cloudflare Pages SMTPS] Dispatching real email to: ${recipient}`);
 
-    const result = await sendViaGmailSMTP({
-      gmailUser,
-      gmailPass,
-      to: recipient,
-      fromName,
-      subject,
-      html,
-      text
-    });
+    // Retry transient SMTP failures (handshake drops, throttling) before reporting a hard failure.
+    // A new staff member losing their credentials email to a one-off socket blip is not acceptable.
+    const MAX_SMTP_ATTEMPTS = 3;
+    let result: { messageId: string; response: string } | null = null;
+    let lastSmtpError: any = null;
+
+    for (let attempt = 1; attempt <= MAX_SMTP_ATTEMPTS; attempt++) {
+      try {
+        result = await sendViaGmailSMTP({
+          gmailUser,
+          gmailPass,
+          to: recipient,
+          fromName,
+          subject,
+          html,
+          text
+        });
+        break;
+      } catch (smtpErr: any) {
+        lastSmtpError = smtpErr;
+        console.warn(`[Cloudflare Pages SMTPS] Attempt ${attempt}/${MAX_SMTP_ATTEMPTS} to ${recipient} failed: ${smtpErr?.message}`);
+        if (attempt < MAX_SMTP_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+        }
+      }
+    }
+
+    if (!result) {
+      throw lastSmtpError || new Error('SMTP delivery failed after retries');
+    }
 
     console.log(`[Cloudflare Pages SMTPS] Success! Delivered to ${recipient}. MessageId: ${result.messageId}`);
 

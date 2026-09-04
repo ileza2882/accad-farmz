@@ -231,25 +231,29 @@ const server = http.createServer((req, res) => {
               return;
             } catch (gmailErr) {
               console.error('❌ [Google Mail SMTP] Error sending via Gmail SMTP:', gmailErr.message);
+              // Report the real failure. Never claim delivery we did not achieve: the ED relies on
+              // this status to know whether a new staff member actually received their credentials.
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                sender: gmailUser,
+                error: `Gmail SMTP rejected the message: ${gmailErr.message}`
+              }));
+              return;
             }
           }
 
-          // Fallback simulation log
-          console.log(`\n📧 [Dev Server Mail Hub] Dispatched Email Notification:`);
+          // No Gmail app password configured - nothing was actually sent. Say so.
+          console.log(`\n📧 [Dev Server Mail Hub] Email NOT sent - no GMAIL_APP_PASSWORD configured:`);
           console.log(`   To: ${parsed.to}`);
           console.log(`   Subject: "${parsed.subject}"`);
-          console.log(`   Sender: ${parsed.fromName || 'ACCAD FARMS'} <${gmailUser}>`);
-          if (!gmailPass) {
-            console.log(`   💡 Tip: Add GMAIL_APP_PASSWORD in .env to send live emails directly via smtp.gmail.com!`);
-          }
-          console.log(`   Status: 200 OK Registered\n`);
+          console.log(`   💡 Add GMAIL_APP_PASSWORD in .env to send live emails via smtp.gmail.com\n`);
 
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ 
-            success: true, 
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
             sender: gmailUser,
-            message: `Email dispatched to ${parsed.to} from ${gmailUser}`, 
-            deliveredAt: new Date().toISOString() 
+            error: 'No GMAIL_APP_PASSWORD configured on this host - email was not sent.'
           }));
         } catch (e) {
           res.writeHead(400, { 'Content-Type': 'application/json' });

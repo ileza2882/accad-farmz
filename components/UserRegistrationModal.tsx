@@ -111,6 +111,14 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   };
 
   const handleCloseModal = () => {
+    // Closing mid-dispatch can abandon the request before Gmail accepts it, leaving the new
+    // staff member with no credentials email and no warning to the ED.
+    if (emailStatus.isSending) {
+      const leaveAnyway = window.confirm(
+        'The credentials email is still being sent to this staff member.\n\nClose anyway? They may not receive their login details.'
+      );
+      if (!leaveAnyway) return;
+    }
     handleResetForm();
     onClose();
   };
@@ -131,7 +139,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, emailStatus.isSending]);
 
   if (!isOpen) return null;
 
@@ -269,13 +277,13 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
         type: 'info'
       });
 
-      // Dispatch automated welcome & credentials table email from accadfarmsapp@gmail.com
-      handleDispatchWelcomeEmail(created);
-
       if (onUserRegistered) onUserRegistered(created);
       if (onUserCreated) onUserCreated(created);
 
+      // Show the credentials panel immediately so the ED always has the passcode on screen, then
+      // await the dispatch so the in-flight request is never abandoned before Gmail accepts it.
       setRegisteredUser(created);
+      await handleDispatchWelcomeEmail(created);
       setIsSubmitting(false);
 
     } catch (err: any) {

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, Role, Department } from '../types';
 import { updateUser, deactivateUser, deleteUser, createAuditLog, createNotification } from '../lib/insforge';
-import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X } from 'lucide-react';
+import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X, Mail } from 'lucide-react';
+import { sendUserWelcomeEmail } from '../lib/emailService';
 
 interface UserManagementTableProps {
   users: User[];
@@ -20,6 +21,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   const [editingRole, setEditingRole] = useState<Role | ''>('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null);
 
   const filteredUsers = users.filter(u => {
     const matchesSearch = 
@@ -65,14 +67,52 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
     }
   };
 
+  /**
+   * Re-sends the official welcome & credentials email to an existing staff member.
+   * Registration dispatches this automatically, but network blips, typo'd addresses that were
+   * later corrected, and spam-foldered mail all leave users without their login details. This
+   * gives the ED a way to get credentials to any user at any time.
+   */
+  const handleResendCredentials = async (targetUser: User) => {
+    if (resendingUserId) return;
+
+    const confirmSend = window.confirm(
+      `Re-send the welcome & credentials email to "${targetUser.fullName}"?\n\nIt will be delivered to: ${targetUser.email}`
+    );
+    if (!confirmSend) return;
+
+    setResendingUserId(targetUser.id);
+    setActionMessage(null);
+
+    try {
+      const result = await sendUserWelcomeEmail({
+        newUser: targetUser,
+        edCreator: { ...edUser, email: 'accadfarmsapp@gmail.com' }
+      });
+
+      if (result.success) {
+        setActionMessage(`Credentials email re-sent to ${targetUser.fullName} (${targetUser.email})`);
+      } else {
+        setActionMessage(`Could not send to ${targetUser.email}: ${result.message}`);
+      }
+    } catch (e: any) {
+      setActionMessage(`Could not send to ${targetUser.email}: ${e?.message || 'Unknown error'}`);
+    } finally {
+      setResendingUserId(null);
+      setTimeout(() => setActionMessage(null), 6000);
+    }
+  };
+
   const handleDeleteUser = async (userToDel: User) => {
     const confirmText = `Are you sure you want to DEACTIVATE "${userToDel.fullName}" (${userToDel.email})?\n\nThis account will be automatically and permanently deleted from the InsForge database, and their access to all dashboards will be immediately revoked.`;
     if (!window.confirm(confirmText)) return;
 
     try {
+      // deactivateUser now verifies the row is genuinely gone from InsForge and throws if it
+      // is not, so a failed delete can no longer look like a success and reappear on refresh.
       await deactivateUser(userToDel.email);
       if (userToDel.id) await deactivateUser(userToDel.id);
-      
+
       await createAuditLog(
         edUser.fullName,
         edUser.email,
@@ -85,7 +125,8 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
 
       setTimeout(() => setActionMessage(null), 3000);
     } catch (e: any) {
-      alert('Failed to deactivate user: ' + e.message);
+      alert(`Could not delete ${userToDel.fullName}.\n\n${e?.message || 'Unknown error'}\n\nNothing was changed - the account still exists.`);
+      await onUsersUpdated();
     }
   };
 
@@ -259,16 +300,31 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    {edUser.email !== u.email && (
+                    <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => handleDeleteUser(u)}
-                        className="px-3.5 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 ml-auto cursor-pointer shadow-sm active:scale-95"
-                        title="Permanently deactivate and delete user record from database"
+                        onClick={() => handleResendCredentials(u)}
+                        disabled={resendingUserId === u.id}
+                        className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+                        title="Re-send the welcome & login credentials email to this staff member"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Deactivate</span>
+                        {resendingUserId === u.id ? (
+                          <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Mail className="w-3.5 h-3.5" />
+                        )}
+                        <span>{resendingUserId === u.id ? 'Sending...' : 'Resend Email'}</span>
                       </button>
-                    )}
+                      {edUser.email !== u.email && (
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="px-3.5 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95"
+                          title="Permanently deactivate and delete user record from database"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Deactivate</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -318,6 +374,22 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                 {u.phone && (
                   <span className="text-slate-500 font-medium">{u.phone}</span>
                 )}
+              </div>
+
+              {/* Resend credentials - available for every staff member */}
+              <div className="pt-2 border-t border-slate-200">
+                <button
+                  onClick={() => handleResendCredentials(u)}
+                  disabled={resendingUserId === u.id}
+                  className="w-full flex items-center justify-center space-x-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {resendingUserId === u.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Mail className="w-3.5 h-3.5" />
+                  )}
+                  <span>{resendingUserId === u.id ? 'Sending Credentials...' : 'Resend Credentials Email'}</span>
+                </button>
               </div>
 
               {/* Actions */}

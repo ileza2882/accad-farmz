@@ -68,63 +68,86 @@ export async function dispatchEmailWithInsForge(options: {
   let dispatchedSuccessfully = false;
   let lastError = '';
 
-  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via local edge endpoint with instant failover to Cloudflare Pages production endpoint
+  // 1. PRIMARY: Google Mail (Gmail SMTPS) via the same-origin edge endpoint, with failover to the
+  //    Cloudflare Pages production endpoint. Each endpoint is retried with backoff so a single
+  //    transient blip never silently costs a new staff member their credentials email.
   const candidateEndpoints = [
     '/api/send-email',
     'https://accadfarms.pages.dev/api/send-email'
   ];
+  const MAX_ATTEMPTS_PER_ENDPOINT = 3;
 
+  const requestBody = JSON.stringify({
+    to: recipient,
+    from: fromEmail,
+    fromName: fromName,
+    subject: subject,
+    html: options.html,
+    text: options.text,
+    replyTo: replyTo,
+    user: options.metaPayload ? {
+      fullName: options.metaPayload['Staff Member Name'],
+      password: options.metaPayload['Temporary Passcode'],
+      role: options.metaPayload['Assigned Role'],
+      department: options.metaPayload['Department / Sector']
+    } : undefined,
+    customNotes: options.metaPayload?.['Special Remarks from ED']
+  });
+
+  endpointLoop:
   for (const endpoint of candidateEndpoints) {
-    try {
-      console.log(`[EmailService] Attempting delivery to ${recipient} via ${endpoint}...`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_ENDPOINT; attempt++) {
+      try {
+        console.log(`[EmailService] Delivery attempt ${attempt}/${MAX_ATTEMPTS_PER_ENDPOINT} to ${recipient} via ${endpoint}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          to: recipient,
-          from: fromEmail,
-          fromName: fromName,
-          subject: subject,
-          html: options.html,
-          text: options.text,
-          user: options.metaPayload ? {
-            fullName: options.metaPayload['Staff Member Name'],
-            password: options.metaPayload['Temporary Passcode'],
-            role: options.metaPayload['Assigned Role'],
-            department: options.metaPayload['Department / Sector']
-          } : undefined,
-          customNotes: options.metaPayload?.['Special Remarks from ED']
-        })
-      });
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          signal: controller.signal,
+          body: requestBody
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const resData = await res.json().catch(() => ({ success: true }));
-        if (resData.success !== false) {
+        // Read the body as text first: a 200 that is not JSON means the SPA fallback answered and
+        // the mail function is not actually deployed on this host. That must NOT count as delivered.
+        const rawResponse = await res.text().catch(() => '');
+        let resData: any = null;
+        try {
+          resData = rawResponse ? JSON.parse(rawResponse) : null;
+        } catch {
+          resData = null;
+        }
+
+        if (res.ok && resData && resData.success !== false) {
           dispatchedSuccessfully = true;
           deliveryMethod = 'gmail_smtp';
-          console.log(`[EmailService] ✅ Successfully dispatched via Google Mail Hub (${endpoint}) to ${recipient}:`, resData);
-          break;
-        } else {
-          lastError = resData.error || `Server responded with failure at ${endpoint}`;
-          console.warn(`[EmailService] Endpoint ${endpoint} returned logical failure:`, lastError);
+          console.log(`[EmailService] Successfully dispatched via Google Mail Hub (${endpoint}) to ${recipient}:`, resData);
+          break endpointLoop;
         }
-      } else {
-        const errorText = await res.text().catch(() => '');
-        lastError = `HTTP ${res.status}: ${errorText || res.statusText}`;
-        console.warn(`[EmailService] Endpoint ${endpoint} returned HTTP ${res.status}`);
+
+        if (!res.ok) {
+          lastError = `HTTP ${res.status}: ${rawResponse.slice(0, 200) || res.statusText}`;
+        } else if (!resData) {
+          lastError = `Endpoint ${endpoint} returned no JSON delivery receipt - the mail function is not deployed on this host.`;
+        } else {
+          lastError = resData.error || `Server reported a delivery failure at ${endpoint}`;
+        }
+        console.warn(`[EmailService] Attempt ${attempt} via ${endpoint} failed:`, lastError);
+      } catch (e: any) {
+        lastError = e?.name === 'AbortError' ? 'Connection timed out' : (e?.message || 'Network unreachable');
+        console.warn(`[EmailService] Attempt ${attempt} via ${endpoint} failed:`, lastError);
       }
-    } catch (e: any) {
-      lastError = e?.name === 'AbortError' ? 'Connection timed out' : (e?.message || 'Network unreachable');
-      console.warn(`[EmailService] Notice trying ${endpoint}:`, lastError);
+
+      // Linear backoff between retries against the same endpoint
+      if (attempt < MAX_ATTEMPTS_PER_ENDPOINT) {
+        await new Promise(resolve => setTimeout(resolve, 900 * attempt));
+      }
     }
   }
 
