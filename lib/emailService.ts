@@ -65,46 +65,71 @@ export async function dispatchEmailWithInsForge(options: {
   }
 
   let deliveryMethod: 'gmail_smtp' | 'edge_function' | 'in_app_dispatch' | 'simulated' = 'in_app_dispatch';
+  let dispatchedSuccessfully = false;
+  let lastError = '';
 
-  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via /api/send-email edge endpoint
-  try {
-    const endpoints = ['/api/send-email'];
-    for (const endpoint of endpoints) {
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: recipient,
-            from: fromEmail,
-            fromName: fromName,
-            subject: subject,
-            html: options.html,
-            text: options.text,
-            user: options.metaPayload ? {
-              fullName: options.metaPayload['Staff Member Name'],
-              password: options.metaPayload['Temporary Passcode'],
-              role: options.metaPayload['Assigned Role'],
-              department: options.metaPayload['Department / Sector']
-            } : undefined,
-            customNotes: options.metaPayload?.['Special Remarks from ED']
-          })
-        });
+  // 1. PRIMARY: Direct Google Mail (Gmail SMTP) via local edge endpoint with instant failover to Cloudflare Pages production endpoint
+  const candidateEndpoints = [
+    '/api/send-email',
+    'https://accadfarms.pages.dev/api/send-email'
+  ];
 
-        if (res.ok) {
-          const resData = await res.json();
+  for (const endpoint of candidateEndpoints) {
+    try {
+      console.log(`[EmailService] Attempting delivery to ${recipient} via ${endpoint}...`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          to: recipient,
+          from: fromEmail,
+          fromName: fromName,
+          subject: subject,
+          html: options.html,
+          text: options.text,
+          user: options.metaPayload ? {
+            fullName: options.metaPayload['Staff Member Name'],
+            password: options.metaPayload['Temporary Passcode'],
+            role: options.metaPayload['Assigned Role'],
+            department: options.metaPayload['Department / Sector']
+          } : undefined,
+          customNotes: options.metaPayload?.['Special Remarks from ED']
+        })
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const resData = await res.json().catch(() => ({ success: true }));
+        if (resData.success !== false) {
+          dispatchedSuccessfully = true;
           deliveryMethod = 'gmail_smtp';
-          console.log(`[EmailService] Dispatched via Google Mail Hub (${endpoint}) from ${fromEmail}:`, resData);
+          console.log(`[EmailService] ✅ Successfully dispatched via Google Mail Hub (${endpoint}) to ${recipient}:`, resData);
           break;
+        } else {
+          lastError = resData.error || `Server responded with failure at ${endpoint}`;
+          console.warn(`[EmailService] Endpoint ${endpoint} returned logical failure:`, lastError);
         }
-      } catch (e) {}
+      } else {
+        const errorText = await res.text().catch(() => '');
+        lastError = `HTTP ${res.status}: ${errorText || res.statusText}`;
+        console.warn(`[EmailService] Endpoint ${endpoint} returned HTTP ${res.status}`);
+      }
+    } catch (e: any) {
+      lastError = e?.name === 'AbortError' ? 'Connection timed out' : (e?.message || 'Network unreachable');
+      console.warn(`[EmailService] Notice trying ${endpoint}:`, lastError);
     }
-  } catch (err) {
-    console.warn('[EmailService] Gmail SMTP endpoint notice:', err);
   }
 
   // 2. Secondary: InsForge BaaS SMTP Client (if configured)
-  if (!IS_DISCONNECTED_MODE && insforge?.emails?.send) {
+  if (!dispatchedSuccessfully && !IS_DISCONNECTED_MODE && insforge?.emails?.send) {
     try {
       const { data, error } = await insforge.emails.send({
         to: recipient,
@@ -115,10 +140,15 @@ export async function dispatchEmailWithInsForge(options: {
       });
 
       if (!error) {
-        deliveryMethod = 'insforge_smtp';
+        dispatchedSuccessfully = true;
+        deliveryMethod = 'in_app_dispatch';
         console.log(`[EmailService] Delivered via InsForge SMTP to ${recipient}`);
+      } else {
+        lastError = error.message || lastError;
       }
-    } catch (insErr) {}
+    } catch (insErr: any) {
+      lastError = insErr?.message || lastError;
+    }
   }
 
   // 3. Save local sent record
@@ -128,18 +158,31 @@ export async function dispatchEmailWithInsForge(options: {
       recipient,
       subject,
       timestamp: Date.now(),
-      status: 'SENT',
+      status: dispatchedSuccessfully ? 'SENT' : 'FAILED',
       deliveryMethod,
-      provider: 'Google Mail (accadfarmsapp@gmail.com)'
+      provider: 'Google Mail (accadfarmsapp@gmail.com)',
+      error: dispatchedSuccessfully ? undefined : lastError
     });
     localStorage.setItem('accad_sent_emails', JSON.stringify(existing.slice(0, 50)));
   } catch (e) {}
+
+  if (!dispatchedSuccessfully) {
+    console.error(`[EmailService] ❌ Failed to dispatch email to ${recipient}: ${lastError}`);
+    return {
+      success: false,
+      recipient,
+      subject,
+      message: `Failed to dispatch email to ${recipient}: ${lastError}`,
+      timestamp: Date.now(),
+      deliveryMethod: 'simulated'
+    };
+  }
 
   return {
     success: true,
     recipient,
     subject,
-    message: `Email notification automatically dispatched to ${recipient} via InsForge SMTP`,
+    message: `Email notification successfully dispatched from accadfarmsapp@gmail.com to ${recipient}`,
     timestamp: Date.now(),
     deliveryMethod
   };
@@ -149,31 +192,29 @@ export async function dispatchEmailWithInsForge(options: {
  * Generates plain-text invitation and credentials message with optional ED remarks.
  */
 export function generateWelcomeEmailPlainText(user: User, edCreator?: User, customNotes?: string): string {
-  const loginUrl = window.location.origin || 'https://accadfarms.netlify.app';
+  const loginUrl = (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost'))
+    ? window.location.origin 
+    : 'https://accadfarms.pages.dev';
   const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
 
-  return `🌾 ACCAD FARMS - Official Personnel Credentials Notification
+  return `ACCAD FARMS - Official Personnel Credentials Notification
 
 Hello ${user.fullName},
 
-Your official staff account has been created on the ACCAD FARMS Portal by the Executive Directorate (${creatorEmail}).
+Your official staff account has been created on the ACCAD FARMS Management Portal by the Executive Directorate (${creatorEmail}).
 
-Here is your official account credentials table:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  FIELD                   │ DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Staff Member Name       │ ${user.fullName}
-  Portal Login Email      │ ${user.email}
-  Temporary Passcode      │ ${user.password || '123456'}
-  Assigned System Role    │ ${(user.role || 'STAFF').toUpperCase()}
-  Department / Sector     │ ${user.department || 'General Operations'}
-  Position / Designation  │ ${user.position || `${user.department || ''} Staff`}
-  Staff Identification ID │ ${user.staffId || 'STF-ACCAD'}
-  Official Dispatcher     │ accadfarmsapp@gmail.com
-  Portal Web Address      │ ${loginUrl}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${cleanNotes ? `\n📝 SPECIAL MESSAGE FROM EXECUTIVE DIRECTOR:\n"${cleanNotes}"\n` : ''}
+Account Details:
+- Staff Member Name: ${user.fullName}
+- Portal Login Email: ${user.email}
+- Temporary Passcode: ${user.password || '123456'}
+- Assigned System Role: ${(user.role || 'STAFF').toUpperCase()}
+- Department / Sector: ${user.department || 'General Operations'}
+- Position / Designation: ${user.position || `${user.department || ''} Staff`}
+- Staff Identification ID: ${user.staffId || 'STF-ACCAD'}
+- Official Dispatcher: accadfarmsapp@gmail.com
+- Portal Web Address: ${loginUrl}
+${cleanNotes ? `\nSpecial Remarks from Executive Director:\n"${cleanNotes}"\n` : ''}
 Security Notice:
 Please sign in to the portal and change your temporary password upon first login. Keep your login passcode strictly confidential.
 
@@ -188,7 +229,9 @@ Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
  * featuring an official credential table.
  */
 export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNotes?: string): string {
-  const loginUrl = window.location.origin || 'https://accadfarms.netlify.app';
+  const loginUrl = (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost'))
+    ? window.location.origin 
+    : 'https://accadfarms.pages.dev';
   const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
   const cleanNotes = customNotes ? customNotes.trim() : '';
   

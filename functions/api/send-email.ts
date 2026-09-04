@@ -78,8 +78,8 @@ async function sendViaGmailSMTP(options: {
     throw new Error('Invalid SMTP greeting from smtp.gmail.com: ' + greeting.trim());
   }
 
-  // 2. EHLO handshake
-  await sendCmd('EHLO localhost', '250');
+  // 2. EHLO handshake with Gmail
+  await sendCmd('EHLO gmail.com', '250');
 
   // 3. AUTH LOGIN credentials
   await sendCmd('AUTH LOGIN', '334');
@@ -93,15 +93,34 @@ async function sendViaGmailSMTP(options: {
   // 5. DATA command
   await sendCmd('DATA', '354');
 
-  // 6. Construct RFC 2822 multipart email
+  // Helper functions for 100% RFC 2045 base64 MIME compliance
+  const toBase64 = (str: string): string => {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
+
+  const formatBase64 = (b64: string): string => {
+    return b64.match(/.{1,76}/g)?.join('\r\n') || b64;
+  };
+
+  const encodeSubject = (subj: string): string => {
+    if (/^[\x20-\x7E]*$/.test(subj)) return subj;
+    return `=?UTF-8?B?${toBase64(subj)}?=`;
+  };
+
+  // 6. Construct RFC 2822 / 2045 multipart email with aligned Gmail domain
   const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  const messageId = `<${Date.now()}.${Math.random().toString(36).substring(2, 9)}@accadfarms.pages.dev>`;
+  const messageId = `<${Date.now()}.${Math.random().toString(36).substring(2, 9)}@gmail.com>`;
   const dateStr = new Date().toUTCString();
 
   const headers = [
     `From: "${fromName}" <${gmailUser}>`,
     `To: <${to}>`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     `Date: ${dateStr}`,
     `Message-ID: ${messageId}`,
     `Reply-To: ${gmailUser}`,
@@ -109,20 +128,23 @@ async function sendViaGmailSMTP(options: {
     `Content-Type: multipart/alternative; boundary="${boundary}"`
   ].join('\r\n');
 
+  const textContent = text || 'Welcome to ACCAD FARMS Portal';
+  const htmlContent = html || `<p>${textContent}</p>`;
+
   const rawBody = [
     headers,
     '',
     `--${boundary}`,
     `Content-Type: text/plain; charset=utf-8`,
-    `Content-Transfer-Encoding: 8bit`,
+    `Content-Transfer-Encoding: base64`,
     '',
-    text || '',
+    formatBase64(toBase64(textContent)),
     '',
     `--${boundary}`,
     `Content-Type: text/html; charset=utf-8`,
-    `Content-Transfer-Encoding: 8bit`,
+    `Content-Transfer-Encoding: base64`,
     '',
-    html || '',
+    formatBase64(toBase64(htmlContent)),
     '',
     `--${boundary}--`,
     '.'

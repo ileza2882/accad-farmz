@@ -13,6 +13,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3300,
       host: '0.0.0.0',
+      proxy: {
+        '/api/send-email': {
+          target: 'https://accadfarms.pages.dev',
+          changeOrigin: true,
+          secure: true
+        }
+      }
     },
     plugins: [react()],
     define: {

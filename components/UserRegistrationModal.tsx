@@ -54,6 +54,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [customNotes, setCustomNotes] = useState('');
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
+  const [emailStatus, setEmailStatus] = useState<{
+    sent: boolean;
+    error?: string;
+    isSending?: boolean;
+  }>({ sent: false });
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -61,6 +66,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
   const handleResetForm = () => {
     setRegisteredUser(null);
+    setEmailStatus({ sent: false });
     setFullName('');
     setEmail('');
     setPhone('');
@@ -72,6 +78,36 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setError(null);
     setSuccess(null);
     setIsSubmitting(false);
+  };
+
+  const handleDispatchWelcomeEmail = async (targetUser: User) => {
+    setEmailStatus({ sent: false, isSending: true });
+    try {
+      const result = await sendUserWelcomeEmail({
+        newUser: targetUser,
+        edCreator: {
+          ...currentEd,
+          email: 'accadfarmsapp@gmail.com'
+        },
+        customNotes: customNotes.trim()
+      });
+
+      if (result.success) {
+        setEmailStatus({ sent: true, isSending: false });
+      } else {
+        setEmailStatus({ 
+          sent: false, 
+          isSending: false, 
+          error: result.message || 'Email delivery failed' 
+        });
+      }
+    } catch (err: any) {
+      setEmailStatus({ 
+        sent: false, 
+        isSending: false, 
+        error: err?.message || 'Email dispatch failed' 
+      });
+    }
   };
 
   const handleCloseModal = () => {
@@ -234,18 +270,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       });
 
       // Dispatch automated welcome & credentials table email from accadfarmsapp@gmail.com
-      try {
-        await sendUserWelcomeEmail({
-          newUser: created,
-          edCreator: {
-            ...currentEd,
-            email: 'accadfarmsapp@gmail.com'
-          },
-          customNotes: customNotes.trim()
-        });
-      } catch (err) {
-        console.warn('Welcome credentials email dispatch notice:', err);
-      }
+      handleDispatchWelcomeEmail(created);
 
       if (onUserRegistered) onUserRegistered(created);
       if (onUserCreated) onUserCreated(created);
@@ -359,10 +384,45 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
             </div>
 
             {/* Live Automated Dispatch Status */}
-            <div className="flex items-center justify-center space-x-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl py-3.5 px-4 shadow-sm">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Verified credentials table dispatched from <strong>accadfarmsapp@gmail.com</strong> to <strong>{registeredUser.email}</strong></span>
-            </div>
+            {emailStatus.sent ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl py-3 px-4 shadow-sm">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Verified credentials dispatched from <strong>accadfarmsapp@gmail.com</strong> to <strong>{registeredUser.email}</strong></span>
+                </div>
+                <button
+                  type="button"
+                  disabled={emailStatus.isSending}
+                  onClick={() => handleDispatchWelcomeEmail(registeredUser)}
+                  className="px-3 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-lg border border-emerald-300 transition-all shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-xs"
+                >
+                  {emailStatus.isSending ? 'Sending...' : '↻ Resend Email'}
+                </button>
+              </div>
+            ) : emailStatus.isSending ? (
+              <div className="flex items-center justify-center space-x-2 text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-2xl py-3.5 px-4 shadow-sm animate-pulse">
+                <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Dispatching credentials email via Google Mail to <strong>{registeredUser.email}</strong>...</span>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl py-3 px-4 shadow-sm">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div>
+                    <span>Delivery Notice: {emailStatus.error || 'Awaiting confirmation'}</span>
+                    <p className="text-[10px] text-amber-700 font-normal mt-0.5">You can retry sending now or share the passcode directly.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={emailStatus.isSending}
+                  onClick={() => handleDispatchWelcomeEmail(registeredUser)}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 shadow-xs"
+                >
+                  ↻ Retry Send
+                </button>
+              </div>
+            )}
 
             {/* Delivery Tip */}
             <p className="text-[11px] text-center text-slate-500">
