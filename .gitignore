@@ -37,6 +37,7 @@ dist-ssr
 .roo
 .trae
 .windsurf
+.wrangler
 
 # Local Netlify folder
 .netlify

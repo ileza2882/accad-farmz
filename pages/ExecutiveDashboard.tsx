@@ -1803,14 +1803,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       )}
 
       {/* User Registration Modal */}
-      <UserRegistrationModal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        onUserCreated={loadData}
-        onUserRegistered={loadData}
-        creator={user}
-        edUser={user}
-      />
+      {isRegisterModalOpen && (
+        <UserRegistrationModal
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          onUserCreated={loadData}
+          onUserRegistered={loadData}
+          creator={user}
+          edUser={user}
+        />
+      )}
 
       {/* Report Details Modal */}
       {selectedReport && (

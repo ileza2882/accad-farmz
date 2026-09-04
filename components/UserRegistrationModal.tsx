@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Role, Department, User, DEPARTMENT_CATEGORIZED_ROLES } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
 import { sendUserWelcomeEmail } from '../lib/emailService';
@@ -59,6 +59,44 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleResetForm = () => {
+    setRegisteredUser(null);
+    setFullName('');
+    setEmail('');
+    setPhone('');
+    setTempPassword('Accad2026!');
+    setShowPassword(false);
+    setDepartment(Department.FISHERY);
+    setSelectedRoleType('STAFF');
+    setCustomNotes('');
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(false);
+  };
+
+  const handleCloseModal = () => {
+    handleResetForm();
+    onClose();
+  };
+
+  // Whenever modal opens, ensure we always start with a clean registration form
+  useEffect(() => {
+    if (isOpen) {
+      handleResetForm();
+    }
+  }, [isOpen]);
+
+  // Handle ESC key to dismiss and reset
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleGeneratePassword = () => {
@@ -77,20 +115,6 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     if (newDept !== Department.FISHERY && selectedRoleType === 'HATCHERY_MANAGER') {
       setSelectedRoleType('STAFF');
     }
-  };
-
-  const handleResetForm = () => {
-    setRegisteredUser(null);
-    setFullName('');
-    setEmail('');
-    setPhone('');
-    setTempPassword('Accad2026!');
-    setShowPassword(false);
-    setDepartment(Department.FISHERY);
-    setSelectedRoleType('STAFF');
-    setCustomNotes('');
-    setError(null);
-    setSuccess(null);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -236,12 +260,19 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn font-sans">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn font-sans"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleCloseModal();
+        }
+      }}
+    >
       <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative">
         
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleCloseModal}
           type="button"
           className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
         >
@@ -350,7 +381,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleCloseModal}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
               >
                 Done & Return to Dashboard
@@ -526,7 +557,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
             <div className="pt-4 flex justify-end space-x-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleCloseModal}
                 className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors active:scale-95 cursor-pointer"
               >
                 Cancel
