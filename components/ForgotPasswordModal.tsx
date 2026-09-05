@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getUserByEmail, updateUser, createNotification, createAuditLog } from '../lib/insforge';
+import { getUserByEmail, updateUser, createNotification, createAuditLog, createPasswordResetRequest } from '../lib/insforge';
 import { sendPasswordResetRequestEmail } from '../lib/emailService';
 import { Role } from '../types';
 import { 
@@ -81,6 +81,10 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       }
 
       // Staff / Manager Flow: Dispatch request to Executive Director
+      // Record the request so it surfaces in the ED's User Management table. A notification
+      // and an email alone are both easy to miss.
+      await createPasswordResetRequest({ user, note: note.trim() });
+
       await createNotification({
         userId: 'ed_user_1',
         userEmail: 'accadfarmsapp@gmail.com',

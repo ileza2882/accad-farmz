@@ -594,6 +594,122 @@ export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
 export const deleteUser = deactivateUser;
 
 /* ------------------------------------------------------------------------------------------
+ * Password reset requests
+ *
+ * When a staff member uses "Forgot Password" the request is recorded here so it shows up in
+ * the ED's User Management table. Previously it only fired a notification and an email, both
+ * of which are easy to miss.
+ * ---------------------------------------------------------------------------------------- */
+
+export interface PasswordResetRequest {
+  id: string;
+  userEmail: string;
+  userName?: string;
+  userRole?: string;
+  department?: string;
+  note?: string;
+  status: 'pending' | 'resolved';
+  requestedAt: number;
+  resolvedAt?: number;
+}
+
+export const PASSWORD_RESET_REQUESTS_EVENT = 'accad_password_reset_requests_changed';
+
+function notifyResetRequestsChanged(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(PASSWORD_RESET_REQUESTS_EVENT));
+    localStorage.setItem('accad_reset_requests_stamp', Date.now().toString());
+  } catch (e) {}
+}
+
+/** Records a staff member's password reset request for the ED to action. */
+export async function createPasswordResetRequest(params: {
+  user: User;
+  note?: string;
+}): Promise<PasswordResetRequest> {
+  const { user, note } = params;
+  const request: PasswordResetRequest = {
+    id: `prr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    userEmail: user.email.toLowerCase().trim(),
+    userName: user.fullName,
+    userRole: user.role,
+    department: user.department,
+    note: (note || '').trim(),
+    status: 'pending',
+    requestedAt: Date.now()
+  };
+
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      await insforge.database.from('password_reset_requests').insert([{
+        id: request.id,
+        userEmail: request.userEmail,
+        userName: request.userName || null,
+        userRole: request.userRole || null,
+        department: request.department || null,
+        note: request.note || null,
+        status: 'pending',
+        requestedAt: request.requestedAt,
+        resolvedAt: null
+      }]);
+    } catch (e) {
+      console.warn('InsForge createPasswordResetRequest notice:', e);
+    }
+  }
+
+  notifyResetRequestsChanged();
+  return request;
+}
+
+/** All still-outstanding reset requests, newest first. */
+export async function getPendingPasswordResetRequests(): Promise<PasswordResetRequest[]> {
+  if (IS_DISCONNECTED_MODE) return [];
+  try {
+    const { data, error } = await insforge.database
+      .from('password_reset_requests')
+      .select('id, userEmail, userName, userRole, department, note, status, requestedAt')
+      .eq('status', 'pending')
+      .limit(200);
+
+    if (error || !data || !Array.isArray(data)) return [];
+
+    return data
+      .map((r: any) => ({
+        id: r.id,
+        userEmail: (r.userEmail || '').toLowerCase().trim(),
+        userName: r.userName || undefined,
+        userRole: r.userRole || undefined,
+        department: r.department || undefined,
+        note: r.note || undefined,
+        status: 'pending' as const,
+        requestedAt: r.requestedAt || 0
+      }))
+      .sort((a, b) => b.requestedAt - a.requestedAt);
+  } catch (e) {
+    console.warn('InsForge getPendingPasswordResetRequests notice:', e);
+    return [];
+  }
+}
+
+/** Clears every outstanding request for an address once the ED has issued a new password. */
+export async function resolvePasswordResetRequests(userEmail: string): Promise<void> {
+  const normalized = userEmail.toLowerCase().trim();
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      await insforge.database
+        .from('password_reset_requests')
+        .update({ status: 'resolved', resolvedAt: Date.now() })
+        .eq('userEmail', normalized);
+    } catch (e) {
+      console.warn('InsForge resolvePasswordResetRequests notice:', e);
+    }
+  }
+  notifyResetRequestsChanged();
+}
+
+
+/* ------------------------------------------------------------------------------------------
  * Live user-directory reconciliation
  *
  * Keeps the app and the InsForge database in step in BOTH directions: a user added or removed

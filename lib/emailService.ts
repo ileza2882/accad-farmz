@@ -437,6 +437,113 @@ export async function sendUserWelcomeEmail(params: {
 }
 
 /**
+ * Sends a staff member the new password the Executive Director has just set for them.
+ *
+ * This message deliberately DOES carry the passcode: it is the whole point of the reset, and
+ * the recipient is the account holder. The welcome email no longer carries one.
+ */
+export async function sendNewPasswordEmail(params: {
+  user: User;
+  newPassword: string;
+  edCreator?: User;
+}): Promise<EmailDispatchResult> {
+  const { user, newPassword, edCreator } = params;
+  const recipient = user.email.trim().toLowerCase();
+  const subject = `ACCAD FARMS Portal - Your Password Has Been Reset`;
+  const loginUrl = (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost'))
+    ? window.location.origin
+    : 'https://accadfarms.pages.dev';
+
+  const html = `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f8fafc; padding:24px 12px; color:#1e293b;">
+  <div style="max-width:600px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:20px; overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#065f46 0%,#047857 100%); padding:32px 24px; text-align:center; color:#ffffff;">
+      <div style="font-size:22px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;">ACCAD FARMS</div>
+      <div style="font-size:11px; color:#a7f3d0; text-transform:uppercase; letter-spacing:2px; margin-top:6px; font-weight:700;">Account Security Notice</div>
+    </div>
+    <div style="padding:32px 24px;">
+      <h2 style="font-size:20px; font-weight:800; color:#0f172a; margin:0 0 12px 0;">Your password has been reset</h2>
+      <p style="font-size:14px; line-height:1.6; color:#475569; margin-bottom:20px;">
+        Hello ${user.fullName}, the Executive Directorate has issued a new password for your ACCAD FARMS Management Portal account.
+      </p>
+
+      <table style="width:100%; border-collapse:collapse; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; font-size:13px;">
+        <tr>
+          <td style="padding:12px 16px; font-weight:700; color:#475569; background:#f8fafc; width:40%;">Portal Login Email</td>
+          <td style="padding:12px 16px; font-weight:700; color:#047857; font-family:Consolas,Monaco,monospace;">${user.email}</td>
+        </tr>
+        <tr>
+          <td style="padding:12px 16px; font-weight:700; color:#475569; background:#f8fafc; border-top:1px solid #f1f5f9;">New Password</td>
+          <td style="padding:12px 16px; border-top:1px solid #f1f5f9;">
+            <span style="font-family:Consolas,Monaco,monospace; font-size:15px; font-weight:900; color:#065f46; background:#ecfdf5; padding:4px 10px; border-radius:8px; display:inline-block;">${newPassword}</span>
+          </td>
+        </tr>
+      </table>
+
+      <a href="${loginUrl}" style="display:block; text-align:center; background:#059669; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:12px; font-weight:800; font-size:14px; margin:28px 0;">Sign In to Farm Portal &rarr;</a>
+
+      <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:12px; padding:14px; font-size:12px; color:#92400e; line-height:1.5;">
+        <strong>Security reminder:</strong> Change this password from your User Profile after signing in, and keep it confidential. If you did not request this reset, contact the Executive Directorate immediately.
+      </div>
+    </div>
+    <div style="background:#f1f5f9; padding:20px; text-align:center; font-size:11px; color:#64748b; line-height:1.6; border-top:1px solid #e2e8f0;">
+      <strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria<br>
+      Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+    </div>
+  </div>
+</div>`;
+
+  const text = `ACCAD FARMS - Your Password Has Been Reset
+
+Hello ${user.fullName},
+
+The Executive Directorate has issued a new password for your ACCAD FARMS Management Portal account.
+
+- Portal Login Email: ${user.email}
+- New Password: ${newPassword}
+- Portal Web Address: ${loginUrl}
+
+Please change this password from your User Profile after signing in, and keep it confidential.
+If you did not request this reset, contact the Executive Directorate immediately.
+
+ACCAD FARMS LIMITED
+Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+`;
+
+  const result = await dispatchEmailWithInsForge({
+    to: recipient,
+    subject,
+    html,
+    text,
+    fromName: 'ACCAD FARMS Security Hub',
+    fromEmail: 'accadfarmsapp@gmail.com',
+    replyTo: 'accadfarmsapp@gmail.com'
+  });
+
+  try {
+    await createNotification({
+      userId: user.id,
+      userEmail: user.email,
+      title: 'Password Reset by Executive Director',
+      message: `Your portal password was reset by the Executive Directorate and sent to ${user.email}.`,
+      type: 'warning'
+    });
+  } catch (e) {}
+
+  try {
+    await createAuditLog(
+      edCreator?.fullName || 'Executive Director',
+      edCreator?.email || 'accadfarmsapp@gmail.com',
+      'PASSWORD_RESET_BY_ED',
+      `Reset the portal password for ${user.fullName} (${user.email}) and dispatched it to their email`
+    );
+  } catch (e) {}
+
+  return result;
+}
+
+
+/**
  * Dispatches an automated email notification when a new farm log is submitted.
  */
 export async function sendReportSubmittedEmail(report: Report, submitterUser?: User): Promise<EmailDispatchResult> {
