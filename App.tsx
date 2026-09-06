@@ -12,6 +12,7 @@ import { HatcheryDashboardPage } from './pages/HatcheryDashboardPage';
 import { HatcheryFormPage } from './pages/HatcheryFormPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { Header } from './components/Header';
 import { DatabaseAuthGuard } from './components/DatabaseAuthGuard';
 import { User, Role } from './types';
@@ -251,6 +252,9 @@ const App: React.FC = () => {
             />
 
             {/* Fallback */}
+            {/* Self-service password reset landing page (opened from the emailed link) */}
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

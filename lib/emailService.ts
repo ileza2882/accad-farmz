@@ -437,6 +437,86 @@ export async function sendUserWelcomeEmail(params: {
 }
 
 /**
+ * Sends a staff member a single-use link to choose their own new password.
+ *
+ * Carries no passcode: the whole point of the link is that only the person holding the mailbox
+ * can set the password, and nobody else ever learns it.
+ */
+export async function sendPasswordResetLinkEmail(params: {
+  user: User;
+  resetUrl: string;
+  expiresInMinutes?: number;
+}): Promise<EmailDispatchResult> {
+  const { user, resetUrl } = params;
+  const expiresInMinutes = params.expiresInMinutes || 60;
+  const recipient = user.email.trim().toLowerCase();
+  const subject = 'ACCAD FARMS Portal - Reset Your Password';
+
+  const html = `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f8fafc; padding:24px 12px; color:#1e293b;">
+  <div style="max-width:600px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:20px; overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#065f46 0%,#047857 100%); padding:32px 24px; text-align:center; color:#ffffff;">
+      <div style="font-size:22px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;">ACCAD FARMS</div>
+      <div style="font-size:11px; color:#a7f3d0; text-transform:uppercase; letter-spacing:2px; margin-top:6px; font-weight:700;">Password Reset</div>
+    </div>
+    <div style="padding:32px 24px;">
+      <h2 style="font-size:20px; font-weight:800; color:#0f172a; margin:0 0 12px 0;">Reset your password</h2>
+      <p style="font-size:14px; line-height:1.6; color:#475569; margin-bottom:8px;">
+        Hello ${user.fullName}, we received a request to reset the password for
+        <strong style="color:#047857;">${user.email}</strong>.
+      </p>
+      <p style="font-size:14px; line-height:1.6; color:#475569; margin-bottom:24px;">
+        Click the button below to choose a new password. This link works once and expires in
+        <strong>${expiresInMinutes} minutes</strong>.
+      </p>
+
+      <a href="${resetUrl}" style="display:block; text-align:center; background:#059669; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:12px; font-weight:800; font-size:14px; margin:0 0 20px 0;">Choose a New Password &rarr;</a>
+
+      <p style="font-size:11px; color:#64748b; line-height:1.6; margin-bottom:20px;">
+        If the button does not work, copy this address into your browser:<br>
+        <span style="word-break:break-all; color:#047857; font-family:Consolas,Monaco,monospace;">${resetUrl}</span>
+      </p>
+
+      <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:12px; padding:14px; font-size:12px; color:#92400e; line-height:1.5;">
+        <strong>Didn't request this?</strong> You can ignore this email &mdash; your current password stays active and the link above will simply expire.
+      </div>
+    </div>
+    <div style="background:#f1f5f9; padding:20px; text-align:center; font-size:11px; color:#64748b; line-height:1.6; border-top:1px solid #e2e8f0;">
+      <strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria<br>
+      Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+    </div>
+  </div>
+</div>`;
+
+  const text = `ACCAD FARMS - Reset Your Password
+
+Hello ${user.fullName},
+
+We received a request to reset the password for ${user.email}.
+
+Open this link to choose a new password. It works once and expires in ${expiresInMinutes} minutes:
+
+${resetUrl}
+
+If you did not request this, you can ignore this email. Your current password stays active and
+the link will simply expire.
+
+ACCAD FARMS LIMITED
+Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+`;
+
+  return await dispatchEmailWithInsForge({
+    to: recipient,
+    subject,
+    html,
+    text,
+    fromName: 'ACCAD FARMS Security Hub',
+    fromEmail: 'accadfarmsapp@gmail.com',
+    replyTo: 'accadfarmsapp@gmail.com'
+  });
+}
+
+/**
  * Sends a staff member the new password the Executive Director has just set for them.
  *
  * This message deliberately DOES carry the passcode: it is the whole point of the reset, and

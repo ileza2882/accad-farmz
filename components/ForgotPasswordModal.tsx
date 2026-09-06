@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
-import { getUserByEmail, updateUser, createNotification, createAuditLog, createPasswordResetRequest } from '../lib/insforge';
-import { sendPasswordResetRequestEmail } from '../lib/emailService';
-import { Role } from '../types';
-import { 
-  KeyRound, 
-  X, 
-  Mail, 
-  Lock, 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
-  ShieldCheck, 
+import { createPasswordResetToken, createAuditLog, PASSWORD_RESET_TOKEN_TTL_MS } from '../lib/insforge';
+import { sendPasswordResetLinkEmail } from '../lib/emailService';
+import {
+  KeyRound,
+  X,
+  Mail,
+  CheckCircle2,
+  AlertCircle,
   Send,
-  Eye,
-  EyeOff
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
 
 interface ForgotPasswordModalProps {
@@ -23,38 +19,52 @@ interface ForgotPasswordModalProps {
   isExecutiveMode?: boolean;
 }
 
+/**
+ * Self-service password recovery.
+ *
+ * Everyone - staff, managers and the Executive Director alike - recovers their own account
+ * through a single-use link emailed to the address on file. Nobody else, including the ED,
+ * sets another person's password.
+ *
+ * This replaced two earlier paths: a request queued for the ED to action by hand, and an
+ * "ED master recovery key" that accepted the literal string 123456, which meant anyone who
+ * opened the login page could take over the Executive Director account.
+ */
 export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   isOpen,
   onClose,
-  initialEmail = '',
-  isExecutiveMode = false
+  initialEmail = ''
 }) => {
   const [email, setEmail] = useState(initialEmail);
-  const [step, setStep] = useState<'request' | 'success' | 'ed_reset'>('request');
-  const [note, setNote] = useState('');
-  
-  // For ED direct reset
-  const [masterKey, setMasterKey] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
+  const [step, setStep] = useState<'request' | 'sent'>('request');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deliveryWarning, setDeliveryWarning] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (initialEmail) setEmail(initialEmail);
     setStep('request');
     setError(null);
-    setSuccessMessage(null);
+    setDeliveryWarning(null);
   }, [isOpen, initialEmail]);
 
   if (!isOpen) return null;
 
-  const handleStaffResetRequest = async (e: React.FormEvent) => {
+  const expiresInMinutes = Math.round(PASSWORD_RESET_TOKEN_TTL_MS / 60000);
+
+  const buildResetUrl = (rawToken: string): string => {
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost')
+        ? window.location.origin
+        : 'https://accadfarms.pages.dev';
+    // HashRouter: the route and its query live after the '#'
+    return `${origin}/#/reset-password?token=${encodeURIComponent(rawToken)}`;
+  };
+
+  const handleRequestLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setDeliveryWarning(null);
 
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
@@ -65,110 +75,41 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     setIsLoading(true);
 
     try {
-      const user = await getUserByEmail(cleanEmail);
+      const issued = await createPasswordResetToken(cleanEmail);
 
-      if (!user) {
-        setError('No account found matching this email address in the database.');
+      // Deliberately identical outcome whether or not the account exists, so this form cannot
+      // be used to discover which addresses are registered.
+      if (!issued) {
+        setStep('sent');
         setIsLoading(false);
         return;
       }
 
-      // If user is ED, offer direct ED recovery mode
-      if (user.role === Role.EXECUTIVE_DIRECTOR || isExecutiveMode) {
-        setStep('ed_reset');
-        setIsLoading(false);
-        return;
-      }
-
-      // Staff / Manager Flow: Dispatch request to Executive Director
-      // Record the request so it surfaces in the ED's User Management table. A notification
-      // and an email alone are both easy to miss.
-      await createPasswordResetRequest({ user, note: note.trim() });
-
-      await createNotification({
-        userId: 'ed_user_1',
-        userEmail: 'accadfarmsapp@gmail.com',
-        title: `URGENT: Password Reset Request from ${user.fullName}`,
-        message: `${user.fullName} (${user.email}, ${user.role} - ${user.department || 'General'}) has requested a password reset. Note: "${note.trim() || 'Please reset my password.'}"`,
-        type: 'warning'
+      const resetUrl = buildResetUrl(issued.rawToken);
+      const result = await sendPasswordResetLinkEmail({
+        user: issued.user,
+        resetUrl,
+        expiresInMinutes
       });
 
-      // Dispatch real email to accadfarmsapp@gmail.com
+      if (!result.success) {
+        setDeliveryWarning(
+          'We could not confirm the email was delivered. If nothing arrives, contact the Executive Directorate.'
+        );
+      }
+
       try {
-        await sendPasswordResetRequestEmail({
-          user,
-          note: note.trim()
-        });
-      } catch (emailErr) {
-        console.warn('Email dispatch notice:', emailErr);
-      }
+        await createAuditLog(
+          issued.user.fullName,
+          issued.user.email,
+          'PASSWORD_RESET_LINK_REQUESTED',
+          `Password reset link issued to ${issued.user.email} (expires in ${expiresInMinutes} minutes)`
+        );
+      } catch (auditErr) {}
 
-      await createAuditLog(
-        user.fullName,
-        user.email,
-        'PASSWORD_RESET_REQUESTED',
-        `User ${user.fullName} (${user.email}) requested a password reset from Executive Director. Reason: ${note.trim() || 'Not specified'}`
-      );
-
-      setSuccessMessage(`Password reset request sent to the Executive Director! An email notification has been dispatched to accadfarmsapp@gmail.com.`);
-      setStep('success');
+      setStep('sent');
     } catch (err: any) {
-      setError(err.message || 'Failed to submit password reset request. Please check database connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEDDirectReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      setError('Email address is required.');
-      return;
-    }
-
-    if (!newPassword || newPassword.length < 6) {
-      setError('New password must be at least 6 characters long.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match. Please verify.');
-      return;
-    }
-
-    // Verify recovery authorization (Master Key or previous default '123456')
-    if (masterKey.trim() !== '123456' && masterKey.trim() !== 'ACCAD-MASTER-2026') {
-      setError('Invalid Master Recovery Key. Please provide the current master key (default 123456) to verify Executive authority.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const user = await getUserByEmail(cleanEmail);
-      if (!user || user.role !== Role.EXECUTIVE_DIRECTOR) {
-        setError('Executive Director record not found.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Update in InsForge database
-      await updateUser(cleanEmail, { password: newPassword });
-
-      await createAuditLog(
-        user.fullName,
-        user.email,
-        'ED_PASSWORD_RESET',
-        `Executive Director password reset successfully via Master Recovery Key and synced with database.`
-      );
-
-      setSuccessMessage('Executive Director password updated successfully! You can now sign in with your new password.');
-      setStep('success');
-    } catch (err: any) {
-      setError(err.message || 'Failed to update password in database.');
+      setError(err?.message || 'Could not send the reset link. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -177,8 +118,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn font-sans">
       <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative overflow-hidden">
-        
-        {/* Close Button */}
+
         <button
           onClick={onClose}
           type="button"
@@ -187,197 +127,127 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
-        <div className="flex items-center space-x-3 mb-5 border-b border-slate-100 pb-4">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center text-emerald-700 shrink-0">
+        <div className="flex items-center space-x-3 mb-6 border-b border-slate-100 pb-5">
+          <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 shrink-0">
             <KeyRound className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-              {step === 'ed_reset' ? 'Executive Password Recovery' : 'Forgot Password'}
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              {step === 'ed_reset' ? 'Master verification & password update' : 'Enterprise credential recovery system'}
-            </p>
+            <h3 className="text-xl font-extrabold text-slate-900">Forgot Password</h3>
+            <p className="text-xs text-slate-500 font-medium">We will email you a link to reset it</p>
           </div>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-2 text-rose-700 text-xs font-bold animate-shake">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* STEP 1: Staff/Manager Reset Request */}
-        {step === 'request' && (
-          <form onSubmit={handleStaffResetRequest} className="space-y-4">
-            <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl text-xs text-emerald-900 leading-relaxed font-medium">
-              Enter your registered work email. Because all accounts are governed by the Executive Director, submitting this form sends a verified reset notification directly to the ED.
+        {step === 'sent' ? (
+          <div className="space-y-5">
+            <div className="text-center py-2">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-3xl flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h4 className="text-lg font-black text-slate-900">Check your email</h4>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed max-w-xs mx-auto">
+                If <strong className="text-slate-800">{email.trim().toLowerCase()}</strong> is registered on the
+                portal, a password reset link is on its way. The link works once and expires in{' '}
+                <strong>{expiresInMinutes} minutes</strong>.
+              </p>
             </div>
 
+            {deliveryWarning && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-amber-900 text-[11px] font-bold">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                <span>{deliveryWarning}</span>
+              </div>
+            )}
+
+            <p className="text-[11px] text-center text-slate-500 leading-relaxed">
+              Nothing after a few minutes? Check your <strong>Spam</strong> folder, and confirm you entered the
+              address the Executive Directorate registered for you.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setStep('request'); setDeliveryWarning(null); }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+              >
+                Use a different email
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleRequestLink} className="space-y-4">
+            {error && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-2 text-rose-700 text-xs font-bold">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Enter the email address registered for your ACCAD FARMS account. We will send you a secure,
+              single-use link so you can choose a new password yourself.
+            </p>
+
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                Registered Work Email Address *
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Registered Email Address *
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
                   type="email"
                   required
+                  autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@accadfarms.com"
-                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 outline-none transition-all font-bold"
+                  placeholder="you@example.com"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                Additional Note / Staff ID (Optional)
-              </label>
-              <textarea
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Fishery Staff ID STF-001, forgot morning password."
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl p-3 text-xs text-slate-900 outline-none transition-all font-medium"
-              />
+            <div className="flex items-start space-x-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 font-medium leading-relaxed">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                Only you can set your new password. The link is single use, expires in {expiresInMinutes} minutes,
+                and no one else ever sees your password.
+              </span>
             </div>
 
-            <div className="pt-2">
+            <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider shadow-md shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md disabled:opacity-50 transition-all flex items-center space-x-2 cursor-pointer active:scale-95"
               >
                 {isLoading ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Submitting Request...</span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Sending link...</span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Submit Reset Request to ED</span>
+                    <span>Send Reset Link</span>
                   </>
                 )}
               </button>
             </div>
           </form>
         )}
-
-        {/* STEP: ED Direct Reset */}
-        {step === 'ed_reset' && (
-          <form onSubmit={handleEDDirectReset} className="space-y-4">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium leading-relaxed">
-              <strong className="font-bold">Executive Authority Detected:</strong> You can reset the Executive Director password directly by confirming the master key.
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                Executive Email Address
-              </label>
-              <input
-                type="email"
-                disabled
-                value={email}
-                className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-600 font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                Current / Master Key (Default: 123456) *
-              </label>
-              <input
-                type="password"
-                required
-                value={masterKey}
-                onChange={(e) => setMasterKey(e.target.value)}
-                placeholder="Enter current or master key"
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                New Executive Password *
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-slate-900 font-bold outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                Confirm New Password *
-              </label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter new password"
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold outline-none"
-              />
-            </div>
-
-            <div className="pt-2 flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => setStep('request')}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs uppercase"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl text-xs uppercase shadow-md active:scale-95 disabled:opacity-50"
-              >
-                {isLoading ? 'Updating DB...' : 'Save New Password'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* STEP: Success Message */}
-        {step === 'success' && (
-          <div className="space-y-4 text-center py-4">
-            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <h4 className="text-base font-black text-slate-900 uppercase">Action Completed</h4>
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              {successMessage}
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3 rounded-xl text-xs uppercase tracking-wider transition-all"
-            >
-              Close Window
-            </button>
-          </div>
-        )}
-
       </div>
     </div>
   );

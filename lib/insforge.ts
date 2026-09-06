@@ -594,6 +594,167 @@ export async function deactivateUser(userIdOrEmail: string): Promise<boolean> {
 export const deleteUser = deactivateUser;
 
 /* ------------------------------------------------------------------------------------------
+ * Self-service password reset tokens
+ *
+ * Users own their own passwords: the ED creates the account, the user signs in and changes it,
+ * and a forgotten password is recovered through an emailed single-use link.
+ *
+ * Only the SHA-256 hash of a token is ever stored. The raw token lives in the emailed URL and
+ * nowhere else, so a reader of the table cannot mint a working link.
+ * ---------------------------------------------------------------------------------------- */
+
+export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/** Minimum password rules enforced everywhere a password is chosen. */
+export function validatePasswordStrength(password: string): string | null {
+  if (!password || password.length < 8) return 'Password must be at least 8 characters long.';
+  if (!/[A-Za-z]/.test(password)) return 'Password must contain at least one letter.';
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
+  return null;
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** SHA-256 of the raw token, hex encoded. */
+export async function hashResetToken(rawToken: string): Promise<string> {
+  const data = new TextEncoder().encode(rawToken);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Issues a reset token for an address. Returns the RAW token to embed in the emailed link,
+ * or null when the address has no account (the caller must not reveal which it was).
+ */
+export async function createPasswordResetToken(email: string): Promise<{ rawToken: string; user: User } | null> {
+  const normalized = email.toLowerCase().trim();
+  const user = await verifyDatabaseAuthorization(normalized);
+  if (!user) return null;
+
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  const rawToken = toBase64Url(randomBytes);
+  const tokenHash = await hashResetToken(rawToken);
+  const now = Date.now();
+
+  if (!IS_DISCONNECTED_MODE) {
+    try {
+      // Retire any outstanding tokens for this address so only the newest link works.
+      await insforge.database
+        .from('password_reset_tokens')
+        .update({ usedAt: now })
+        .eq('userEmail', normalized);
+
+      await insforge.database.from('password_reset_tokens').insert([{
+        id: `prt_${now}_${Math.random().toString(36).substring(2, 8)}`,
+        tokenHash,
+        userEmail: normalized,
+        createdAt: now,
+        expiresAt: now + PASSWORD_RESET_TOKEN_TTL_MS,
+        usedAt: null
+      }]);
+    } catch (e) {
+      console.warn('InsForge createPasswordResetToken notice:', e);
+      return null;
+    }
+  }
+
+  return { rawToken, user };
+}
+
+// Flat shape rather than a discriminated union: this project compiles with strict mode off,
+// where narrowing on a boolean literal discriminant is unreliable.
+export interface ResetTokenCheck {
+  valid: boolean;
+  email?: string;
+  tokenId?: string;
+  reason?: 'invalid' | 'expired' | 'used';
+}
+
+/** Validates a raw token from a reset link without consuming it. */
+export async function verifyPasswordResetToken(rawToken: string): Promise<ResetTokenCheck> {
+  if (!rawToken || IS_DISCONNECTED_MODE) return { valid: false, reason: 'invalid' };
+
+  try {
+    const tokenHash = await hashResetToken(rawToken);
+    const { data, error } = await insforge.database
+      .from('password_reset_tokens')
+      .select('id, userEmail, expiresAt, usedAt')
+      .eq('tokenHash', tokenHash)
+      .limit(1);
+
+    if (error || !data || !Array.isArray(data) || data.length === 0) {
+      return { valid: false, reason: 'invalid' };
+    }
+
+    const row: any = data[0];
+    if (row.usedAt) return { valid: false, reason: 'used' };
+    if (typeof row.expiresAt === 'number' && Date.now() > row.expiresAt) {
+      return { valid: false, reason: 'expired' };
+    }
+
+    return { valid: true, email: (row.userEmail || '').toLowerCase().trim(), tokenId: row.id };
+  } catch (e) {
+    console.warn('InsForge verifyPasswordResetToken notice:', e);
+    return { valid: false, reason: 'invalid' };
+  }
+}
+
+/**
+ * Completes a reset: re-checks the token, writes the new password, then burns the token so the
+ * link cannot be replayed.
+ */
+export interface PasswordResetResult {
+  ok: boolean;
+  email?: string;
+  message?: string;
+}
+
+export async function completePasswordReset(rawToken: string, newPassword: string): Promise<PasswordResetResult> {
+  const policyError = validatePasswordStrength(newPassword);
+  if (policyError) return { ok: false, message: policyError };
+
+  const check = await verifyPasswordResetToken(rawToken);
+  if (!check.valid) {
+    const message =
+      check.reason === 'expired' ? 'This reset link has expired. Please request a new one.'
+      : check.reason === 'used' ? 'This reset link has already been used. Please request a new one.'
+      : 'This reset link is not valid. Please request a new one.';
+    return { ok: false, message };
+  }
+
+  const resolvedEmail = check.email || '';
+  await updateUser(resolvedEmail, { password: newPassword });
+
+  try {
+    await insforge.database
+      .from('password_reset_tokens')
+      .update({ usedAt: Date.now() })
+      .eq('id', check.tokenId);
+  } catch (e) {
+    console.warn('InsForge completePasswordReset burn notice:', e);
+  }
+
+  try {
+    await createAuditLog(
+      resolvedEmail,
+      resolvedEmail,
+      'PASSWORD_RESET_SELF_SERVICE',
+      `User ${resolvedEmail} set a new password using an emailed reset link`
+    );
+  } catch (e) {}
+
+  return { ok: true, email: resolvedEmail };
+}
+
+
+/* ------------------------------------------------------------------------------------------
  * Password reset requests
  *
  * When a staff member uses "Forgot Password" the request is recorded here so it shows up in

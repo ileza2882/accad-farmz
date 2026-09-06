@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { User, Role, Department } from '../types';
-import { updateUser, deactivateUser, deleteUser, createAuditLog, createNotification, getPendingPasswordResetRequests, resolvePasswordResetRequests, PASSWORD_RESET_REQUESTS_EVENT, PasswordResetRequest } from '../lib/insforge';
-import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X, KeyRound, Sparkles, Eye, EyeOff, BellRing } from 'lucide-react';
-import { sendNewPasswordEmail } from '../lib/emailService';
+import { updateUser, deactivateUser, deleteUser, createAuditLog, createNotification } from '../lib/insforge';
+import { Search, Shield, UserCheck, UserX, CheckCircle, AlertCircle, Edit, Save, RefreshCw, Trash2, X } from 'lucide-react';
 
 interface UserManagementTableProps {
   users: User[];
@@ -21,12 +20,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   const [editingRole, setEditingRole] = useState<Role | ''>('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [resetTarget, setResetTarget] = useState<User | null>(null);
-  const [resetPassword, setResetPassword] = useState('');
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [isResetting, setIsResetting] = useState(false);
-  const [resetRequests, setResetRequests] = useState<PasswordResetRequest[]>([]);
 
   const filteredUsers = users.filter(u => {
     const matchesSearch = 
@@ -69,94 +62,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
       setTimeout(() => setActionMessage(null), 3000);
     } catch (e: any) {
       alert('Failed to update role: ' + e.message);
-    }
-  };
-
-  /** Outstanding 'forgot password' requests, surfaced directly on the affected rows. */
-  const refreshResetRequests = useCallback(async () => {
-    const pending = await getPendingPasswordResetRequests();
-    setResetRequests(pending);
-  }, []);
-
-  useEffect(() => {
-    refreshResetRequests();
-    const timer = setInterval(() => {
-      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-        refreshResetRequests();
-      }
-    }, 20000);
-    const onChanged = () => refreshResetRequests();
-    window.addEventListener(PASSWORD_RESET_REQUESTS_EVENT, onChanged);
-    window.addEventListener('focus', onChanged);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener(PASSWORD_RESET_REQUESTS_EVENT, onChanged);
-      window.removeEventListener('focus', onChanged);
-    };
-  }, [refreshResetRequests]);
-
-  const pendingResetFor = (email: string) =>
-    resetRequests.find(r => r.userEmail === email.toLowerCase().trim());
-
-  /**
-   * Issues a new password for a staff member and emails it to them.
-   * Replaces the old "resend welcome email" action: what the ED actually needs is a way to
-   * answer a forgotten-password request, and the welcome email no longer carries a passcode.
-   */
-  const openResetModal = (targetUser: User) => {
-    setResetTarget(targetUser);
-    setResetPassword('');
-    setResetError(null);
-    setShowResetPassword(false);
-  };
-
-  const handleGenerateResetPassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
-    let generated = 'Accad';
-    for (let i = 0; i < 4; i++) generated += chars.charAt(Math.floor(Math.random() * chars.length));
-    setResetPassword(generated + '!');
-  };
-
-  const handleConfirmReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetTarget) return;
-
-    const newPassword = resetPassword.trim();
-    if (newPassword.length < 6) {
-      setResetError('Password must be at least 6 characters long.');
-      return;
-    }
-
-    setIsResetting(true);
-    setResetError(null);
-
-    try {
-      await updateUser(resetTarget.email, { password: newPassword });
-
-      const result = await sendNewPasswordEmail({
-        user: { ...resetTarget, password: newPassword },
-        newPassword,
-        edCreator: edUser
-      });
-
-      // Clear any outstanding "forgot password" flag for this user
-      await resolvePasswordResetRequests(resetTarget.email);
-      await refreshResetRequests();
-
-      setActionMessage(
-        result.success
-          ? `New password set for ${resetTarget.fullName} and emailed to ${resetTarget.email}`
-          : `Password updated for ${resetTarget.fullName}, but the email failed: ${result.message}`
-      );
-
-      setResetTarget(null);
-      setResetPassword('');
-      await onUsersUpdated();
-      setTimeout(() => setActionMessage(null), 8000);
-    } catch (err: any) {
-      setResetError(err?.message || 'Could not reset the password. Please try again.');
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -259,28 +164,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
         </div>
       </div>
 
-      {resetRequests.length > 0 && (
-        <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl">
-          <div className="flex items-center gap-2 mb-2">
-            <BellRing className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="text-xs font-black uppercase tracking-wider text-amber-900">
-              {resetRequests.length} pending password reset {resetRequests.length === 1 ? 'request' : 'requests'}
-            </span>
-          </div>
-          <ul className="space-y-1 pl-6">
-            {resetRequests.map(r => (
-              <li key={r.id} className="text-[11px] font-bold text-amber-900">
-                {r.userName || r.userEmail} ({r.userEmail})
-                {r.note ? <span className="font-medium italic"> &mdash; {r.note}</span> : null}
-                <span className="font-medium text-amber-700"> &middot; {new Date(r.requestedAt).toLocaleString()}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-[10px] text-amber-800 font-medium mt-2 pl-6">
-            Use the amber <strong>Reset Password</strong> button on the matching row to issue a new password and email it to them.
-          </p>
-        </div>
-      )}
 
       {actionMessage && (
         <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center space-x-2">
@@ -322,15 +205,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       <div>
                         <div className="font-bold text-slate-900">{u.fullName}</div>
                         <div className="text-[10px] text-slate-400 font-mono">ID: {u.id.substring(0, 12)}</div>
-                        {pendingResetFor(u.email) && (
-                          <div
-                            className="mt-1 inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide"
-                            title={pendingResetFor(u.email)?.note || 'Password reset requested'}
-                          >
-                            <BellRing className="w-3 h-3 text-amber-600" />
-                            <span>Password reset requested</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -390,22 +264,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                   </td>
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openResetModal(u)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm active:scale-95 border ${
-                          pendingResetFor(u.email)
-                            ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 animate-pulse'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                        title={
-                          pendingResetFor(u.email)
-                            ? 'This user has requested a password reset - set a new password and email it to them'
-                            : 'Set a new password for this user and email it to them'
-                        }
-                      >
-                        <KeyRound className="w-3.5 h-3.5" />
-                        <span>Reset Password</span>
-                      </button>
                       {edUser.email !== u.email && (
                         <button
                           onClick={() => handleDeleteUser(u)}
@@ -468,30 +326,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                 )}
               </div>
 
-              {/* Password reset - available for every user, including the ED */}
-              <div className="pt-2 border-t border-slate-200 space-y-2">
-                {pendingResetFor(u.email) && (
-                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-3 py-2 text-[11px] font-bold">
-                    <BellRing className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                    <span>
-                      Password reset requested
-                      {pendingResetFor(u.email)?.note ? `: "${pendingResetFor(u.email)?.note}"` : ''}
-                    </span>
-                  </div>
-                )}
-                <button
-                  onClick={() => openResetModal(u)}
-                  className={`w-full flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95 border ${
-                    pendingResetFor(u.email)
-                      ? 'bg-amber-500 text-white border-amber-500'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Reset Password</span>
-                </button>
-              </div>
-
               {/* Actions */}
               {edUser.email !== u.email && (
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200">
@@ -539,121 +373,6 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
         )}
       </div>
 
-
-      {/* ===== RESET PASSWORD MODAL ===== */}
-      {resetTarget && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn"
-          onClick={(e) => { if (e.target === e.currentTarget && !isResetting) setResetTarget(null); }}
-        >
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 relative">
-            <button
-              type="button"
-              onClick={() => !isResetting && setResetTarget(null)}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center space-x-3 mb-5 border-b border-slate-100 pb-4">
-              <div className="w-11 h-11 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 shrink-0">
-                <KeyRound className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900">Reset Password</h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  {resetTarget.fullName} &middot; {resetTarget.email}
-                </p>
-              </div>
-            </div>
-
-            {pendingResetFor(resetTarget.email) && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] font-bold text-amber-900 flex items-start gap-2">
-                <BellRing className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                <span>
-                  This user requested a password reset
-                  {pendingResetFor(resetTarget.email)?.note ? <span className="font-medium italic"> &mdash; {pendingResetFor(resetTarget.email)?.note}</span> : null}
-                </span>
-              </div>
-            )}
-
-            {resetError && (
-              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{resetError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleConfirmReset} className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                    New Password *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateResetPassword}
-                    className="text-[10px] font-black uppercase text-emerald-800 hover:text-emerald-950 bg-white hover:bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-lg flex items-center space-x-1 cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span>Generate Strong</span>
-                  </button>
-                </div>
-                <div className="relative flex items-center">
-                  <KeyRound className="w-4 h-4 text-emerald-700 absolute left-3.5" />
-                  <input
-                    type={showResetPassword ? 'text' : 'password'}
-                    required
-                    autoFocus
-                    value={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.value)}
-                    placeholder="Enter new password (min 6 chars)"
-                    className="w-full bg-white border border-emerald-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 text-slate-900 rounded-xl pl-10 pr-10 py-2.5 text-xs font-mono font-bold outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowResetPassword(!showResetPassword)}
-                    className="absolute right-3 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
-                  >
-                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500 font-medium mt-1.5 leading-relaxed">
-                  The new password is saved immediately and emailed to <strong>{resetTarget.email}</strong> from accadfarmsapp@gmail.com.
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  disabled={isResetting}
-                  onClick={() => setResetTarget(null)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isResetting}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md disabled:opacity-50 flex items-center space-x-2 cursor-pointer active:scale-95"
-                >
-                  {isResetting ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Saving &amp; Emailing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <KeyRound className="w-4 h-4" />
-                      <span>Set Password &amp; Email</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
