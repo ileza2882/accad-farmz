@@ -6,6 +6,8 @@ import { FisheryLivestockForm } from '../components/FisheryLivestockForm';
 import { FisheryHatcheryForm } from '../components/FisheryHatcheryForm';
 import { ReportDetails } from '../components/ReportDetails';
 import { FarmLogsTable } from '../components/FarmLogsTable';
+import { SessionTimeoutBadge } from '../components/SessionTimeoutBadge';
+import { formatLogName, getComputerName } from '../lib/exportUtils';
 import { Plus, FileText, CheckCircle2, Clock, XCircle, Filter, Eye, AlertCircle, RefreshCw, Monitor, Sparkles, RotateCcw, Package, Fish } from 'lucide-react';
 
 interface StaffDashboardProps {
@@ -454,6 +456,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-3 relative z-10 overflow-x-auto">
+          <SessionTimeoutBadge compact={true} dark={true} />
+
           <button
             onClick={() => setActiveTab('submit_log')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${

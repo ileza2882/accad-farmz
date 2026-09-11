@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { User, Role } from '../types';
 import { getUserByEmail } from '../lib/insforge';
-import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase, Egg } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ArrowLeft, ShieldCheck, Users, Briefcase, Egg, Clock } from 'lucide-react';
 import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
 interface LoginPageProps {
@@ -11,11 +11,26 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [timeoutNotice, setTimeoutNotice] = useState<string | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('accad_timeout_notice');
+      if (stored) {
+        sessionStorage.removeItem('accad_timeout_notice');
+        return stored;
+      }
+      const stateMsg = (location.state as any)?.alertMessage;
+      if (stateMsg && typeof stateMsg === 'string' && stateMsg.toLowerCase().includes('timeout')) {
+        return stateMsg;
+      }
+    } catch (e) {}
+    return null;
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +112,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             Sign in to your Staff or Manager operational workspace
           </p>
         </div>
+
+        {/* Timeout Notice */}
+        {timeoutNotice && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3 text-amber-900 text-xs font-bold animate-fadeIn shadow-sm">
+            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-extrabold uppercase text-[10px] tracking-wider block text-amber-800">
+                Session Inactivity Timeout (30 Mins)
+              </span>
+              <span>{timeoutNotice}</span>
+            </div>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (

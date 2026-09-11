@@ -1376,6 +1376,28 @@ export async function createNotification(n: Omit<NotificationItem, 'id' | 'times
     localStorage.setItem('accad_notifications', JSON.stringify(all));
   } catch (e) {}
 
+  // Mirror the notification to the user's registered devices via Firebase Cloud Messaging.
+  //
+  // Deliberately not awaited. Every caller awaits createNotification, several from inside loops,
+  // and a push round trip on each would be felt in the UI. The in-app notification above is the
+  // durable record; push is a best-effort nudge on top of it, so it must never delay or fail the
+  // write. The endpoint answers 200 with skipped:true when push is unconfigured or the user has no
+  // device registered, which is the normal case for staff who have not opted in.
+  try {
+    fetch('/api/push-send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userEmail: item.userEmail,
+        title: item.title,
+        message: item.message,
+        type: item.type,
+        notificationId: item.id,
+        url: '/notifications'
+      })
+    }).catch(() => {});
+  } catch (e) {}
+
   return item;
 }
 

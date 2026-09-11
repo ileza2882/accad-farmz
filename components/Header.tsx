@@ -10,6 +10,7 @@ import {
   Menu, 
   X 
 } from 'lucide-react';
+import { SessionTimeoutBadge } from './SessionTimeoutBadge';
 
 interface HeaderProps {
   user: User | null;
@@ -108,8 +109,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
         {!isHomepage && (
           <div className="hidden md:flex items-center space-x-2 lg:space-x-3">
             {isEDDashboard ? (
-              /* ED Dashboard: ONLY Notifications button and Logout button */
+              /* ED Dashboard: ONLY Notifications button, Session Timeout, and Logout button */
               <div className="flex items-center space-x-3">
+                <SessionTimeoutBadge compact={true} />
+
                 <Link
                   to="/notifications"
                   className={`relative ${navLinkClass('/notifications')}`}
@@ -135,6 +138,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
             ) : user ? (
               /* Regular logged in user navigation */
               <>
+                <SessionTimeoutBadge compact={true} />
+
                 <Link
                   to="/notifications"
                   className={`relative ${navLinkClass('/notifications')}`}
@@ -211,8 +216,12 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
         <div className="md:hidden border-t border-slate-100 bg-white shadow-lg animate-fadeIn">
           <div className="px-4 py-4 space-y-2">
             {isEDDashboard ? (
-              /* Mobile ED Dashboard: Notifications and Logout only */
+              /* Mobile ED Dashboard: Notifications, Session Timeout, and Logout only */
               <>
+                <div className="py-1">
+                  <SessionTimeoutBadge compact={true} className="w-full justify-center" />
+                </div>
+
                 <Link to="/notifications" className={`w-full ${navLinkClass('/notifications')}`}>
                   <Bell className="w-4 h-4 text-slate-600" />
                   <span>Notifications</span>
@@ -233,6 +242,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onRoleSwitch }) 
               </>
             ) : user ? (
               <>
+                <div className="py-1">
+                  <SessionTimeoutBadge compact={true} className="w-full justify-center" />
+                </div>
+
                 <Link to="/notifications" className={`w-full ${navLinkClass('/notifications')}`}>
                   <Bell className="w-4 h-4 text-slate-600" />
                   <span>Notifications</span>

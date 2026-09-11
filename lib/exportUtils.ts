@@ -566,7 +566,9 @@ export function exportLogToWord(report: Report): void {
       report.rejectionReason ? `Rejection Reason: ${report.rejectionReason}` : ''
     ].filter(Boolean).join('<br/>');
 
-    const assetData = report.formData as FisheryAssetFormData;
+    const assetData = (report.formData || {}) as FisheryAssetFormData;
+    const livestockData = (report.formData || {}) as FisheryLivestockFormData;
+    const hatcheryData = (report.formData || {}) as FisheryHatcheryFormData;
     // Build Exhaustive Word HTML Blob
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">

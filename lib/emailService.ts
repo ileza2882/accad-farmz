@@ -1,6 +1,25 @@
 import { User, Report, ReportStatus, HatcheryChangeRequest } from '../types';
 import { insforge, IS_DISCONNECTED_MODE, createAuditLog, createNotification } from './insforge';
 
+/**
+ * Sender identity for all outbound mail.
+ *
+ * Everything used to go out as accadfarmsapp@gmail.com, a free consumer Gmail account. That is why
+ * credential emails were landing in spam: the message authenticates as gmail.com rather than as us,
+ * so accadfarms.com earns no sending reputation and the mail is pooled with every consumer Gmail
+ * account. The server now sends through Resend, DKIM-signed as our own domain.
+ *
+ * The address on the wire is chosen server-side (RESEND_FROM); these constants keep the addresses
+ * shown to readers consistent with it.
+ */
+export const MAIL_FROM_ADDRESS = 'noreply@accadfarms.com';
+
+/** Monitored mailbox. Replies and support enquiries from staff land here. */
+export const MAIL_SUPPORT_ADDRESS = 'info@accadfarms.com';
+
+/** Where the app's own internal notifications (new report submitted, etc.) are delivered. */
+export const MAIL_OPERATIONS_INBOX = 'accadfarmsapp@gmail.com';
+
 export interface EmailDispatchResult {
   success: boolean;
   recipient: string;
@@ -49,8 +68,8 @@ export async function dispatchEmailWithInsForge(options: {
   const recipient = options.to.trim().toLowerCase();
   const subject = options.subject;
   const fromName = options.fromName || 'ACCAD FARMS';
-  const fromEmail = options.fromEmail || 'accadfarmsapp@gmail.com';
-  const replyTo = options.replyTo || 'accadfarmsapp@gmail.com';
+  const fromEmail = options.fromEmail || MAIL_SUPPORT_ADDRESS;
+  const replyTo = options.replyTo || MAIL_SUPPORT_ADDRESS;
 
   if (!isValidEmailAddress(recipient)) {
     console.warn(`[EmailService] Invalid recipient email address: "${recipient}". Skipping dispatch.`);
@@ -153,7 +172,7 @@ export async function dispatchEmailWithInsForge(options: {
   // 2. Secondary: InsForge BaaS SMTP Client (if configured)
   if (!dispatchedSuccessfully && !IS_DISCONNECTED_MODE && insforge?.emails?.send) {
     try {
-      const { data, error } = await insforge.emails.send({
+      const { data, error } = await (insforge.emails.send as any)({
         to: recipient,
         subject: subject,
         html: options.html,
@@ -182,7 +201,7 @@ export async function dispatchEmailWithInsForge(options: {
       timestamp: Date.now(),
       status: dispatchedSuccessfully ? 'SENT' : 'FAILED',
       deliveryMethod,
-      provider: 'Google Mail (accadfarmsapp@gmail.com)',
+      provider: `ACCAD FARMS (${fromEmail})`,
       error: dispatchedSuccessfully ? undefined : lastError
     });
     localStorage.setItem('accad_sent_emails', JSON.stringify(existing.slice(0, 50)));
@@ -204,7 +223,7 @@ export async function dispatchEmailWithInsForge(options: {
     success: true,
     recipient,
     subject,
-    message: `Email notification successfully dispatched from accadfarmsapp@gmail.com to ${recipient}`,
+    message: `Email notification successfully dispatched from ${fromEmail} to ${recipient}`,
     timestamp: Date.now(),
     deliveryMethod
   };
@@ -217,7 +236,7 @@ export function generateWelcomeEmailPlainText(user: User, edCreator?: User, cust
   const loginUrl = (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost'))
     ? window.location.origin 
     : 'https://accadfarms.pages.dev';
-  const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
+  const creatorEmail = edCreator?.email || MAIL_SUPPORT_ADDRESS;
   const cleanNotes = customNotes ? customNotes.trim() : '';
 
   return `ACCAD FARMS - Official Personnel Credentials Notification
@@ -234,7 +253,7 @@ Account Details:
 - Department / Sector: ${user.department || 'General Operations'}
 - Position / Designation: ${user.position || `${user.department || ''} Staff`}
 - Staff Identification ID: ${user.staffId || 'STF-ACCAD'}
-- Official Dispatcher: accadfarmsapp@gmail.com
+- Official Contact: ${MAIL_SUPPORT_ADDRESS}
 - Portal Web Address: ${loginUrl}
 ${cleanNotes ? `\nSpecial Remarks from Executive Director:\n"${cleanNotes}"\n` : ''}
 Security Notice:
@@ -242,7 +261,7 @@ Please sign in to the portal and change your temporary password upon first login
 
 ACCAD FARMS LIMITED
 Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria
-Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+Official Support: ${MAIL_SUPPORT_ADDRESS} | +234 916 358 3220
 `;
 }
 
@@ -254,7 +273,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
   const loginUrl = (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost'))
     ? window.location.origin 
     : 'https://accadfarms.pages.dev';
-  const creatorEmail = edCreator?.email || 'accadfarmsapp@gmail.com';
+  const creatorEmail = edCreator?.email || MAIL_SUPPORT_ADDRESS;
   const cleanNotes = customNotes ? customNotes.trim() : '';
   
   return `
@@ -349,7 +368,7 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
             </tr>
             <tr>
               <td class="cred-label">Official Sender</td>
-              <td class="cred-value" style="color: #047857;">accadfarmsapp@gmail.com</td>
+              <td class="cred-value" style="color: #047857;">${MAIL_SUPPORT_ADDRESS}</td>
             </tr>
             <tr>
               <td class="cred-label">Portal Web Address</td>
@@ -367,8 +386,8 @@ export function generateWelcomeEmailHtml(user: User, edCreator?: User, customNot
     </div>
     <div class="email-footer">
       <p><strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria</p>
-      <p>Official Contact: <a href="mailto:accadfarmsapp@gmail.com">accadfarmsapp@gmail.com</a> | +234 916 358 3220</p>
-      <p style="color: #94a3b8; font-size: 10px; margin-top: 10px;">This automated credential notice was dispatched directly from accadfarmsapp@gmail.com.</p>
+      <p>Official Contact: <a href="mailto:${MAIL_SUPPORT_ADDRESS}">${MAIL_SUPPORT_ADDRESS}</a> | +234 916 358 3220</p>
+      <p style="color: #94a3b8; font-size: 10px; margin-top: 10px;">This is an automated message from the ACCAD FARMS staff portal. Reply to ${MAIL_SUPPORT_ADDRESS} if you need help.</p>
     </div>
   </div>
 </body>
@@ -407,29 +426,38 @@ export async function sendUserWelcomeEmail(params: {
     html: htmlContent,
     text: plainText,
     fromName: 'ACCAD FARMS Executive Hub',
-    fromEmail: 'accadfarmsapp@gmail.com',
-    replyTo: 'accadfarmsapp@gmail.com',
+    fromEmail: MAIL_FROM_ADDRESS,
+    replyTo: MAIL_SUPPORT_ADDRESS,
     metaPayload
   });
 
-  // Record In-App notification
+  // Record In-App notification. The wording has to follow what actually happened: telling a new
+  // staff member their credentials are on the way when the send failed leaves them locked out and
+  // waiting on an email that will never arrive.
   try {
     await createNotification({
       userId: newUser.id,
       userEmail: newUser.email,
-      title: 'Official Welcome & Credentials Email',
-      message: `Welcome email sent to ${newUser.email}. Your temporary passcode is issued separately by the Executive Director.`,
-      type: 'info'
+      title: result.success
+        ? 'Official Welcome & Credentials Email'
+        : 'Welcome Email Could Not Be Delivered',
+      message: result.success
+        ? `Welcome email sent to ${newUser.email}. Your temporary passcode is issued separately by the Executive Director.`
+        : `We could not deliver the welcome email to ${newUser.email}. Please contact the Executive Director for your login details.`,
+      type: result.success ? 'info' : 'warning'
     });
   } catch (e) {}
 
-  // Record Audit Log for ED
+  // Record Audit Log for ED. This is the ED's only durable record of whether a staff member
+  // actually received their credentials, so a failed dispatch must never be logged as a send.
   try {
     await createAuditLog(
       edCreator?.fullName || 'Executive Director',
-      edCreator?.email || 'accadfarmsapp@gmail.com',
-      'EMAIL_DISPATCHED_GMAIL',
-      `Sent welcome and credentials email notification via accadfarmsapp@gmail.com to ${newUser.fullName} (${newUser.email})`
+      edCreator?.email || MAIL_SUPPORT_ADDRESS,
+      result.success ? 'EMAIL_DISPATCHED_GMAIL' : 'EMAIL_DISPATCH_FAILED',
+      result.success
+        ? `Sent welcome and credentials email notification to ${newUser.fullName} (${newUser.email})`
+        : `FAILED to send welcome and credentials email to ${newUser.fullName} (${newUser.email}). Reason: ${result.message}`
     );
   } catch (e) {}
 
@@ -483,7 +511,7 @@ export async function sendPasswordResetLinkEmail(params: {
     </div>
     <div style="background:#f1f5f9; padding:20px; text-align:center; font-size:11px; color:#64748b; line-height:1.6; border-top:1px solid #e2e8f0;">
       <strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria<br>
-      Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+      Official Support: ${MAIL_SUPPORT_ADDRESS} | +234 916 358 3220
     </div>
   </div>
 </div>`;
@@ -502,7 +530,7 @@ If you did not request this, you can ignore this email. Your current password st
 the link will simply expire.
 
 ACCAD FARMS LIMITED
-Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+Official Support: ${MAIL_SUPPORT_ADDRESS} | +234 916 358 3220
 `;
 
   return await dispatchEmailWithInsForge({
@@ -511,8 +539,8 @@ Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
     html,
     text,
     fromName: 'ACCAD FARMS Security Hub',
-    fromEmail: 'accadfarmsapp@gmail.com',
-    replyTo: 'accadfarmsapp@gmail.com'
+    fromEmail: MAIL_FROM_ADDRESS,
+    replyTo: MAIL_SUPPORT_ADDRESS
   });
 }
 
@@ -568,7 +596,7 @@ export async function sendNewPasswordEmail(params: {
     </div>
     <div style="background:#f1f5f9; padding:20px; text-align:center; font-size:11px; color:#64748b; line-height:1.6; border-top:1px solid #e2e8f0;">
       <strong>ACCAD FARMS LIMITED</strong><br>Agboopa Village, Awowo, Ewekoro LGA, Ogun State, Nigeria<br>
-      Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+      Official Support: ${MAIL_SUPPORT_ADDRESS} | +234 916 358 3220
     </div>
   </div>
 </div>`;
@@ -587,7 +615,7 @@ Please change this password from your User Profile after signing in, and keep it
 If you did not request this reset, contact the Executive Directorate immediately.
 
 ACCAD FARMS LIMITED
-Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
+Official Support: ${MAIL_SUPPORT_ADDRESS} | +234 916 358 3220
 `;
 
   const result = await dispatchEmailWithInsForge({
@@ -596,8 +624,8 @@ Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
     html,
     text,
     fromName: 'ACCAD FARMS Security Hub',
-    fromEmail: 'accadfarmsapp@gmail.com',
-    replyTo: 'accadfarmsapp@gmail.com'
+    fromEmail: MAIL_FROM_ADDRESS,
+    replyTo: MAIL_SUPPORT_ADDRESS
   });
 
   try {
@@ -605,17 +633,23 @@ Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
       userId: user.id,
       userEmail: user.email,
       title: 'Password Reset by Executive Director',
-      message: `Your portal password was reset by the Executive Directorate and sent to ${user.email}.`,
+      message: result.success
+        ? `Your portal password was reset by the Executive Directorate and sent to ${user.email}.`
+        : `Your portal password was reset by the Executive Directorate, but we could not email it to ${user.email}. Please contact the Executive Director.`,
       type: 'warning'
     });
   } catch (e) {}
 
+  // The password was changed either way - that part is done and must be logged. What varies is
+  // whether the user was actually told, and the ED needs to see that distinction to follow up.
   try {
     await createAuditLog(
       edCreator?.fullName || 'Executive Director',
-      edCreator?.email || 'accadfarmsapp@gmail.com',
+      edCreator?.email || MAIL_SUPPORT_ADDRESS,
       'PASSWORD_RESET_BY_ED',
-      `Reset the portal password for ${user.fullName} (${user.email}) and dispatched it to their email`
+      result.success
+        ? `Reset the portal password for ${user.fullName} (${user.email}) and dispatched it to their email`
+        : `Reset the portal password for ${user.fullName} (${user.email}) but the email FAILED to send. Reason: ${result.message}. The user has not been told their new password.`
     );
   } catch (e) {}
 
@@ -627,7 +661,7 @@ Official Support: accadfarmsapp@gmail.com | +234 916 358 3220
  * Dispatches an automated email notification when a new farm log is submitted.
  */
 export async function sendReportSubmittedEmail(report: Report, submitterUser?: User): Promise<EmailDispatchResult> {
-  const recipient = 'accadfarmsapp@gmail.com';
+  const recipient = MAIL_OPERATIONS_INBOX;
   const submitterName = submitterUser?.fullName || report.fullName || report.email;
   const subject = `[ACCAD FARMS] New ${report.department} Report Submitted - ${report.title}`;
 
@@ -675,7 +709,7 @@ export async function sendReportStatusEmail(
   rejectionReason?: string
 ): Promise<EmailDispatchResult> {
   const recipient = report.email.trim().toLowerCase();
-  const isApproved = newStatus === ReportStatus.APPROVED_BY_ED || newStatus === ReportStatus.APPROVED_BY_MANAGER;
+  const isApproved = newStatus === ReportStatus.APPROVED;
   const subject = `[ACCAD FARMS] Report Status Update: "${report.title}" is ${newStatus}`;
 
   const html = `
@@ -718,7 +752,7 @@ export async function sendChangeRequestEmail(
   changeReq: HatcheryChangeRequest,
   requesterUser?: User
 ): Promise<EmailDispatchResult> {
-  const recipient = 'accadfarmsapp@gmail.com';
+  const recipient = MAIL_OPERATIONS_INBOX;
   const requesterName = requesterUser?.fullName || changeReq.requestedBy;
   const subject = `[ACCAD FARMS] Urgent: Hatchery Batch Unlock Requested - ${changeReq.batchNumber}`;
 
@@ -744,7 +778,7 @@ export async function sendChangeRequestEmail(
     subject,
     html,
     text,
-    fromEmail: 'accadfarmsapp@gmail.com',
+    fromEmail: MAIL_FROM_ADDRESS,
     metaPayload: {
       'Batch Number': changeReq.batchNumber,
       'Requester': requesterName,
@@ -761,7 +795,7 @@ export async function sendPasswordResetRequestEmail(params: {
   user: User;
   note?: string;
 }): Promise<EmailDispatchResult> {
-  const recipient = 'accadfarmsapp@gmail.com';
+  const recipient = MAIL_OPERATIONS_INBOX;
   const subject = `[ACCAD FARMS] URGENT: Password Reset Request from ${params.user.fullName}`;
 
   const html = `
@@ -793,7 +827,7 @@ export async function sendPasswordResetRequestEmail(params: {
     subject,
     html,
     text,
-    fromEmail: 'accadfarmsapp@gmail.com',
+    fromEmail: MAIL_FROM_ADDRESS,
     fromName: 'ACCAD FARMS Security Hub',
     metaPayload: {
       'User Name': params.user.fullName,

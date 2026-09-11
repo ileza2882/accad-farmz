@@ -52,6 +52,7 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
   onRefresh,
   onApprove,
   onReject,
+  onRedo,
   onViewDetails
 }) => {
   const [searchTerm, setSearchTerm] = useState('');

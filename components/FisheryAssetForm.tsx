@@ -280,15 +280,6 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
   const handleSubmitAll = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    setCollapsedSections({
-      feedsInventory: true,
-      feedStorage: true,
-      ingredientsUsed: true,
-      drugsUsed: true,
-      machineCheck: true,
-      technicalReport: true
-    });
-    setAllExpanded(false);
   };
 
   // Helper machine status selector pill

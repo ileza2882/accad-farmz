@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { User, NotificationItem } from '../types';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../lib/insforge';
-import { Bell, CheckCheck, Clock, Info, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  isPushSupported,
+  getPermissionState,
+  enablePushNotifications,
+  disablePushNotifications,
+  listenForForegroundMessages
+} from '../lib/pushNotifications';
+import { Bell, BellOff, CheckCheck, Clock, Info, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface NotificationsPageProps {
   user: User;
@@ -23,9 +30,37 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ user }) =>
     }
   };
 
+  const [pushState, setPushState] = useState<NotificationPermission | 'unsupported'>(getPermissionState());
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchNotifs();
   }, [user]);
+
+  // A push that arrives while this tab is focused is not shown by the service worker, so pull the
+  // list again to surface it rather than leaving the page looking stale.
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    listenForForegroundMessages(() => fetchNotifs()).then(fn => { unsubscribe = fn; });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [user]);
+
+  const handleEnablePush = async () => {
+    setPushBusy(true);
+    setPushError(null);
+    const result = await enablePushNotifications({ email: user.email, id: user.id });
+    setPushState(result.permission);
+    if (!result.success) setPushError(result.reason || 'Could not turn on notifications.');
+    setPushBusy(false);
+  };
+
+  const handleDisablePush = async () => {
+    setPushBusy(true);
+    await disablePushNotifications();
+    setPushState(getPermissionState());
+    setPushBusy(false);
+  };
 
   const handleMarkRead = async (id: string) => {
     await markNotificationAsRead(id);
@@ -61,6 +96,47 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ user }) =>
           </button>
         )}
       </div>
+
+      {/* Device push opt-in. Hidden entirely when Firebase is unconfigured or the browser cannot do
+          web push, so an install without FCM shows no dead control. */}
+      {isPushSupported() && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+          <div className="flex items-start space-x-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              pushState === 'granted' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {pushState === 'granted' ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                {pushState === 'granted' ? 'Device notifications are on' : 'Get alerts on this device'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {pushState === 'granted'
+                  ? 'You will be notified even when the portal is closed.'
+                  : pushState === 'denied'
+                    ? 'Notifications are blocked for this site. Re-enable them in your browser settings.'
+                    : 'Approvals, rejections and new farm logs, delivered to this browser.'}
+              </p>
+              {pushError && <p className="text-xs text-red-600 font-semibold mt-1">{pushError}</p>}
+            </div>
+          </div>
+
+          {pushState !== 'denied' && (
+            <button
+              onClick={pushState === 'granted' ? handleDisablePush : handleEnablePush}
+              disabled={pushBusy}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 disabled:opacity-50 ${
+                pushState === 'granted'
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              {pushBusy ? 'Working...' : pushState === 'granted' ? 'Turn Off' : 'Turn On'}
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-slate-400 font-bold">Loading notifications...</div>

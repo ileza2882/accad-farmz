@@ -15,8 +15,10 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { Header } from './components/Header';
 import { DatabaseAuthGuard } from './components/DatabaseAuthGuard';
+import { SessionTimeoutGuard, LAST_ACTIVITY_KEY } from './components/SessionTimeoutGuard';
 import { User, Role } from './types';
 import { getUsers, updateUser, verifyDatabaseAuthorization } from './lib/insforge';
+import { refreshPushRegistration } from './lib/pushNotifications';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -46,6 +48,17 @@ const App: React.FC = () => {
     } catch (e) {}
   }, [currentUser]);
 
+  // Re-register this device for push on every authenticated load.
+  //
+  // FCM rotates tokens on its own schedule, and a rotated token we never hear about is a device
+  // that silently stops receiving anything. This never prompts - it returns immediately unless
+  // permission was already granted - so it is safe to run unattended.
+  useEffect(() => {
+    if (currentUser?.email) {
+      refreshPushRegistration({ email: currentUser.email, id: currentUser.id });
+    }
+  }, [currentUser?.email]);
+
   // Strict Startup Database Authorization Check:
   // Zero local cache bypass: verify active authorization with InsForge DB immediately.
   useEffect(() => {
@@ -68,6 +81,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     localStorage.removeItem('accad_user_v2');
     localStorage.removeItem('accad_user');
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
     if (reason && typeof window !== 'undefined') {
       console.warn(`[App] Session terminated: ${reason}`);
     }
@@ -83,7 +97,8 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+      <SessionTimeoutGuard currentUser={currentUser} onLogout={handleLogout}>
+        <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
         
         {/* Universal Header with Logo on Top-Left & Home Button */}
         <Header user={currentUser} onLogout={handleLogout} onRoleSwitch={handleRoleSwitch} />
@@ -259,7 +274,8 @@ const App: React.FC = () => {
           </Routes>
         </main>
 
-      </div>
+        </div>
+      </SessionTimeoutGuard>
     </HashRouter>
   );
 };

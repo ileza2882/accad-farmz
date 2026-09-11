@@ -9,6 +9,53 @@ const root = path.resolve(__dirname, '.');
 
 console.log('🚀 Starting Optimized ACCAD FARMS WASM Production Build...');
 
+// Load .env / .env.local so a direct `node build-wasm.mjs` sees the same configuration the deploy
+// pipeline does. deploy-to-cloudflare.mjs already loads these before invoking us, and re-reading is
+// harmless because existing process.env values win.
+function loadEnv() {
+  ['.env', '.env.local'].forEach(file => {
+    const envPath = path.join(root, file);
+    if (!fs.existsSync(envPath)) return;
+    fs.readFileSync(envPath, 'utf-8').split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if (!process.env[key]) process.env[key] = val;
+      }
+    });
+  });
+}
+loadEnv();
+
+/**
+ * Firebase web config for the client bundle.
+ *
+ * These are public values - they ship in the JS and are meant to. What must never appear here is
+ * FIREBASE_SERVICE_ACCOUNT, which can send to any device on the project and stays server-side.
+ *
+ * Every key defaults to "" so an unconfigured build compiles and simply reports push as
+ * unsupported, rather than failing to build or throwing at runtime.
+ */
+function firebaseDefines() {
+  const keys = [
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID',
+    'VITE_FIREBASE_STORAGE_BUCKET',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    'VITE_FIREBASE_APP_ID',
+    'VITE_FIREBASE_VAPID_KEY'
+  ];
+  const defines = {};
+  for (const key of keys) {
+    defines[`import.meta.env.${key}`] = JSON.stringify(process.env[key] || '');
+  }
+  return defines;
+}
+
 const distDir = path.join(root, 'dist');
 const distAssetsDir = path.join(distDir, 'assets');
 if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, { recursive: true });
@@ -72,7 +119,8 @@ const result = await esbuild.build({
     'import.meta.env.VITE_INSFORGE_PROJECT_NAME': '"accadfarmz"',
     'import.meta.env.VITE_INSFORGE_URL': '"https://imf45qwi.us-east.insforge.app"',
     'import.meta.env.VITE_INSFORGE_API_KEY': '"ik_56a71ca7e6aa4249545fc5bd8f983c38"',
-    'import.meta.env.VITE_DISCONNECT_DATABASE': '"false"'
+    'import.meta.env.VITE_DISCONNECT_DATABASE': '"false"',
+    ...firebaseDefines()
   },
   loader: {
     '.tsx': 'tsx',

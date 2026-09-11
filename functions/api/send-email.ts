@@ -3,6 +3,26 @@ import { connect } from 'cloudflare:sockets';
 interface Env {
   GMAIL_USER?: string;
   GMAIL_APP_PASSWORD?: string;
+  /** Resend API key. When present, Resend is the primary sender and Gmail becomes the fallback. */
+  RESEND_API_KEY?: string;
+  /** Verified Resend sender, e.g. "ACCAD FARMS <noreply@send.accadfarms.com>". */
+  RESEND_FROM?: string;
+  /** Monitored address staff replies land in. */
+  MAIL_REPLY_TO?: string;
+}
+
+/**
+ * The domain we own and that signs our mail once Resend is verified. Also used to mint Message-IDs.
+ *
+ * Note this is NOT a repeat of the forged "@gmail.com" Message-ID that 264d042 removed. That one
+ * claimed a domain whose mail servers we do not run, which is a spoofing signal. accadfarms.com is
+ * ours, so an identifier under it is exactly what RFC 5322 asks for.
+ */
+const SENDING_DOMAIN = 'accadfarms.com';
+
+function buildMessageId(): string {
+  const rand = `${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 12)}`;
+  return `<${rand}@${SENDING_DOMAIN}>`;
 }
 
 const CORS_HEADERS = {
@@ -31,6 +51,8 @@ async function sendViaGmailSMTP(options: {
   subject: string;
   html?: string;
   text?: string;
+  replyTo?: string;
+  messageId?: string;
   transcript?: string[];
 }): Promise<{ messageId: string; response: string }> {
   const { gmailUser, gmailPass, to, fromName, subject, html, text } = options;
@@ -140,7 +162,8 @@ async function sendViaGmailSMTP(options: {
     `To: <${to}>`,
     `Subject: ${encodeSubject(subject)}`,
     `Date: ${dateStr}`,
-    `Reply-To: ${gmailUser}`,
+    `Message-ID: ${options.messageId || buildMessageId()}`,
+    `Reply-To: ${options.replyTo || gmailUser}`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`
   ].join('\r\n');
@@ -181,8 +204,67 @@ async function sendViaGmailSMTP(options: {
   } catch (e) {}
 
   const serverReply = dataReply.trim();
-  const assignedId = serverReply.split(/s+/).find(t => /^[0-9a-z]{10,}$/i.test(t)) || 'assigned-by-gmail';
+  // Split on whitespace. This was `/s+/` (splitting on the letter "s"), which never matched a
+  // queue id, so every send reported the placeholder and the ED had no id to trace a lost message.
+  const assignedId = serverReply.split(/\s+/).find(t => /^[0-9a-z]{10,}$/i.test(t)) || 'assigned-by-gmail';
   return { messageId: assignedId, response: serverReply };
+}
+
+/**
+ * Primary sender: Resend's HTTPS API, sending as our own DKIM-signed domain.
+ *
+ * This is the path that actually fixes spam placement. Mail sent through the Gmail fallback is
+ * authenticated as gmail.com no matter what we put in From, so it earns us no reputation on
+ * accadfarms.com and is pooled with every consumer Gmail account. Resend signs as our domain.
+ */
+async function sendViaResend(options: {
+  apiKey: string;
+  from: string;
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  replyTo: string;
+  transcript?: string[];
+}): Promise<{ messageId: string; response: string }> {
+  const { apiKey, from, to, subject, html, text, replyTo } = options;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      ...(html ? { html } : {}),
+      ...(text ? { text } : {}),
+      reply_to: replyTo
+    })
+  });
+
+  const raw = await res.text();
+  options.transcript?.push(`> POST https://api.resend.com/emails (from: ${from}, to: ${to})`);
+  options.transcript?.push(`< HTTP ${res.status} ${raw.slice(0, 400)}`);
+
+  if (!res.ok) {
+    throw new Error(`Resend rejected the message (HTTP ${res.status}): ${raw.slice(0, 300)}`);
+  }
+
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Resend returned a non-JSON response: ${raw.slice(0, 200)}`);
+  }
+
+  if (!parsed?.id) {
+    throw new Error(`Resend accepted the request but returned no message id: ${raw.slice(0, 200)}`);
+  }
+
+  return { messageId: parsed.id, response: `Resend accepted the message (id ${parsed.id})` };
 }
 
 export const onRequestPost = async ({ request, env }: { request: Request; env: Env }) => {
@@ -203,52 +285,103 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: E
       );
     }
 
-    console.log(`[Cloudflare Pages SMTPS] Dispatching real email to: ${recipient}`);
-
-    // Retry transient SMTP failures (handshake drops, throttling) before reporting a hard failure.
-    // A new staff member losing their credentials email to a one-off socket blip is not acceptable.
     const wantTranscript = body.debug === true;
     const transcript: string[] = [];
-    const MAX_SMTP_ATTEMPTS = 3;
-    let result: { messageId: string; response: string } | null = null;
-    let lastSmtpError: any = null;
+    const replyTo = env.MAIL_REPLY_TO || 'info@accadfarms.com';
+    const messageId = buildMessageId();
 
-    for (let attempt = 1; attempt <= MAX_SMTP_ATTEMPTS; attempt++) {
-      try {
-        result = await sendViaGmailSMTP({
-          gmailUser,
-          gmailPass,
-          to: recipient,
-          fromName,
-          subject,
-          html,
-          text,
-          transcript: wantTranscript ? transcript : undefined
-        });
-        break;
-      } catch (smtpErr: any) {
-        lastSmtpError = smtpErr;
-        console.warn(`[Cloudflare Pages SMTPS] Attempt ${attempt}/${MAX_SMTP_ATTEMPTS} to ${recipient} failed: ${smtpErr?.message}`);
-        if (attempt < MAX_SMTP_ATTEMPTS) {
-          await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+    // Retry transient failures (handshake drops, throttling, a 5xx from the API) before giving up.
+    // A new staff member losing their credentials email to a one-off blip is not acceptable.
+    const MAX_ATTEMPTS = 3;
+    let result: { messageId: string; response: string } | null = null;
+    let provider = '';
+    let sender = '';
+    let lastError: any = null;
+
+    // 1. PRIMARY: Resend, signing as accadfarms.com. Only usable once RESEND_API_KEY is bound and
+    //    the domain is verified; until then this block is skipped and Gmail carries everything.
+    const resendKey = env.RESEND_API_KEY;
+    const resendFrom = env.RESEND_FROM || 'ACCAD FARMS <noreply@send.accadfarms.com>';
+
+    if (resendKey) {
+      console.log(`[Mail] Dispatching via Resend as ${resendFrom} to: ${recipient}`);
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          result = await sendViaResend({
+            apiKey: resendKey,
+            from: resendFrom,
+            to: recipient,
+            subject,
+            html,
+            text,
+            replyTo,
+            transcript: wantTranscript ? transcript : undefined
+          });
+          provider = 'resend_accadfarms_domain';
+          sender = resendFrom;
+          break;
+        } catch (resendErr: any) {
+          lastError = resendErr;
+          console.warn(`[Mail] Resend attempt ${attempt}/${MAX_ATTEMPTS} to ${recipient} failed: ${resendErr?.message}`);
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+          }
+        }
+      }
+    }
+
+    // 2. FALLBACK: Gmail SMTPS. Deliverability here is materially worse - the message authenticates
+    //    as gmail.com, not as us - so this is a safety net, never the intended path.
+    if (!result) {
+      if (resendKey) {
+        console.warn(`[Mail] Resend failed for ${recipient}; falling back to Gmail SMTPS.`);
+      }
+      console.log(`[Mail] Dispatching via Gmail SMTPS to: ${recipient}`);
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          result = await sendViaGmailSMTP({
+            gmailUser,
+            gmailPass,
+            to: recipient,
+            fromName,
+            subject,
+            html,
+            text,
+            replyTo,
+            messageId,
+            transcript: wantTranscript ? transcript : undefined
+          });
+          provider = 'gmail_smtps_cloudflare';
+          sender = gmailUser;
+          break;
+        } catch (smtpErr: any) {
+          lastError = smtpErr;
+          console.warn(`[Mail] Gmail SMTPS attempt ${attempt}/${MAX_ATTEMPTS} to ${recipient} failed: ${smtpErr?.message}`);
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+          }
         }
       }
     }
 
     if (!result) {
-      throw lastSmtpError || new Error('SMTP delivery failed after retries');
+      throw lastError || new Error('Email delivery failed after retries on every configured sender');
     }
 
-    console.log(`[Cloudflare Pages SMTPS] Success! Delivered to ${recipient}. MessageId: ${result.messageId}`);
+    console.log(`[Mail] Accepted for delivery to ${recipient} via ${provider}. MessageId: ${result.messageId}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        provider: 'gmail_smtps_cloudflare',
-        sender: gmailUser,
+        provider,
+        sender,
         recipient: recipient,
         messageId: result.messageId,
+        // "accepted", not "delivered": the provider taking the message is not proof it reached the
+        // inbox. Bounce and complaint webhooks are what confirm the last hop.
+        acceptedAt: new Date().toISOString(),
         deliveredAt: new Date().toISOString(),
+        usedFallback: provider === 'gmail_smtps_cloudflare' && Boolean(resendKey),
         serverResponse: result.response,
         ...(wantTranscript ? { transcript } : {})
       }),
