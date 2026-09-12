@@ -20,13 +20,21 @@ ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "fullName"                TE
 
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "isReEntry"               BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "computerName"            TEXT;
-ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "updatedAt"               BIGINT;
+
+-- Epoch-millisecond columns are DOUBLE PRECISION, not INTEGER.
+--
+-- The InsForge schema API maps its "integer" type to int4, whose ~2.1e9 ceiling cannot hold a
+-- Date.now() value (~1.79e12) - an insert carrying one fails outright with "value out of range
+-- for type integer", taking the whole row with it. A double stores a millisecond epoch exactly,
+-- far inside its 2^53 exact-integer range. The "Ms" suffix distinguishes these from the earlier
+-- int4 columns of the same name, which remain in the table unused.
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "updatedAtMs"             DOUBLE PRECISION;
 
 -- Rejection trail. rejectedBy/rejectedAt are distinct from the manager/ED approval stamps: a
 -- report can carry a manager approval AND a later ED rejection at the same time.
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "rejectionReason"         TEXT;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "rejectedBy"              TEXT;
-ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "rejectedAt"              BIGINT;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "rejectedAtMs"            DOUBLE PRECISION;
 
 -- Approval attribution, as the app names it.
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "managerApprovedBy"       TEXT;
@@ -34,12 +42,12 @@ ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "edApprovedBy"            TE
 
 -- Archiving.
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "isArchived"              BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "archivedAt"              BIGINT;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "archivedAtMs"            DOUBLE PRECISION;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "archivedBy"              TEXT;
 
--- Redo / resubmission tracking.
+-- Redo / resubmission tracking. resubmissionCount stays INTEGER - it counts attempts, not epochs.
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "isResubmitted"           BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "resubmittedAt"           BIGINT;
+ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "resubmittedAtMs"         DOUBLE PRECISION;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "resubmissionCount"       INTEGER DEFAULT 0;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "previousRejectionReason" TEXT;
 ALTER TABLE public.reports ADD COLUMN IF NOT EXISTS "redoNotes"               TEXT;

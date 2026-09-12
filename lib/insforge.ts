@@ -1057,6 +1057,33 @@ export async function clearAllReports(): Promise<boolean> {
   return true;
 }
 
+/* ------------------------------------------------------------------------------------------
+ * Epoch-millisecond column mapping
+ *
+ * reports.updatedAt / rejectedAt / archivedAt / resubmittedAt exist as 32-bit integer columns,
+ * which overflow on any Date.now() value (~1.79e12 against an int4 ceiling of ~2.1e9) and make
+ * the whole insert fail. The usable columns are the float ones suffixed "Ms"; a double stores a
+ * millisecond epoch exactly, well inside its 2^53 integer range.
+ *
+ * Reads fall back to the legacy column so anything written before this mapping still loads.
+ * ---------------------------------------------------------------------------------------- */
+
+const EPOCH_FIELD_MAP: Record<string, string> = {
+  updatedAt: 'updatedAtMs',
+  rejectedAt: 'rejectedAtMs',
+  archivedAt: 'archivedAtMs',
+  resubmittedAt: 'resubmittedAtMs'
+};
+
+/** Renames epoch fields onto the float columns that can actually hold them. */
+function mapEpochFieldsForDb<T extends Record<string, any>>(payload: T): Record<string, any> {
+  const mapped: Record<string, any> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    mapped[EPOCH_FIELD_MAP[key] || key] = value;
+  }
+  return mapped;
+}
+
 /**
  * Get all farm logs / reports from InsForge DB + Local sync
  */
@@ -1080,14 +1107,14 @@ export async function getReports(): Promise<Report[]> {
           isReEntry: Boolean(r.isReEntry),
           rejectionReason: r.rejectionReason,
           rejectedBy: r.rejectedBy,
-          rejectedAt: r.rejectedAt,
+          rejectedAt: r.rejectedAtMs ?? r.rejectedAt,
           managerApprovedBy: r.managerApprovedBy,
           edApprovedBy: r.edApprovedBy,
           computerName: r.computerName || 'ACCAD-WORKSTATION-PC',
-          updatedAt: r.updatedAt || r.timestamp,
+          updatedAt: r.updatedAtMs ?? r.updatedAt ?? r.timestamp,
           isArchived: Boolean(r.isArchived),
           isResubmitted: Boolean(r.isResubmitted),
-          resubmittedAt: r.resubmittedAt,
+          resubmittedAt: r.resubmittedAtMs ?? r.resubmittedAt,
           resubmissionCount: r.resubmissionCount || 0,
           previousRejectionReason: r.previousRejectionReason,
           redoNotes: r.redoNotes
@@ -1154,7 +1181,7 @@ export async function createReport(report: Report): Promise<Report> {
     try {
       const { data, error } = await insforge.database
         .from('reports')
-        .insert([payload])
+        .insert([mapEpochFieldsForDb(payload)])
         .select();
 
       if (error) {
@@ -1213,7 +1240,7 @@ export async function updateReportStatus(
     try {
       await insforge.database
         .from('reports')
-        .update(updates)
+        .update(mapEpochFieldsForDb(updates))
         .eq('originalId', reportId);
     } catch (e) {
       console.warn('InsForge updateReportStatus error:', e);
@@ -1299,15 +1326,16 @@ export async function updateReport(reportId: string, updates: Partial<Report>): 
   };
 
   if (!IS_DISCONNECTED_MODE) {
+    const dbUpdates = mapEpochFieldsForDb(mergedUpdates);
     try {
       await insforge.database
         .from('reports')
-        .update(mergedUpdates)
+        .update(dbUpdates)
         .eq('originalId', reportId);
 
       await insforge.database
         .from('reports')
-        .update(mergedUpdates)
+        .update(dbUpdates)
         .eq('id', reportId);
     } catch (e) {
       console.warn('InsForge updateReport error:', e);
