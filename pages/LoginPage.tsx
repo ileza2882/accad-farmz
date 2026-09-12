@@ -119,7 +119,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <span className="font-extrabold uppercase text-[10px] tracking-wider block text-amber-800">
-                Session Inactivity Timeout (30 Mins)
+                Session Inactivity Timeout (45 Mins)
               </span>
               <span>{timeoutNotice}</span>
             </div>

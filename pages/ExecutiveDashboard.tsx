@@ -274,7 +274,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
       alert('Rejection failed: ' + e.message);
     } finally {
       setIsActionProcessing(false);
-      setRejectionReport(null);
     }
   };
 
@@ -302,9 +301,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
     } else if (selectedInvType === InventoryType.HATCHERY) {
       const firstBatch = formData?.batches?.[0]?.batchNumber || 'Batch';
       effectiveTitle = logTitle.trim() || `${selectedDept} Hatchery Transfer - ${firstBatch}`;
+    } else if (selectedInvType === InventoryType.LIVESTOCK) {
+      effectiveTitle = logTitle.trim() || `${selectedDept} Livestock Inventory`;
     }
 
-    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && !effectiveTitle) {
+    if (selectedInvType !== InventoryType.ASSET && selectedInvType !== InventoryType.HATCHERY && selectedInvType !== InventoryType.LIVESTOCK && !effectiveTitle) {
       alert('Please enter a title for your farm log entry.');
       return;
     }
@@ -1810,7 +1811,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 <li>Initial default password was set to <strong>123456</strong>. Updating here writes immediately to table <code>public.users</code> on InsForge BaaS.</li>
                 <li>All user logins across ACCAD Farms must be created by the Executive Director only.</li>
                 <li>No button in the application leads to the ED Dashboard except via direct URL <code>/ed</code>.</li>
-                <li><strong>Session Security Inactivity Policy:</strong> All operational dashboards (ED, Manager, Staff, Hatchery) automatically time out after <strong>30 minutes</strong> of inactivity to safeguard farm records. A 2-minute warning countdown allows extending active sessions.</li>
+                <li><strong>Session Security Inactivity Policy:</strong> All operational dashboards (ED, Manager, Staff, Hatchery) automatically time out after <strong>45 minutes</strong> of inactivity to safeguard farm records. A 2-minute warning countdown allows extending active sessions.</li>
               </ul>
             </div>
 

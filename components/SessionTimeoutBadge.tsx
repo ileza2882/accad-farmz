@@ -13,7 +13,7 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
   className = '',
   dark = false
 }) => {
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(30 * 60);
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(45 * 60);
   const [isExtendedRecently, setIsExtendedRecently] = useState(false);
 
   const calculateRemaining = useCallback(() => {
@@ -51,7 +51,7 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
     const now = Date.now();
     localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
     window.dispatchEvent(new CustomEvent('accad_activity_ping', { detail: { timestamp: now } }));
-    setRemainingSeconds(30 * 60);
+    setRemainingSeconds(45 * 60);
     setIsExtendedRecently(true);
     setTimeout(() => setIsExtendedRecently(false), 2500);
   };
@@ -74,7 +74,7 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
               ? 'bg-amber-50 border border-amber-300 text-amber-900 animate-pulse'
               : 'bg-emerald-50 border border-emerald-200 text-emerald-900 hover:bg-emerald-100/70'
         } ${className}`}
-        title={`Session Inactivity Timeout: ${timeFormatted} remaining before auto-logout. Click to extend session by 30 mins.`}
+        title={`Session Inactivity Timeout: ${timeFormatted} remaining before auto-logout. Click to extend session by 45 mins.`}
       >
         <span className="relative flex h-2 w-2">
           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLowTime ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
@@ -84,13 +84,13 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
         <Clock className={`w-3.5 h-3.5 ${isLowTime ? 'text-amber-500' : dark ? 'text-emerald-400' : 'text-emerald-600'}`} />
 
         <span className="text-[11px] font-mono tracking-tight font-extrabold">
-          {isExtendedRecently ? 'Session +30m' : `${timeFormatted} left`}
+          {isExtendedRecently ? 'Session +45m' : `${timeFormatted} left`}
         </span>
 
         <button
           type="button"
           onClick={handleManualExtend}
-          title="Reset timer to 30 mins"
+          title="Reset timer to 45 mins"
           className={`p-1 rounded-lg transition-transform active:scale-90 cursor-pointer ${
             dark ? 'hover:bg-emerald-800 text-emerald-300' : 'hover:bg-emerald-200/80 text-emerald-700'
           }`}
@@ -133,10 +133,10 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
               </span>
             </div>
             <h4 className="text-xs sm:text-sm font-black uppercase tracking-tight mt-0.5">
-              30-Minute Inactivity Auto-Timeout
+              45-Minute Inactivity Auto-Timeout
             </h4>
             <p className={`text-[10px] sm:text-[11px] font-medium ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Session auto-terminates after 30 minutes of idle inactivity to protect farm ledger data.
+              Session auto-terminates after 45 minutes of idle inactivity to protect farm ledger data.
             </p>
           </div>
         </div>
@@ -151,7 +151,7 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
                 ? 'bg-emerald-800/60 hover:bg-emerald-700 text-emerald-100 border border-emerald-600/50'
                 : 'bg-emerald-600 hover:bg-emerald-700 text-white'
           }`}
-          title="Reset inactivity timer to 30 minutes"
+          title="Reset inactivity timer to 45 minutes"
         >
           {isExtendedRecently ? (
             <>
@@ -161,7 +161,7 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
           ) : (
             <>
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Extend (+30m)</span>
+              <span>Extend (+45m)</span>
             </>
           )}
         </button>

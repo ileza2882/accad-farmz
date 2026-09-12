@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import { Clock, AlertTriangle, RefreshCw, LogOut } from 'lucide-react';
 
-export const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+export const SESSION_TIMEOUT_MS = 45 * 60 * 1000; // 45 minutes
 export const WARNING_WINDOW_MS = 2 * 60 * 1000;   // 2 minutes before timeout
 export const LAST_ACTIVITY_KEY = 'accad_session_last_active';
 export const TIMEOUT_NOTICE_KEY = 'accad_timeout_notice';
@@ -53,18 +53,18 @@ export const SessionTimeoutGuard: React.FC<SessionTimeoutGuardProps> = ({
     try {
       sessionStorage.setItem(
         TIMEOUT_NOTICE_KEY,
-        'Your session timed out after 30 minutes of inactivity. Please sign in again to continue.'
+        'Your session timed out after 45 minutes of inactivity. Please sign in again to continue.'
       );
     } catch (e) {}
 
     const wasED = currentUser?.role === Role.EXECUTIVE_DIRECTOR;
-    onLogout('Session timed out after 30 minutes of inactivity');
+    onLogout('Session timed out after 45 minutes of inactivity');
 
     // Route to appropriate login portal
     if (wasED) {
-      navigate('/ed', { replace: true, state: { alertMessage: 'Session timed out after 30 minutes of inactivity.' } });
+      navigate('/ed', { replace: true, state: { alertMessage: 'Session timed out after 45 minutes of inactivity.' } });
     } else {
-      navigate('/login', { replace: true, state: { alertMessage: 'Session timed out after 30 minutes of inactivity.' } });
+      navigate('/login', { replace: true, state: { alertMessage: 'Session timed out after 45 minutes of inactivity.' } });
     }
   }, [currentUser, onLogout, navigate]);
 
@@ -220,7 +220,7 @@ export const SessionTimeoutGuard: React.FC<SessionTimeoutGuardProps> = ({
                 Session Expiring Soon
               </h3>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                You have been inactive for over 28 minutes. For data integrity and farm record security, your session will automatically log out in:
+                You have been inactive for over 43 minutes. For data integrity and farm record security, your session will automatically log out in:
               </p>
             </div>
 
@@ -256,7 +256,7 @@ export const SessionTimeoutGuard: React.FC<SessionTimeoutGuardProps> = ({
             </div>
 
             <p className="text-[10px] text-slate-400 font-medium">
-              🔒 30-minute automated inactivity timeout applies to all ACCAD farm operational dashboards.
+              🔒 45-minute automated inactivity timeout applies to all ACCAD farm operational dashboards.
             </p>
 
           </div>
