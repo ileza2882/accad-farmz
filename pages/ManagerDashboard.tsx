@@ -21,7 +21,6 @@ import {
   Users,
   ShieldAlert
 } from 'lucide-react';
-import { SessionTimeoutBadge } from '../components/SessionTimeoutBadge';
 
 interface ManagerDashboardProps {
   user: User;
@@ -179,8 +178,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user }) => {
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-3 relative z-10 overflow-x-auto">
-          <SessionTimeoutBadge compact={true} dark={true} />
-
           <button
             onClick={() => setActiveTab('pending')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer whitespace-nowrap ${

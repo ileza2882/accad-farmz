@@ -22,7 +22,6 @@ import {
   Sparkles,
   TrendingUp
 } from 'lucide-react';
-import { SessionTimeoutBadge } from '../components/SessionTimeoutBadge';
 
 interface HatcheryDashboardPageProps {
   user: User | null;
@@ -198,8 +197,6 @@ export const HatcheryDashboardPage: React.FC<HatcheryDashboardPageProps> = ({ us
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-              <SessionTimeoutBadge compact={true} dark={true} />
-
               <button
                 onClick={() => handleCreateNewLog(false)}
                 disabled={creatingNew}

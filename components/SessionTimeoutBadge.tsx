@@ -62,6 +62,12 @@ export const SessionTimeoutBadge: React.FC<SessionTimeoutBadgeProps> = ({
 
   const isLowTime = remainingSeconds <= 300; // Under 5 minutes
 
+  // Stay hidden until the final minute so it doesn't sit in the UI all session long.
+  // Briefly stay visible right after a manual extend so the "Extended!" confirmation is seen.
+  if (remainingSeconds > 60 && !isExtendedRecently) {
+    return null;
+  }
+
   if (compact) {
     return (
       <div 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Role, Department, User, DEPARTMENT_CATEGORIZED_ROLES } from '../types';
 import { getUsers, createUser, createAuditLog, createNotification } from '../lib/insforge';
-import { sendUserWelcomeEmail } from '../lib/emailService';
+import { sendUserWelcomeSms } from '../lib/smsService';
 import { 
   UserPlus, 
   X, 
@@ -54,7 +54,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [customNotes, setCustomNotes] = useState('');
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
-  const [emailStatus, setEmailStatus] = useState<{
+  const [smsStatus, setSmsStatus] = useState<{
     sent: boolean;
     error?: string;
     isSending?: boolean;
@@ -66,7 +66,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
   const handleResetForm = () => {
     setRegisteredUser(null);
-    setEmailStatus({ sent: false });
+    setSmsStatus({ sent: false });
     setFullName('');
     setEmail('');
     setPhone('');
@@ -80,10 +80,10 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     setIsSubmitting(false);
   };
 
-  const handleDispatchWelcomeEmail = async (targetUser: User) => {
-    setEmailStatus({ sent: false, isSending: true });
+  const handleDispatchWelcomeSms = async (targetUser: User) => {
+    setSmsStatus({ sent: false, isSending: true });
     try {
-      const result = await sendUserWelcomeEmail({
+      const result = await sendUserWelcomeSms({
         newUser: targetUser,
         edCreator: {
           ...currentEd,
@@ -93,29 +93,29 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       });
 
       if (result.success) {
-        setEmailStatus({ sent: true, isSending: false });
+        setSmsStatus({ sent: true, isSending: false });
       } else {
-        setEmailStatus({ 
-          sent: false, 
-          isSending: false, 
-          error: result.message || 'Email delivery failed' 
+        setSmsStatus({
+          sent: false,
+          isSending: false,
+          error: result.message || 'SMS delivery failed'
         });
       }
     } catch (err: any) {
-      setEmailStatus({ 
-        sent: false, 
-        isSending: false, 
-        error: err?.message || 'Email dispatch failed' 
+      setSmsStatus({
+        sent: false,
+        isSending: false,
+        error: err?.message || 'SMS dispatch failed'
       });
     }
   };
 
   const handleCloseModal = () => {
-    // Closing mid-dispatch can abandon the request before Gmail accepts it, leaving the new
-    // staff member with no credentials email and no warning to the ED.
-    if (emailStatus.isSending) {
+    // Closing mid-dispatch can abandon the request before Termii accepts it, leaving the new
+    // staff member with no credentials SMS and no warning to the ED.
+    if (smsStatus.isSending) {
       const leaveAnyway = window.confirm(
-        'The credentials email is still being sent to this staff member.\n\nClose anyway? They may not receive their login details.'
+        'The credentials SMS is still being sent to this staff member.\n\nClose anyway? They may not receive their login details.'
       );
       if (!leaveAnyway) return;
     }
@@ -139,7 +139,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, emailStatus.isSending]);
+  }, [isOpen, smsStatus.isSending]);
 
   if (!isOpen) return null;
 
@@ -283,7 +283,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
       // Show the credentials panel immediately so the ED always has the passcode on screen, then
       // await the dispatch so the in-flight request is never abandoned before Gmail accepts it.
       setRegisteredUser(created);
-      await handleDispatchWelcomeEmail(created);
+      await handleDispatchWelcomeSms(created);
       setIsSubmitting(false);
 
     } catch (err: any) {
@@ -357,7 +357,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                   <KeyRound className="w-4 h-4 text-emerald-300" />
                   <span className="text-xs font-extrabold uppercase tracking-wider">Dispatched Credentials Table</span>
                 </div>
-                <span className="text-[10px] bg-emerald-700 text-emerald-100 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Sent from accadfarmsapp@gmail.com</span>
+                <span className="text-[10px] bg-emerald-700 text-emerald-100 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Sent via SMS (Termii)</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
@@ -383,8 +383,8 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                       <td className="px-4 py-2.5 font-bold text-slate-800">{registeredUser.department || 'General Operations'}</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Sender Email</td>
-                      <td className="px-4 py-2.5 font-bold text-slate-600">accadfarmsapp@gmail.com</td>
+                      <td className="px-4 py-2.5 font-bold text-slate-500 bg-slate-50">Sent To Phone</td>
+                      <td className="px-4 py-2.5 font-mono font-bold text-slate-600">{registeredUser.phone || 'No phone on file'}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -392,39 +392,39 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
             </div>
 
             {/* Live Automated Dispatch Status */}
-            {emailStatus.sent ? (
+            {smsStatus.sent ? (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl py-3 px-4 shadow-sm">
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Verified credentials dispatched from <strong>accadfarmsapp@gmail.com</strong> to <strong>{registeredUser.email}</strong></span>
+                  <span>Verified credentials texted to <strong>{registeredUser.phone}</strong></span>
                 </div>
                 <button
                   type="button"
-                  disabled={emailStatus.isSending}
-                  onClick={() => handleDispatchWelcomeEmail(registeredUser)}
+                  disabled={smsStatus.isSending}
+                  onClick={() => handleDispatchWelcomeSms(registeredUser)}
                   className="px-3 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-lg border border-emerald-300 transition-all shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-xs"
                 >
-                  {emailStatus.isSending ? 'Sending...' : '↻ Resend Email'}
+                  {smsStatus.isSending ? 'Sending...' : '↻ Resend SMS'}
                 </button>
               </div>
-            ) : emailStatus.isSending ? (
+            ) : smsStatus.isSending ? (
               <div className="flex items-center justify-center space-x-2 text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-2xl py-3.5 px-4 shadow-sm animate-pulse">
                 <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                <span>Dispatching credentials email via Google Mail to <strong>{registeredUser.email}</strong>...</span>
+                <span>Dispatching credentials SMS via Termii to <strong>{registeredUser.phone}</strong>...</span>
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-2xl py-3 px-4 shadow-sm">
                 <div className="flex items-center space-x-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                   <div>
-                    <span>Delivery Notice: {emailStatus.error || 'Awaiting confirmation'}</span>
+                    <span>Delivery Notice: {smsStatus.error || 'Awaiting confirmation'}</span>
                     <p className="text-[10px] text-amber-700 font-normal mt-0.5">You can retry sending now or share the passcode directly.</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  disabled={emailStatus.isSending}
-                  onClick={() => handleDispatchWelcomeEmail(registeredUser)}
+                  disabled={smsStatus.isSending}
+                  onClick={() => handleDispatchWelcomeSms(registeredUser)}
                   className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 shadow-xs"
                 >
                   ↻ Retry Send
@@ -434,7 +434,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
 
             {/* Delivery Tip */}
             <p className="text-[11px] text-center text-slate-500">
-              💡 If the email is not in their primary inbox, please advise them to check their <strong>Spam</strong> or <strong>Promotions</strong> folder.
+              💡 If the SMS hasn't arrived after a minute, confirm the phone number is correct and retry, or share the passcode with them directly.
             </p>
 
             {/* Modal Bottom Actions */}
@@ -608,7 +608,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Additional Notes / Custom Message to Staff (Optional)
                 </label>
-                <span className="text-[10px] text-slate-400 font-semibold">Included in email</span>
+                <span className="text-[10px] text-slate-400 font-semibold">Included in SMS</span>
               </div>
               <textarea
                 value={customNotes}
@@ -618,7 +618,7 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none transition-all resize-none font-medium"
               />
               <p className="text-[10px] text-slate-500 font-medium">
-                The onboarding email with credentials will be dispatched automatically upon clicking "Register User".
+                The onboarding SMS with credentials will be dispatched automatically upon clicking "Register User".
               </p>
             </div>
 
@@ -636,11 +636,11 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                 className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-200 disabled:opacity-50 transition-all flex items-center space-x-2 cursor-pointer"
               >
                 {isSubmitting ? (
-                  <span>Registering User & Dispatching Email...</span>
+                  <span>Registering User & Dispatching SMS...</span>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>Register User & Send Email</span>
+                    <span>Register User & Send SMS</span>
                   </>
                 )}
               </button>

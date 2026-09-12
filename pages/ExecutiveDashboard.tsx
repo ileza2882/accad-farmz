@@ -63,7 +63,6 @@ import {
   EyeOff,
   FileSpreadsheet
 } from 'lucide-react';
-import { SessionTimeoutBadge } from '../components/SessionTimeoutBadge';
 
 interface ExecutiveDashboardProps {
   user: User;
@@ -625,8 +624,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3">
-          <SessionTimeoutBadge compact={true} dark={true} />
-
           <button
             onClick={() => setIsRegisterModalOpen(true)}
             className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
@@ -1813,11 +1810,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                 <li>No button in the application leads to the ED Dashboard except via direct URL <code>/ed</code>.</li>
                 <li><strong>Session Security Inactivity Policy:</strong> All operational dashboards (ED, Manager, Staff, Hatchery) automatically time out after <strong>45 minutes</strong> of inactivity to safeguard farm records. A 2-minute warning countdown allows extending active sessions.</li>
               </ul>
-            </div>
-
-            {/* Session Inactivity Timeout Card */}
-            <div className="pt-2">
-              <SessionTimeoutBadge compact={false} dark={false} />
             </div>
           </div>
         </div>

@@ -329,6 +329,68 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Termii SMS endpoint. Mirrors functions/api/send-sms.ts so localhost exercises the same
+  // contract as production.
+  if (reqPath === '/api/send-sms') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const parsed = JSON.parse(body || '{}');
+          const to = (parsed.to || '').trim();
+          const message = (parsed.message || '').trim();
+          const apiKey = process.env.TERMII_API_KEY;
+          const senderId = process.env.TERMII_SENDER_ID || 'N-Alert';
+
+          if (!to || !message) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '"to" and "message" are required' }));
+            return;
+          }
+
+          if (!apiKey) {
+            console.log(`\n📱 [Dev Server SMS Hub] SMS NOT sent - no TERMII_API_KEY configured:`);
+            console.log(`   To: ${to}`);
+            console.log(`   Message: "${message}"`);
+            console.log(`   💡 Add TERMII_API_KEY in .env to send live SMS via Termii\n`);
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'No TERMII_API_KEY configured on this host - SMS was not sent.' }));
+            return;
+          }
+
+          try {
+            const tRes = await fetch('https://api.ng.termii.com/api/sms/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ api_key: apiKey, to, from: senderId, sms: message, type: 'plain', channel: 'generic' })
+            });
+            const tRaw = await tRes.text();
+            let tJson = null;
+            try { tJson = tRaw ? JSON.parse(tRaw) : null; } catch {}
+
+            if (tRes.ok && tJson?.message_id) {
+              console.log(`\n📱 [Termii] SMS accepted for delivery to ${to} (id ${tJson.message_id})\n`);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, provider: 'termii', sender: senderId, recipient: to, messageId: tJson.message_id }));
+              return;
+            }
+
+            throw new Error(tJson?.message || `Termii rejected the message (HTTP ${tRes.status}): ${tRaw.slice(0, 300)}`);
+          } catch (smsErr) {
+            console.error('❌ [Termii] Error sending SMS:', smsErr.message);
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: smsErr.message }));
+          }
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+      return;
+    }
+  }
+
   // Firebase Cloud Messaging endpoints. Mirrors functions/api/push-register.ts and
   // functions/api/push-send.ts so localhost exercises the same contract as production.
   if (reqPath === '/api/push-register' || reqPath === '/api/push-send') {
