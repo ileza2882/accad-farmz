@@ -64,7 +64,7 @@ export const HatcheryLoginPage: React.FC<HatcheryLoginPageProps> = ({ user, onLo
         return;
       }
 
-      if (authUser.password && authUser.password !== password && password !== '123456' && password !== 'Password123!') {
+      if (authUser.password && authUser.password !== password) {
         setError('Invalid password. Please verify your Hatchery Manager password.');
         setIsLoading(false);
         return;

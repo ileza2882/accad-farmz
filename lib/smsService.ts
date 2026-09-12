@@ -16,12 +16,23 @@ export interface SmsDispatchResult {
  */
 export function normalizePhoneForTermii(phone: string): string | null {
   if (!phone) return null;
-  const digits = phone.trim().replace(/[^\d+]/g, '');
+  let digits = phone.trim().replace(/[^\d+]/g, '');
   if (!digits) return null;
 
   if (digits.startsWith('+')) {
-    return digits.slice(1);
+    digits = digits.slice(1);
+  } else if (digits.startsWith('00')) {
+    // International dialing prefix (e.g. "00234...") - same meaning as a leading '+'.
+    digits = digits.slice(2);
   }
+
+  // A local number that kept its country code but also its trunk '0' (e.g. "0234801234567",
+  // a common slip when converting from "+234"). A real in-country number is 11 digits total,
+  // so anything longer starting "0234" is that mistake, not a genuine local number.
+  if (digits.startsWith('0234') && digits.length > 11) {
+    digits = digits.slice(1);
+  }
+
   if (digits.startsWith('0') && digits.length === 11) {
     return `234${digits.slice(1)}`;
   }

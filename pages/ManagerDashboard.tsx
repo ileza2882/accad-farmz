@@ -116,8 +116,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user }) => {
         rejectionReport.id,
         ReportStatus.REJECTED_BY_MANAGER,
         rejectionReason.trim(),
-        user.fullName,
-        undefined
+        undefined,
+        undefined,
+        user.fullName
       );
 
       await createAuditLog(

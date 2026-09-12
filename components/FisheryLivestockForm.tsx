@@ -225,8 +225,8 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
         {/* Pond Form Inputs */}
         <div className="p-5 sm:p-7 space-y-6">
 
-          {/* Row 1: Date, Pond Name, Batch, Pond Size */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Row 1: Date, Pond Name, Batch */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
                 Record Date *
@@ -269,20 +269,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
                 className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
               />
             </div>
-
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
-                Pond Size (SQM)
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={pond.pondSizeSqm}
-                onChange={(e) => handlePondChange('pondSizeSqm', e.target.value)}
-                placeholder="e.g. 50"
-                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none transition-all"
-              />
-            </div>
           </div>
 
           {/* Row 2: Fish Quantity & Mortality */}
@@ -316,7 +302,7 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
           </div>
 
           {/* Row 3: Water Conditions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
             <div>
               <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">Water Condition</label>
               <select
@@ -337,7 +323,7 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
               <div className="flex space-x-2">
                 <button
                   type="button"
-                  onClick={() => handleWaterChangedToday(true, pond.waterChangedToday.times || '1')}
+                  onClick={() => handleWaterChangedToday(true)}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
                     pond.waterChangedToday.hasChanged ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
                   }`}
@@ -355,19 +341,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
                 </button>
               </div>
             </div>
-
-            {pond.waterChangedToday.hasChanged && (
-              <div>
-                <label className="block text-[10px] font-extrabold uppercase text-emerald-900 mb-1">How Many Times?</label>
-                <input
-                  type="number"
-                  value={pond.waterChangedToday.times}
-                  onChange={(e) => handleWaterChangedToday(true, e.target.value)}
-                  placeholder="e.g. 1"
-                  className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-                />
-              </div>
-            )}
           </div>
 
           {/* Row 4: Feeding Records */}
@@ -450,42 +423,41 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
             ))}
           </div>
 
-          {/* Row 5: Feeding Response & Photo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feeding Response</label>
-              <select
-                value={pond.feedingResponse}
-                onChange={(e) => handlePondChange('feedingResponse', e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold ${
-                  pond.feedingResponse === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
-                  pond.feedingResponse === 'Slow' ? 'bg-amber-50 text-amber-800 border-amber-300' :
-                  'bg-rose-50 text-rose-800 border-rose-300'
-                }`}
-              >
-                <option value="Active">Active Feeding</option>
-                <option value="Slow">Slow Feeding</option>
-                <option value="Poor">Poor / No Feeding</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Photo Attachment</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handlePhotoUpload(e)}
-                className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 cursor-pointer"
-              />
-              {pond.pondPhoto && (
-                <div className="mt-2">
-                  <img src={pond.pondPhoto} alt="Pond preview" className="w-24 h-16 object-cover rounded-xl border border-slate-200" />
-                </div>
-              )}
-            </div>
+          {/* Row 5: Pond Photo - directly after the feed log it documents */}
+          <div>
+            <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Photo Attachment</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhotoUpload(e)}
+              className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 cursor-pointer"
+            />
+            {pond.pondPhoto && (
+              <div className="mt-2">
+                <img src={pond.pondPhoto} alt="Pond preview" className="w-24 h-16 object-cover rounded-xl border border-slate-200" />
+              </div>
+            )}
           </div>
 
-          {/* Row 6: Pond Specific Notes */}
+          {/* Row 6: Feeding Response */}
+          <div>
+            <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Feeding Response</label>
+            <select
+              value={pond.feedingResponse}
+              onChange={(e) => handlePondChange('feedingResponse', e.target.value)}
+              className={`w-full sm:max-w-xs border rounded-xl px-3 py-2 text-xs font-bold ${
+                pond.feedingResponse === 'Active' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                pond.feedingResponse === 'Slow' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                'bg-rose-50 text-rose-800 border-rose-300'
+              }`}
+            >
+              <option value="Active">Active Feeding</option>
+              <option value="Slow">Slow Feeding</option>
+              <option value="Poor">Poor / No Feeding</option>
+            </select>
+          </div>
+
+          {/* Row 7: Pond Specific Notes */}
           <div>
             <label className="block text-[10px] font-extrabold uppercase text-slate-600 mb-1">
               Pond Observations / Specific Remarks
@@ -501,18 +473,6 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
 
         </div>
 
-      </div>
-
-      {/* General Notes for the Report */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 space-y-2 shadow-sm">
-        <label className="block text-xs font-bold uppercase text-slate-700">Grow-Out General Facility Remarks & Shift Notes</label>
-        <textarea
-          rows={3}
-          value={generalNotes}
-          onChange={(e) => setGeneralNotes(e.target.value)}
-          placeholder="Record overall facility remarks, water treatments, aeration logs, or harvesting schedule notes..."
-          className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl p-4 text-xs font-medium outline-none transition-all"
-        />
       </div>
 
       {/* Final Submit Action Bar */}

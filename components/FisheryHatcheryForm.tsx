@@ -371,6 +371,21 @@ export const FisheryHatcheryForm: React.FC<FisheryHatcheryFormProps> = ({
       return;
     }
     setBatches(batches.filter((_, i) => i !== index));
+
+    // Re-key collapse state so it keeps tracking the same batches after their indices shift down -
+    // otherwise a batch below the removed one inherits whatever collapse state used to live at its
+    // new (lower) index.
+    setCollapsedBatches(prev => {
+      const next: Record<number, boolean> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const i = Number(key);
+        const v = Boolean(value);
+        if (i < index) next[i] = v;
+        else if (i > index) next[i - 1] = v;
+        // i === index: dropped along with the removed batch
+      });
+      return next;
+    });
   };
 
   const handleFieldChange = (index: number, field: keyof FisheryHatcheryBatchData, value: any) => {

@@ -33,6 +33,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
   const [redoingReport, setRedoingReport] = useState<Report | null>(null);
   const [formResetKey, setFormResetKey] = useState(0);
 
+  // Set once a log is accepted, which swaps the whole page for a confirmation screen so the
+  // staff member gets an unambiguous "this was submitted" rather than a banner they may scroll past.
+  const [submittedLog, setSubmittedLog] = useState<{ title: string; wasRedo: boolean } | null>(null);
+
   const fetchUserReports = async () => {
     setLoading(true);
     try {
@@ -379,7 +383,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           `Staff ${user.fullName} redone and resubmitted rejected log "${formatLogName(redoingReport)}" with corrections`
         );
 
-        setSubmitSuccess('Rejected farm log successfully redone and resubmitted! Flagged for Sector Manager & ED review.');
+        setSubmittedLog({ title: effectiveTitle || redoingReport.title, wasRedo: true });
         setRedoingReport(null);
       } else {
         // Standard New Log Submission
@@ -415,7 +419,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
           type: 'info'
         });
 
-        setSubmitSuccess('Farm log successfully submitted! Forms collapsed to clean default state for new entry.');
+        setSubmittedLog({ title: effectiveTitle, wasRedo: false });
       }
 
       setLogTitle('');
@@ -423,10 +427,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
       setFormResetKey(prev => prev + 1);
       setActiveAssetReport(null);
       setActiveLivestockReport(null);
-
-      setTimeout(() => {
-        setSubmitSuccess(null);
-      }, 4000);
+      setActiveHatcheryReport(null);
 
       await fetchUserReports();
 
@@ -437,9 +438,69 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user }) => {
     }
   };
 
+  // Submission confirmation screen - replaces the dashboard until the user acknowledges it.
+  if (submittedLog) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-slate-50/50 font-sans">
+        <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl shadow-xl p-8 sm:p-10 text-center space-y-6 animate-fadeIn">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-700 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+            <CheckCircle2 className="w-11 h-11" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">
+              Form Has Been Submitted
+            </h2>
+            <p className="text-sm text-slate-600 font-medium">
+              {submittedLog.wasRedo
+                ? 'Your corrected log has been resubmitted for review.'
+                : 'Your farm log has been recorded and sent for review.'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 text-left">
+            <div className="flex items-start justify-between gap-3">
+              <span className="text-[10px] font-black uppercase text-slate-400 shrink-0 pt-0.5">Log</span>
+              <span className="text-xs font-bold text-slate-900 text-right">{submittedLog.title}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200">
+              <span className="text-[10px] font-black uppercase text-slate-400">Status</span>
+              <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full">
+                Pending Manager Review
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSubmittedLog(null);
+                setActiveTab('my_logs');
+              }}
+              className="w-full sm:w-auto flex-1 bg-slate-900 hover:bg-black text-white font-black py-3.5 px-6 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all active:scale-95 cursor-pointer"
+            >
+              Return to Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmittedLog(null);
+                setActiveTab('submit_log');
+              }}
+              className="w-full sm:w-auto px-5 py-3.5 rounded-2xl border border-slate-200 text-xs font-extrabold uppercase tracking-wider text-slate-700 hover:bg-slate-50 transition-all active:scale-95 cursor-pointer"
+            >
+              Submit Another Log
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-900 px-3 sm:px-6 lg:px-8 py-4 sm:py-8 w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-8 font-sans overflow-x-hidden">
-      
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 relative overflow-hidden border border-emerald-800/40">
         

@@ -494,10 +494,6 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                  <Send className="w-3 h-3 text-emerald-600 inline shrink-0" />
-                  <span>Onboarding email with login password is dispatched automatically</span>
-                </p>
               </div>
 
               <div>
@@ -515,6 +511,10 @@ export const UserRegistrationModal: React.FC<UserRegistrationModalProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
                   />
                 </div>
+                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
+                  <Send className="w-3 h-3 text-emerald-600 inline shrink-0" />
+                  <span>Onboarding SMS with login password is dispatched here automatically</span>
+                </p>
               </div>
             </div>
 

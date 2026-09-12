@@ -244,6 +244,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
         ReportStatus.REJECTED_BY_ED,
         rejectionReason.trim(),
         rejectionReport.managerApprovedBy,
+        undefined,
         user.fullName
       );
 

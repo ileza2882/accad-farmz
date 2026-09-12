@@ -185,6 +185,9 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
               <span>Rejection Decision Reason:</span>
             </div>
             <p className="font-medium text-slate-700 italic">"{report.rejectionReason}"</p>
+            {report.rejectedBy && (
+              <p className="text-[10px] text-rose-600 font-bold not-italic">Rejected by {report.rejectedBy}</p>
+            )}
           </div>
         )}
       </div>

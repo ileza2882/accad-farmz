@@ -473,6 +473,11 @@ export async function createUser(user: User): Promise<User> {
 
 /**
  * Update user role or status (InsForge DB update)
+ *
+ * At most one of the three .eq() attempts actually matches a row (the record is only ever
+ * addressed by one of email/id/originalId), so most callers only ever see one succeed - that is
+ * normal, not a failure. Only report failure when every attempt actually errored, which means the
+ * database was genuinely unreachable rather than "no row matched this particular column".
  */
 export async function updateUser(emailOrId: string, updates: Partial<User>): Promise<boolean> {
   const currentLocal = getLocalUsers();
@@ -483,30 +488,39 @@ export async function updateUser(emailOrId: string, updates: Partial<User>): Pro
     saveLocalUsers(currentLocal);
   }
 
+  let dbConfirmed = IS_DISCONNECTED_MODE;
+
   if (!IS_DISCONNECTED_MODE) {
     try {
-      await insforge.database
+      const { error: e1 } = await insforge.database
         .from('users')
         .update(updates)
         .eq('email', normalized);
 
-      await insforge.database
+      const { error: e2 } = await insforge.database
         .from('users')
         .update(updates)
         .eq('id', emailOrId);
 
-      await insforge.database
+      const { error: e3 } = await insforge.database
         .from('users')
         .update(updates)
         .eq('originalId', emailOrId);
+
+      // Any single attempt going through without an error means the database accepted the write.
+      dbConfirmed = !e1 || !e2 || !e3;
+      if (!dbConfirmed) {
+        console.warn('InsForge updateUser notice: all update attempts failed', { e1, e2, e3 });
+      }
     } catch (e) {
       console.warn('InsForge updateUser notice:', e);
+      dbConfirmed = false;
     }
   }
 
   notifyUserDirectoryChanged();
 
-  return true;
+  return dbConfirmed;
 }
 
 /**
@@ -730,7 +744,12 @@ export async function completePasswordReset(rawToken: string, newPassword: strin
   }
 
   const resolvedEmail = check.email || '';
-  await updateUser(resolvedEmail, { password: newPassword });
+  const saved = await updateUser(resolvedEmail, { password: newPassword });
+  if (!saved) {
+    // Do not burn the token or log success: the password was never actually written, so the
+    // link must stay usable for a retry rather than looking "used up" with nothing to show for it.
+    return { ok: false, message: 'Could not save your new password - please check your connection and try again.' };
+  }
 
   try {
     await insforge.database
@@ -1126,19 +1145,33 @@ export async function createReport(report: Report): Promise<Report> {
     redoNotes: report.redoNotes || null
   };
 
+  // The database is the only place a manager or the ED can ever see this log. A failed insert
+  // that is merely logged to the console means the staff member is told "submitted" while the
+  // review queue stays empty - which is exactly how every log submitted before the 005 migration
+  // was lost. Fail loudly instead so the submitter knows it did not go through.
   if (!IS_DISCONNECTED_MODE) {
+    let dbError = '';
     try {
       const { data, error } = await insforge.database
         .from('reports')
         .insert([payload])
         .select();
 
-      if (error) console.error('InsForge createReport error:', error);
-      else if (data && data[0]) {
+      if (error) {
+        dbError = (error as any).message || String(error);
+        console.error('InsForge createReport error:', error);
+      } else if (data && data[0]) {
         report.id = data[0].originalId || data[0].id;
       }
-    } catch (e) {
+    } catch (e: any) {
+      dbError = e?.message || 'InsForge database unreachable';
       console.error('Failed creating report in InsForge:', e);
+    }
+
+    if (dbError) {
+      throw new Error(
+        `Could not save this log to the database (${dbError}). It has NOT been submitted for review - please check the connection and try again.`
+      );
     }
   }
 
@@ -1235,17 +1268,20 @@ export async function resubmitReport(
   const resubmissionCount = (existing.resubmissionCount || 0) + 1;
   const previousRejectionReason = existing.rejectionReason || existing.previousRejectionReason || 'Rejection feedback addressed';
 
+  // These fields must be explicitly nulled, not left `undefined`. JSON.stringify drops any key
+  // whose value is undefined, so the SDK's PATCH body would simply omit them - leaving the old
+  // rejection reason and approver names sitting in the database, contradicting the resubmission.
   const updates: Partial<Report> = {
     status: ReportStatus.PENDING_MANAGER,
     isResubmitted: true,
     resubmittedAt: Date.now(),
     resubmissionCount,
     previousRejectionReason,
-    rejectionReason: undefined,
-    rejectedBy: undefined,
-    rejectedAt: undefined,
-    managerApprovedBy: undefined,
-    edApprovedBy: undefined,
+    rejectionReason: null as any,
+    rejectedBy: null as any,
+    rejectedAt: null as any,
+    managerApprovedBy: null as any,
+    edApprovedBy: null as any,
     updatedAt: Date.now(),
     formData: redoPayload.formData !== undefined ? redoPayload.formData : existing.formData,
     title: redoPayload.title || existing.title,
