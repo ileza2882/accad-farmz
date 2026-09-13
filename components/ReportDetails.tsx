@@ -451,7 +451,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                     <img 
                       src={assetData.technicalReport.generatorMeterPhoto} 
                       alt="Generator Meter Photo" 
-                      className="w-full max-w-md h-56 object-cover rounded-2xl border border-slate-200 shadow-sm" 
+                      className="w-full max-w-md max-h-96 object-contain bg-slate-50 rounded-2xl border-2 border-emerald-200 shadow-sm"
                     />
                   </div>
                 )}
@@ -543,8 +543,15 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
 
                   {pond.pondPhoto && (
                     <div className="w-full">
-                      <span className="text-[10px] text-slate-400 font-black uppercase block mb-1">Pond Photo Attachment</span>
-                      <img src={pond.pondPhoto} alt="Pond Photo" className="w-full h-56 object-cover rounded-2xl border border-slate-200 shadow-sm" />
+                      <span className="text-[10px] text-emerald-800 font-black uppercase flex items-center gap-1.5 mb-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Pond Photo Attachment</span>
+                      </span>
+                      <img
+                        src={pond.pondPhoto}
+                        alt="Pond Photo"
+                        className="w-full max-h-96 object-contain bg-slate-50 rounded-2xl border-2 border-emerald-200 shadow-sm"
+                      />
                     </div>
                   )}
                 </div>

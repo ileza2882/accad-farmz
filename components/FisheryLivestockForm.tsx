@@ -424,18 +424,51 @@ export const FisheryLivestockForm: React.FC<FisheryLivestockFormProps> = ({
           </div>
 
           {/* Row 5: Pond Photo - directly after the feed log it documents */}
-          <div>
-            <label className="block text-[10px] font-extrabold uppercase text-slate-500 mb-1">Pond Photo Attachment</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handlePhotoUpload(e)}
-              className="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 cursor-pointer"
-            />
-            {pond.pondPhoto && (
-              <div className="mt-2">
-                <img src={pond.pondPhoto} alt="Pond preview" className="w-24 h-16 object-cover rounded-xl border border-slate-200" />
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-emerald-600" />
+                <span>Pond Photo Attachment</span>
+              </span>
+              {pond.pondPhoto && (
+                <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Photo Attached</span>
+                </span>
+              )}
+            </div>
+
+            {pond.pondPhoto ? (
+              <div className="space-y-2">
+                <img
+                  src={pond.pondPhoto}
+                  alt="Pond attachment"
+                  className="w-full max-h-72 object-contain bg-white rounded-2xl border-2 border-emerald-200 shadow-sm"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-700 cursor-pointer transition-all active:scale-95">
+                    Replace Photo
+                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e)} className="hidden" />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handlePondChange('pondPhoto', '')}
+                    className="px-3.5 py-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 hover:text-rose-700 cursor-pointer transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove</span>
+                  </button>
+                </div>
               </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 w-full py-8 px-4 bg-white border-2 border-dashed border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-2xl cursor-pointer transition-all text-center">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">Tap to Attach Pond Photo</span>
+                <span className="text-[10px] text-slate-500 font-medium">Take or choose a photo of the pond for this log</span>
+                <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e)} className="hidden" />
+              </label>
             )}
           </div>
 
