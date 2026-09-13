@@ -1237,11 +1237,20 @@ export async function updateReportStatus(
   }
 
   if (!IS_DISCONNECTED_MODE) {
+    // Match on both identifier columns. Keying only on originalId meant an approval silently
+    // did nothing on any row where that column is null, leaving the log stuck in the queue with
+    // the reviewer believing they had signed it off.
+    const dbUpdates = mapEpochFieldsForDb(updates);
     try {
       await insforge.database
         .from('reports')
-        .update(mapEpochFieldsForDb(updates))
+        .update(dbUpdates)
         .eq('originalId', reportId);
+
+      await insforge.database
+        .from('reports')
+        .update(dbUpdates)
+        .eq('id', reportId);
     } catch (e) {
       console.warn('InsForge updateReportStatus error:', e);
     }

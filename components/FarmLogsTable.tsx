@@ -188,9 +188,12 @@ export const FarmLogsTable: React.FC<FarmLogsTableProps> = ({
     return 'bg-rose-100 text-rose-800 border-rose-300';
   };
 
+  // Approval is two-stage and strictly ordered: the manager clears PENDING_MANAGER, then the ED
+  // clears PENDING_ED. The ED deliberately cannot approve a log the manager has not vetted yet -
+  // that would collapse both required signatures into one person.
   const canApprove = (report: Report) =>
-    onApprove && ((user.role === Role.MANAGER && report.status === ReportStatus.PENDING_MANAGER) || 
-    (user.role === Role.EXECUTIVE_DIRECTOR && (report.status === ReportStatus.PENDING_ED || report.status === ReportStatus.PENDING_MANAGER)));
+    onApprove && ((user.role === Role.MANAGER && report.status === ReportStatus.PENDING_MANAGER) ||
+    (user.role === Role.EXECUTIVE_DIRECTOR && report.status === ReportStatus.PENDING_ED));
 
   const canReject = (report: Report) =>
     onReject && ((user.role === Role.MANAGER && report.status === ReportStatus.PENDING_MANAGER) || 

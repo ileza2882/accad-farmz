@@ -358,7 +358,7 @@ export function exportLogToPDF(report: Report): void {
           ['Diesel in Generator (Litres)', `${tech.dieselGeneratorLitres || 0} L`],
           ['Diesel in Kegs (Litres)', `${tech.dieselKegsLitres || 0} L`],
           ['Total Available Diesel (Litres)', `${tech.totalDieselAvailable || 0} L`],
-          ['Generator Meter Photo Attached', tech.generatorMeterPhoto ? 'YES (Photo Attached in System)' : 'NO photo attached']
+          ['Photo Attached', tech.generatorMeterPhoto ? 'YES (Photo Attached in System)' : 'NO photo attached']
         ];
 
         autoTable(doc, {
@@ -765,8 +765,8 @@ export function exportLogToWord(report: Report): void {
             </table>
             ${assetData.technicalReport.generatorMeterPhoto ? `
               <div class="photo-box">
-                <strong>Generator Meter Photo Attachment:</strong><br/>
-                <img src="${assetData.technicalReport.generatorMeterPhoto}" alt="Generator Meter Photo" />
+                <strong>Photo Attachment:</strong><br/>
+                <img src="${assetData.technicalReport.generatorMeterPhoto}" alt="Photo Attachment" />
               </div>
             ` : ''}
           ` : ''}

@@ -723,7 +723,7 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider">
-                  Generator Meter Attachment Photo
+                  Photo Attachment
                 </span>
                 {formData.technicalReport.generatorMeterPhoto && (
                   <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -737,7 +737,7 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                 <div className="space-y-2">
                   <img
                     src={formData.technicalReport.generatorMeterPhoto}
-                    alt="Generator meter attachment"
+                    alt="Asset inventory attachment"
                     className="w-full max-h-72 object-contain bg-white rounded-2xl border-2 border-emerald-200 shadow-sm"
                   />
                   <div className="flex flex-wrap items-center gap-2">
@@ -760,8 +760,8 @@ export const FisheryAssetForm: React.FC<FisheryAssetFormProps> = ({
                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
                     <Droplet className="w-6 h-6" />
                   </div>
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-800">Tap to Attach Meter Photo</span>
-                  <span className="text-[10px] text-slate-500 font-medium">Photograph the generator meter reading for this log</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-800">Tap to Attach Photo</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Attach a photo to support this log</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               )}

@@ -419,7 +419,7 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
               </div>
             )}
 
-            {/* Technical Fuel Audit & Meter Photo */}
+            {/* Technical Fuel Audit & Photo */}
             {assetData.technicalReport && (
               <div className="bg-white p-5 rounded-3xl border border-slate-200 space-y-4">
                 <div className="flex items-center space-x-2 text-slate-900 font-black uppercase text-xs border-b border-slate-100 pb-3">
@@ -446,11 +446,11 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ report }) => {
                   <div className="pt-2 border-t border-slate-100">
                     <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 mb-2">
                       <ImageIcon className="w-4 h-4 text-emerald-600" />
-                      <span>Generator Meter Attachment Photo:</span>
+                      <span>Photo Attachment:</span>
                     </div>
                     <img 
                       src={assetData.technicalReport.generatorMeterPhoto} 
-                      alt="Generator Meter Photo" 
+                      alt="Photo Attachment" 
                       className="w-full max-w-md max-h-96 object-contain bg-slate-50 rounded-2xl border-2 border-emerald-200 shadow-sm"
                     />
                   </div>

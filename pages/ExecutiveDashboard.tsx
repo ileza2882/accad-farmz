@@ -194,13 +194,24 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
   };
 
   const handleEDApprove = async (report: Report) => {
+    // A log needs both signatures: the sector manager vets it first, the ED authorises it second.
+    // Approving straight from PENDING_MANAGER used to skip the manager AND write the ED's own name
+    // into managerApprovedBy, manufacturing a first-stage approval that never happened.
+    if (report.status !== ReportStatus.PENDING_ED) {
+      alert(
+        `This log has not been vetted by the Sector Manager yet, so it cannot receive final ED authorisation.\n\n` +
+        `Current status: ${report.status.replace(/_/g, ' ')}.`
+      );
+      return;
+    }
+
     setIsActionProcessing(true);
     try {
       await updateReportStatus(
         report.id,
         ReportStatus.APPROVED,
         undefined,
-        report.managerApprovedBy || user.fullName,
+        report.managerApprovedBy,
         user.fullName
       );
 
@@ -1357,24 +1368,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ user }) 
                         <Eye className="w-4 h-4" />
                       </button>
 
+                      {/* No ED approve action here on purpose: this log is still awaiting the
+                          Sector Manager's vetting, and both signatures are required. The ED can
+                          still veto it outright, which forges nobody's approval. */}
                       <button
                         onClick={() => setRejectionReport(r)}
                         className="flex items-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Reject</span>
-                      </button>
-                      <button
-                        onClick={() => handleEDApprove(r)}
-                        disabled={isActionProcessing}
-                        className="flex items-center space-x-1 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 cursor-pointer"
-                      >
-                        {isActionProcessing ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5" />
-                        )}
-                        <span>Direct ED Approve</span>
                       </button>
                     </div>
                   </div>
